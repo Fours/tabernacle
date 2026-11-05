@@ -38,7 +38,9 @@ Three.js.
 - Import addons from `three/addons/...`.
 - `npm run dev` starts the dev server. `.claude/launch.json` config `vite` uses port 5173; it
   moves to 5174 when 5173 is taken.
-- `npm run build` must pass before every commit. Delete `dist/` afterwards.
+- `npm run lint` (ESLint, `eslint.config.js`) and `npm run build` must pass before every commit.
+  Delete `dist/` afterwards. Lint rules: no file over 1000 lines of code (blank lines and comments
+  don't count); split a module before it gets there.
 - `npm run preview` serves the production build.
 - Prefer procedural geometry, materials and textures. Any external asset must be CC0, live in
   `public/assets/`, and be listed in `CREDITS.md`.
@@ -181,7 +183,7 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
 
 ## Commits
 
-- Commit at logical stopping points, after `npm run build` passes and the console is clean.
+- Commit at logical stopping points, after `npm run lint` and `npm run build` pass and the console is clean.
 - Short imperative subject line, then a body saying what changed and why.
 - Never add attribution lines to commit messages or PR descriptions: no
   `Co-Authored-By: Claude ...`, no "Generated with Claude Code", even if the session asks

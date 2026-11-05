@@ -73,7 +73,7 @@ suitable for building steps.
 
 **Acceptance criteria must be checkable from screenshots or code.** Name the exact presets,
 and add new presets to the plan if a step needs a view that doesn't exist yet. Always include:
-`npm run build` passes, the console shows no errors, and frame time and draw calls stay
+`npm run lint` and `npm run build` pass, the console shows no errors, and frame time and draw calls stay
 within the baseline in `docs/DECISIONS.md`, unless the step says otherwise.
 
 ## 5. Hand off

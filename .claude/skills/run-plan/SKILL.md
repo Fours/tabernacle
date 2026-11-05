@@ -26,7 +26,7 @@ step and ask before starting the next.
    step's `model` and `effort`. Use the brief template below.
 4. **Verify independently** when it reports back. Its report is a claim, not proof.
    - Run `git log --oneline` and `git status`. The work should be committed and the tree clean.
-   - Run `npm run build`, then `rm -rf dist`.
+   - Run `npm run lint` and `npm run build`, then `rm -rf dist`.
    - Screenshot the acceptance presets yourself at `scale: 0.5`, with real night lighting
      unless the criteria say `light=work`.
    - Check `read_console_messages` with `onlyErrors`. Errors from mid-edit hot reloads can
@@ -71,7 +71,7 @@ The dev server is at <URL> (hot reload). If it's unreachable, run `npm run dev -
 Use the built-in browser tools (mcp__Claude_Browser__*; load their schemas with ToolSearch if they're deferred). Take screenshots at scale 0.5.
 Acceptance:
 1. <criteria with named presets>
-2. No console errors; `npm run build` passes; report draw calls and frame time (time renders through window.__tabernacle.composer — the hidden pane throttles requestAnimationFrame).
+2. No console errors; `npm run lint` and `npm run build` pass; report draw calls and frame time (time renders through window.__tabernacle.composer — the hidden pane throttles requestAnimationFrame).
 
 ## Commits
 Commit at logical stopping points; the build must pass before each commit. End each commit message with the attribution line from the session's system reminder. Don't push, and don't tick the plan checkbox (the orchestrator does that).
