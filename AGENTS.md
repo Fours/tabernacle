@@ -73,6 +73,7 @@ src/
     firewood.js         log stack + coals with glowing cracks
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)
     torches.js          torch posts, wrapped heads, small fires and lights
+    pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
     tabernacle.js       boards, sockets, bars, entrance pillars + screen
     tentCoverings.js    goat hair drape, ram skins, tachash, clasps
     laver.js            bronze basin on a stand
@@ -107,7 +108,7 @@ src/
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 72–103
   times per frame (interior views 75–85).
-- **Light budget:** 11 point lights (altar fire + fill, 8 torches, the menorah), and only one
+- **Light budget:** 12 point lights (altar fire + fill, 8 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials, and bloom picks up values above 2.0.
 - **Interior mask:** `interiorLight.js` patches every `MeshStandardMaterial` so exterior lights,
@@ -136,7 +137,7 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `ark`,
   `holyofholies`
-- **Torches and sky:** `torch`, `sky`
+- **Torches and sky:** `torch`, `sky`, `firepillar` (the pillar of fire and its shaft from the courtyard)
 - **First person:** `walk`
 
 Add presets when a task needs a new view.

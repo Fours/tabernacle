@@ -313,3 +313,17 @@ export const TORCHES = {
     { x: -54, z: 28, light: false },
   ],
 };
+
+// Pillar of fire over the tent by night (Num 9:15-16). The text gives no size: everything here
+// except its position is artistic license, in METERS. Centered over the Holy of Holies.
+export const PILLAR_OF_FIRE = {
+  x: -25, // cubits (middle of the Holy of Holies)
+  z: 0, // cubits
+  baseY: 4.75, // m, just above the roof coverings' top (~4.45-4.6 m); soft fade-in above it
+  columnHeight: 10, // m, the fire itself
+  columnRadius: 1.45, // m, Gaussian radius of the fire's density
+  shaftHeight: 52, // m, the yellowish light above the fire, fading into the sky
+  shaftRadius: 1.9, // m at its foot, widening upward
+  shaftSpread: 0.035, // radius gained per meter of height
+  light: { color: 0xffb35a, intensity: 60, decay: 1.6, y: 1.8 }, // cd; y: m above baseY (~6.5 m, above the interior box); no shadow
+};

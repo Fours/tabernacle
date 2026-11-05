@@ -6,7 +6,7 @@ import * as THREE from 'three';
 //
 // Used by the altar (large, shadow-casting) and meant for the torches (small, no shadows).
 
-const NOISE_GLSL = /* glsl */ `
+export const NOISE_GLSL = /* glsl */ `
 float fHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float fNoise(vec2 p) {
   vec2 i = floor(p), f = fract(p);
@@ -36,7 +36,7 @@ vec4 billboard(vec3 center, vec2 corner, float size, float stretch) {
 `;
 
 // Fog for additive sprites: fade toward black (adding the fog color would brighten them).
-const FOG_ADDITIVE_GLSL = /* glsl */ `
+export const FOG_ADDITIVE_GLSL = /* glsl */ `
 #include <fog_pars_fragment>
 float fogAmount() {
 #ifdef USE_FOG

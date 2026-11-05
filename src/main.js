@@ -12,6 +12,7 @@ import { createMenorah } from './scene/menorah.js';
 import { createShowbread } from './scene/showbread.js';
 import { createIncenseAltar } from './scene/incenseAltar.js';
 import { createArk } from './scene/ark.js';
+import { createPillarOfFire } from './scene/pillarOfFire.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { TABERNACLE as T, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
@@ -55,7 +56,8 @@ const torches = createTorches();
 const menorah = createMenorah();
 const tabernacle = createTabernacle();
 const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
-const elements = [createGround(), createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings];
+const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holies
+const elements = [createGround(), createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
@@ -172,7 +174,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe,
+  updateInteriorVisibility, probe, pillarOfFire,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

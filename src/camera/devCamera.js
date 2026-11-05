@@ -53,6 +53,9 @@ export const PRESETS = {
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },
   // Eye level near the walk spawn (its old spot, z = 2.5 cubits), looking up ~42 degrees toward the north-west (Milky Way).
   sky: { pos: [m(hx + 15), eye, m(COURTYARD.pillarSpacing / 2)], target: [m(hx - 15), m(24), m(-14)], fov: 70 },
+  // Wide view from inside the courtyard's south-east, looking up past the altar at the tent and
+  // the full pillar of fire with its shaft of light fading into the sky.
+  firepillar: { pos: [m(45), eye, m(20)], target: [m(-25), 22, 0], fov: 75 },
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {
