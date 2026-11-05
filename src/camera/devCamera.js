@@ -35,6 +35,8 @@ export const PRESETS = {
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },
+  // Eye level at the walk spawn, looking up ~42 degrees toward the north-west (Milky Way).
+  sky: { pos: [m(hx + 15), eye, m(COURTYARD.pillarSpacing / 2)], target: [m(hx - 15), m(24), m(-14)], fov: 70 },
   // Same spot as the first-person spawn: outside the gate, facing west, lined up with the
   // gap between the middle gate pillar (z = 0) and the next one (z = +5 cubits).
   walk: {

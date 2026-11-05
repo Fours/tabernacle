@@ -8,6 +8,7 @@ import { createLaver } from './scene/laver.js';
 import { createTorches } from './scene/torches.js';
 import { createAltarFire } from './scene/altarFire.js';
 import { createLighting } from './scene/lighting.js';
+import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
 import { createDebug } from './debug/overlay.js';
@@ -31,10 +32,11 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 // Several passes per frame: count draw calls for the whole frame (reset in the loop).
 renderer.info.autoReset = false;
 
+const FOG_COLOR = 0x0b0f1c;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070f);
 // Thin cool night haze: depth on the far hangings and the desert fading into the dark.
-scene.fog = new THREE.FogExp2(0x0b0f1c, 0.012);
+scene.fog = new THREE.FogExp2(FOG_COLOR, 0.012);
 scene.environment = createNightEnvironment(renderer);
 scene.environmentIntensity = 0.35;
 
@@ -53,6 +55,8 @@ for (const g of elements) {
   colliders.push(...(g.userData.colliders || []));
   if (g.userData.update) updaters.push(g.userData.update);
 }
+const sky = createSky({ fogColor: FOG_COLOR });
+scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
 // The altar's firelight bounce (materials.js addFireBounce) flickers with the fire.
 updaters.push(() => {
@@ -94,6 +98,7 @@ renderer.setAnimationLoop((time) => {
   const dt = timer.getDelta();
   const t = timer.getElapsed();
   rig.update(dt);
+  sky.userData.update(camera, t);
   for (const update of updaters) update(dt, t);
   renderer.info.reset();
   fx.render(t);
