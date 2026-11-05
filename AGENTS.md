@@ -268,7 +268,7 @@ has checked and committed it.
   Optional utensils nearby. Optional laver detail.
   *Accept when:* the `altar` view matches every item in the altar spec.
 
-- [ ] **Step 4: Tabernacle tent in detail.**
+- [x] **Step 4: Tabernacle tent in detail.**
   Gold-overlaid boards on silver sockets, the bars, the entrance screen on 5 gold-overlaid
   pillars with bronze sockets, and the layered coverings (goat hair visible as the main outer
   curtain under the ram skin and tachash top covering, draping as specified). The flat roof.
@@ -344,3 +344,16 @@ Record interpretive or technical choices here (date, decision, reason).
   human-scale bronze basin on a foot and stem, rim ≈ 0.9 m.
 - 2026-11-05: Step 7 notes: altar bronze seam texture reads a bit brick-like; horns read as
   thin spikes from some angles — soften/thicken when refining materials.
+- 2026-11-05: Boards sit in 1-cubit silver sockets (tenons, Rashi on 26:17); walls stay
+  10 cubits tall. West wall = 6 boards + 2 corner boards covering the side walls' ends.
+- 2026-11-05: All 5 bars per wall shown outside the boards on gold rings (top/bottom rows are
+  two half-length bars; middle bar full length).
+- 2026-11-05: Entrance pillars stand at x = +0.4 cubits, z = −5…+5; screen hangs from gold
+  hooks on their inner side.
+- 2026-11-05: Goat-hair side hem at 1.55 cubits (not 1) so the gold boards show above the
+  sockets; back hem 0.15 cubit; doubled sixth curtain shown as a 2-cubit front flap; clasp line
+  of 50 bronze clasps at x ≈ −21 cubits. Inner linen covering not modelled (invisible outside).
+- 2026-11-05: Ram skins (red) and tachash cover the roof only; ram skins droop ~1 cubit over the
+  edges, tachash inset 0.6 cubit. 18 bronze tent pins with cords (Ex 35:18), non-colliding.
+- 2026-11-05: Step 7 notes: tachash roof reads like grey cobblestones; goat-hair weave and skins
+  tile too regularly up close.
