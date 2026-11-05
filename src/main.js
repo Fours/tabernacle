@@ -11,7 +11,9 @@ import { createLighting } from './scene/lighting.js';
 import { createMenorah } from './scene/menorah.js';
 import { createShowbread } from './scene/showbread.js';
 import { createIncenseAltar } from './scene/incenseAltar.js';
+import { createArk } from './scene/ark.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
+import { TABERNACLE as T, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
@@ -51,7 +53,9 @@ const altar = createAltar();
 const altarFire = createAltarFire(altar.userData.hearth);
 const torches = createTorches();
 const menorah = createMenorah();
-const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches, menorah, createShowbread(), createIncenseAltar()];
+const tabernacle = createTabernacle();
+const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
+const elements = [createGround(), createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
@@ -66,10 +70,32 @@ scene.add(createLighting({ work: params.light === 'work' }));
 // Keep exterior lights, sky fill and the night environment out of the tent, and the menorah's
 // light in (scene/interiorLight.js). Patches every lit material, so call after assembly.
 applyInteriorMask(scene);
+if (params.light === 'work') INTERIOR.uIlHoh.value = 1; // light the Holy of Holies for inspection
 // The altar's firelight bounce (materials.js addFireBounce) flickers with the fire.
 updaters.push(() => {
   altar.userData.bounce.value = 1 + 0.25 * altarFire.userData.fire.level;
 });
+
+// The furnishings and the veil can't be seen from outside the tent (its walls, roof and
+// entrance screen are opaque), so hide their meshes while the camera is outside. Only meshes
+// are toggled: the menorah's light stays on (toggling a light recompiles every shader).
+const interiorMeshes = [
+  ...tabernacle.userData.interior,
+  ...furnishings.flatMap((g) => g.children.filter((o) => !o.isLight)),
+];
+const INSIDE = {
+  x0: m(T.interiorMinX) - 0.3, x1: m(T.interiorMaxX) + 0.6, // a little past the entrance screen
+  z: m(T.interiorWidth / 2) + 0.3,
+  y: m(T.interiorHeight) + 0.3,
+};
+let interiorShown = null;
+function updateInteriorVisibility() {
+  const p = camera.position;
+  const inside = p.x > INSIDE.x0 && p.x < INSIDE.x1 && Math.abs(p.z) < INSIDE.z && p.y < INSIDE.y;
+  if (inside === interiorShown) return;
+  interiorShown = inside;
+  for (const o of interiorMeshes) o.visible = inside;
+}
 
 // Camera mode
 let rig;
@@ -96,6 +122,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
+  updateInteriorVisibility,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 
@@ -106,6 +133,7 @@ renderer.setAnimationLoop((time) => {
   const dt = timer.getDelta();
   const t = timer.getElapsed();
   rig.update(dt);
+  updateInteriorVisibility();
   sky.userData.update(camera, t);
   for (const update of updaters) update(dt, t);
   renderer.info.reset();

@@ -238,5 +238,7 @@ export function createTabernacle() {
     ...veil.colliders,
   ];
   group.userData.colliders = colliders;
+  // Interior meshes main.js hides while the camera is outside the tent.
+  group.userData.interior = [veil.mesh];
   return group;
 }

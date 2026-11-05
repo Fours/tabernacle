@@ -231,6 +231,35 @@ export const INCENSE_ALTAR = {
   panRadius: 0.27, // gold firepan holding the coals (not in text)
 };
 
+// Ark and mercy seat (Ex 25:10-22; 37:1-9). The 2.5 x 1.5 x 1.5 cubit chest, the crown, the
+// four rings on its feet, the poles that stay in the rings and the 2.5 x 1.5 cubit mercy seat
+// with two cherubim of one piece with it are in the text; the rest is reconstruction. Centered
+// in the Holy of Holies (26:34), long axis N-S, poles E-W with their ends toward the veil
+// (1 Kgs 8:8).
+export const ARK = {
+  x: -25,
+  z: 0,
+  length: 2.5, // N-S
+  width: 1.5, // E-W
+  height: 1.5, // top rim of the chest, feet included (not specified in the text)
+  hb: 1 / 6, // handbreadth in cubits
+  mercySeat: 1, // hb: thickness of the kapporet (rabbinic tradition, Sukkah 5a)
+  footHeight: 0.14, // short square feet at the corners (not in text)
+  footSize: 0.24, // not in text
+  crownWidth: 0.07, // the crown (zer) projects this far from the sides (not in text)
+  crownBelow: 0.12, // the crown reaches this far below the rim (not in text)
+  crownLip: 0.04, // and stands this far above the mercy seat (not in text)
+  ringRadius: 0.1, // gold rings on the feet (not in text)
+  ringTube: 0.024, // not in text
+  ringHeight: 0.26, // ring centers above the floor (not in text)
+  ringInset: 0.2, // ring centers in from the E and W faces (not in text)
+  poleRadius: 0.065, // acacia overlaid with gold (not in text)
+  poleEast: 3.4, // pole ends, east and west of the ark's center: ends stay clear of the veil
+  poleWest: 3.4, //   pillars at x = -20.45 (not in text)
+  cherubHeight: 10, // hb: cherubim to the wing tips above the mercy seat (Sukkah 5b)
+  cherubKnees: 2.9, // hb in from each end of the mercy seat to the figures' knees (not in text)
+};
+
 // Non-biblical: human / player values, in meters.
 export const PLAYER = {
   eyeHeight: 1.6,

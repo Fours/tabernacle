@@ -27,7 +27,6 @@ const BOX = {
   yT: m(T.interiorHeight),
   veilX: m(T.veil.x),
 };
-const HOH_LEAK = 0.05; // fraction of the menorah's light and room ambient west of the veil
 const SPILL = 0.3; // cool sky/moon/env fraction at the entrance, fading out 1.5 m in
 
 /** Shared uniforms; menorah.js drives them each frame. */
@@ -41,6 +40,9 @@ export const INTERIOR = {
   uIlMetalRough: { value: 0.45 }, // minimum roughness of metals inside
   uIlMetalDiffuse: { value: 0.65 }, // diffuse fraction given to metals inside
   uIlTint: { value: 1.0 }, // how much room reflections on metal take the metal's color
+  // Fraction of the menorah's light and room ambient west of the veil: just enough for the ark
+  // to show as a faint gold glint. `?light=work` sets it to 1 so the ark can be inspected.
+  uIlHoh: { value: 0.08 },
 };
 
 const f = (v) => v.toFixed(4);
@@ -55,6 +57,7 @@ uniform float uIlUp;
 uniform float uIlMetalRough;
 uniform float uIlMetalDiffuse;
 uniform float uIlTint;
+uniform float uIlHoh;
 vec3 ilToWorld(vec3 viewPos) { return ((vec4(viewPos, 1.0) - viewMatrix[3]) * viewMatrix).xyz; }
 // Soft inside-ness of a world point (1 inside the tent's interior box, 0 outside).
 float ilInside(vec3 p) {
@@ -75,7 +78,7 @@ vec3 ilW = ilToWorld(geometryPosition);
 vec3 ilP = ilW + inverseTransformDirection(geometryNormal, viewMatrix) * ${f(NORMAL_PUSH)};
 float ilIn = ilInside(ilP);
 // Interior lights: full in the Holy Place, a small leak behind the veil.
-float ilInterior = ilIn * mix(${f(HOH_LEAK)}, 1.0, smoothstep(${f(BOX.veilX - 0.05)}, ${f(BOX.veilX + 0.05)}, ilP.x));
+float ilInterior = ilIn * mix(uIlHoh, 1.0, smoothstep(${f(BOX.veilX - 0.05)}, ${f(BOX.veilX + 0.05)}, ilP.x));
 // Exterior point lights (altar, torches): none inside.
 float ilExterior = 1.0 - ilIn;
 // Cool sky (moon, hemisphere, environment): a faint spill just inside the entrance.

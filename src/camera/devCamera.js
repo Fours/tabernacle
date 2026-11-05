@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { COURTYARD, ALTAR, TABERNACLE, MENORAH, SHOWBREAD, INCENSE_ALTAR, m, PLAYER } from '../config/dimensions.js';
+import { COURTYARD, ALTAR, TABERNACLE, MENORAH, SHOWBREAD, INCENSE_ALTAR, ARK, m, PLAYER } from '../config/dimensions.js';
 
 const eye = PLAYER.eyeHeight;
 const hx = COURTYARD.length / 2; // cubits
@@ -44,6 +44,10 @@ export const PRESETS = {
   table: { pos: [m(SHOWBREAD.x + 2.2), m(2.2), m(SHOWBREAD.z + 2.6)], target: [m(SHOWBREAD.x), m(0.85), m(SHOWBREAD.z)], fov: 50 },
   // Close three-quarter view of the altar of incense from the east and slightly north, above.
   incense: { pos: [m(INCENSE_ALTAR.x + 3.2), m(2.7), m(INCENSE_ALTAR.z + 1.5)], target: [m(INCENSE_ALTAR.x), m(1.8), m(INCENSE_ALTAR.z)], fov: 55 },
+  // Close three-quarter view of the ark and cherubim from the south-east, a little above.
+  ark: { pos: [m(ARK.x + 3.9), m(3.7), m(ARK.z + 3.3)], target: [m(ARK.x), m(2), m(ARK.z)], fov: 50 },
+  // Just west of the veil (between its middle pillars) at eye height, looking west at the ark.
+  holyofholies: { pos: [m(TABERNACLE.veil.x - 1.3), eye, 0], target: [m(ARK.x), m(1.8), 0], fov: 62 },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },
