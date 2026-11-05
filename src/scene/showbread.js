@@ -75,49 +75,334 @@ const rng = (seed) => {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 };
 
-/** A flat, pillowy loaf: squircle outline, softened rims, slight dome. Centered on its base. */
+// ---- Crust textures --------------------------------------------------------------------------
+
+const TILE = 0.36; // meters of loaf surface per texture tile (a bit more than a loaf's length)
+const sstep = (a, b, x) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const mix3 = (out, a, b, t) => {
+  out[0] = a[0] + (b[0] - a[0]) * t;
+  out[1] = a[1] + (b[1] - a[1]) * t;
+  out[2] = a[2] + (b[2] - a[2]) * t;
+};
+
+/** Seamlessly tiling fractal value noise, 0..1, as a Float32Array(size*size). */
+function tileFbm(size, basePeriod, octaves, seed) {
+  const out = new Float32Array(size * size);
+  const r = rng(seed);
+  let amp = 1, total = 0;
+  const idx0 = new Int32Array(size), idx1 = new Int32Array(size), wt = new Float32Array(size);
+  for (let o = 0; o < octaves; o++) {
+    const period = basePeriod * (1 << o);
+    const grid = new Float32Array(period * period);
+    for (let i = 0; i < grid.length; i++) grid[i] = r();
+    const k = period / size;
+    for (let i = 0; i < size; i++) {
+      const f = i * k, i0 = Math.floor(f), t = f - i0;
+      idx0[i] = i0 % period;
+      idx1[i] = (i0 + 1) % period;
+      wt[i] = t * t * (3 - 2 * t);
+    }
+    for (let y = 0; y < size; y++) {
+      const ra = idx0[y] * period, rb = idx1[y] * period, ty = wt[y], row = y * size;
+      for (let x = 0; x < size; x++) {
+        const a = grid[ra + idx0[x]], b = grid[ra + idx1[x]];
+        const c = grid[rb + idx0[x]], d = grid[rb + idx1[x]];
+        const tx = wt[x];
+        out[row + x] += amp * ((a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty);
+      }
+    }
+    total += amp;
+    amp *= 0.5;
+  }
+  for (let i = 0; i < out.length; i++) out[i] /= total;
+  return out;
+}
+
+/**
+ * Baked crust, tileable: a colour map (browning from golden to brown, pale under-baked
+ * patches, scorched and charred spots, blisters, cracks, docking pits, a flour dusting) and a
+ * data map with the crust height in R (for bump) and roughness in G. The loaves sample it at
+ * a different offset, rotation and mirroring each. The edge browning lives in vertex colours.
+ */
+function createBreadTextures(size = 768) {
+  const rnd = rng(77);
+  const mott = tileFbm(size, 3, 4, 101);
+  const scorchF = tileFbm(size, 4, 4, 202);
+  const charF = tileFbm(size, 5, 4, 303);
+  const grain = tileFbm(size, 128, 2, 404);
+  const heightF = tileFbm(size, 6, 5, 505);
+
+  const mk = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    return c;
+  };
+  const cc = mk(), hc = mk();
+  const g = cc.getContext('2d'), h = hc.getContext('2d');
+
+  // Base colour and height from the noise fields.
+  const GOLD_C = [238, 184, 104], BROWN_C = [178, 110, 48], PALE_C = [240, 208, 146];
+  const SCORCH_C = [74, 40, 16], CHAR_C = [30, 17, 9];
+  const ci = g.createImageData(size, size), hi = h.createImageData(size, size);
+  const px = [0, 0, 0];
+  for (let i = 0; i < size * size; i++) {
+    const m = mott[i], gr = grain[i];
+    mix3(px, GOLD_C, BROWN_C, sstep(0.36, 0.62, m));
+    mix3(px, px, PALE_C, sstep(0.4, 0.3, m) * 0.4);
+    const sc = sstep(0.655, 0.75, scorchF[i]) * (0.6 + 0.4 * sstep(0.35, 0.65, gr));
+    mix3(px, px, SCORCH_C, sc * 0.8);
+    const ch = sstep(0.72, 0.77, charF[i]) * (0.7 + 0.3 * sstep(0.3, 0.7, gr));
+    mix3(px, px, CHAR_C, ch);
+    const f = 0.92 + 0.16 * gr;
+    ci.data[i * 4] = px[0] * f;
+    ci.data[i * 4 + 1] = px[1] * f;
+    ci.data[i * 4 + 2] = px[2] * f;
+    ci.data[i * 4 + 3] = 255;
+    const hv = 0.5 + (heightF[i] - 0.5) * 1.1 + (gr - 0.5) * 0.25 - sc * 0.06 + ch * 0.05 * (gr - 0.5) * 4;
+    const k = Math.max(0, Math.min(255, hv * 255));
+    hi.data[i * 4] = hi.data[i * 4 + 1] = hi.data[i * 4 + 2] = k;
+    hi.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(ci, 0, 0);
+  h.putImageData(hi, 0, 0);
+
+  // Features are drawn on both colour and height; `wrap` repeats a stamp across tile edges.
+  const wrap = (cx, cy, r, fn) => {
+    for (const dx of [-size, 0, size]) {
+      for (const dy of [-size, 0, size]) {
+        const x = cx + dx, y = cy + dy;
+        if (x + r > 0 && x - r < size && y + r > 0 && y - r < size) fn(x, y);
+      }
+    }
+  };
+  const radial = (ctx, x, y, r, stops) => {
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+    for (const [t, c] of stops) gr.addColorStop(t, c);
+    ctx.fillStyle = gr;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Blisters: raised bubbles, some with a scorched cap, some burst to show the paler crumb.
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * size, y = rnd() * size, r = 7 + Math.pow(rnd(), 1.6) * 30, kind = rnd();
+    wrap(x, y, r * 1.4, (cx, cy) => {
+      radial(h, cx, cy, r * 1.25, [[0, 'rgba(255,255,255,0.85)'], [0.7, 'rgba(255,255,255,0.35)'], [1, 'rgba(255,255,255,0)']]);
+      h.strokeStyle = 'rgba(0,0,0,0.2)';
+      h.lineWidth = Math.max(1, r * 0.2);
+      h.beginPath();
+      h.arc(cx, cy, r * 1.2, 0, Math.PI * 2);
+      h.stroke();
+      if (kind < 0.45) { // scorched cap
+        radial(g, cx, cy, r * 0.9, [[0, 'rgba(48,24,9,0.8)'], [0.6, 'rgba(70,36,14,0.5)'], [1, 'rgba(70,36,14,0)']]);
+      } else if (kind < 0.8) { // pale, thin-skinned blister
+        radial(g, cx, cy, r, [[0, 'rgba(244,214,150,0.5)'], [0.7, 'rgba(236,196,128,0.25)'], [1, 'rgba(236,196,128,0)']]);
+        g.strokeStyle = 'rgba(90,50,20,0.18)';
+        g.lineWidth = Math.max(1, r * 0.12);
+        g.beginPath();
+        g.arc(cx + r * 0.1, cy + r * 0.1, r * 1.1, 0.2, 2.4);
+        g.stroke();
+      } else { // burst
+        radial(g, cx, cy, r * 0.7, [[0, 'rgba(236,200,140,0.9)'], [1, 'rgba(236,200,140,0)']]);
+        g.strokeStyle = 'rgba(55,28,10,0.7)';
+        g.lineWidth = Math.max(1.2, r * 0.14);
+        g.beginPath();
+        g.arc(cx, cy, r * 0.75, 0.4, 5.6);
+        g.stroke();
+        h.fillStyle = 'rgba(0,0,0,0.5)';
+        h.beginPath();
+        h.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
+        h.fill();
+      }
+    });
+  }
+
+  // Cracks: wandering dark fissures, some with the pale crumb showing along one lip.
+  for (let i = 0; i < 26; i++) {
+    let x = rnd() * size, y = rnd() * size, a = rnd() * Math.PI * 2;
+    const n = 8 + Math.floor(rnd() * 22), w = 1 + rnd() * 1.8, crumb = rnd() < 0.4;
+    const pts = [[x, y]];
+    for (let k = 0; k < n; k++) {
+      a += (rnd() - 0.5) * 0.9;
+      x += Math.cos(a) * 6;
+      y += Math.sin(a) * 6;
+      pts.push([x, y]);
+    }
+    for (const dx of [-size, 0, size]) {
+      for (const dy of [-size, 0, size]) {
+        const stroke = (ctx, style, lw, ox = 0, oy = 0) => {
+          ctx.strokeStyle = style;
+          ctx.lineWidth = lw;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          pts.forEach(([px_, py_], k) => (k ? ctx.lineTo(px_ + dx + ox, py_ + dy + oy) : ctx.moveTo(px_ + dx + ox, py_ + dy + oy)));
+          ctx.stroke();
+        };
+        if (crumb) stroke(g, 'rgba(238,204,140,0.35)', w * 1.6, 1.5, -1.5);
+        stroke(g, 'rgba(46,24,9,0.85)', w);
+        stroke(h, 'rgba(0,0,0,0.45)', w * 2.6);
+        stroke(h, 'rgba(0,0,0,0.9)', w);
+      }
+    }
+  }
+
+  // Docking pits (flat bread is pricked before baking) and a few tiny air-holes.
+  for (let i = 0; i < 140; i++) {
+    const x = rnd() * size, y = rnd() * size, r = 1.3 + rnd() * 2;
+    wrap(x, y, r * 2, (cx, cy) => {
+      radial(g, cx, cy, r * 1.6, [[0, 'rgba(34,17,6,0.85)'], [0.6, 'rgba(60,30,10,0.45)'], [1, 'rgba(60,30,10,0)']]);
+      radial(h, cx, cy, r * 1.8, [[0, 'rgba(0,0,0,0.9)'], [1, 'rgba(0,0,0,0)']]);
+    });
+  }
+
+  // Flour: broad faint smudges and many fine specks.
+  for (let i = 0; i < 40; i++) {
+    const x = rnd() * size, y = rnd() * size, r = 25 + rnd() * 70, a = 0.05 + rnd() * 0.1;
+    wrap(x, y, r, (cx, cy) => radial(g, cx, cy, r, [[0, `rgba(250,242,226,${a})`], [1, 'rgba(250,242,226,0)']]));
+  }
+  for (let i = 0; i < 5200; i++) {
+    const x = rnd() * size, y = rnd() * size, r = 0.5 + Math.pow(rnd(), 3) * 2.2, a = 0.15 + rnd() * 0.45;
+    wrap(x, y, r, (cx, cy) => {
+      g.fillStyle = `rgba(252,245,230,${a})`;
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.fill();
+    });
+  }
+
+  // Pack height (R) and roughness (G) into one data map. Roughness follows the colour:
+  // matte flour and pale crumb, slightly glossier where the crust is toasted dark.
+  const cd = g.getImageData(0, 0, size, size).data, hd = h.getImageData(0, 0, size, size).data;
+  const dc = mk(), d = dc.getContext('2d');
+  const di = d.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    const r = cd[i * 4] / 255, gg = cd[i * 4 + 1] / 255, b = cd[i * 4 + 2] / 255;
+    const lum = 0.3 * r + 0.59 * gg + 0.11 * b;
+    const mx = Math.max(r, gg, b), sat = mx > 0 ? (mx - Math.min(r, gg, b)) / mx : 0;
+    const flour = sstep(0.8, 0.9, lum) * sstep(0.4, 0.2, sat);
+    const rough = Math.min(1, 0.93 - 0.22 * sstep(0.42, 0.12, lum) + 0.06 * flour);
+    di.data[i * 4] = hd[i * 4];
+    di.data[i * 4 + 1] = rough * 255;
+    di.data[i * 4 + 2] = 255;
+    di.data[i * 4 + 3] = 255;
+  }
+  d.putImageData(di, 0, 0);
+
+  const finish = (canvas, srgb) => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  };
+  return { map: finish(cc, true), data: finish(dc, false) };
+}
+
+// ---- Loaves ----------------------------------------------------------------------------------
+
+/**
+ * One flat loaf, a little different each time: wobbly outline, softly rounded rim, uneven
+ * dome. Centered on its base; planar crust UVs (turned, shifted and maybe mirrored per loaf);
+ * vertex colours carry the edge browning and charred rim spots (rgb) and the "is bread" mask
+ * (a = 1; resin lumps use 0 so they skip the crust texture).
+ */
 function loaf(rnd) {
   const { length, width, thickness } = S.loaf;
   const w = m(length), d = m(width), h = m(thickness);
-  let g = new THREE.BoxGeometry(w, h, d, 10, 2, 6);
+  let g = new THREE.BoxGeometry(w, h, d, 34, 4, 26);
   g.deleteAttribute('normal');
   g.deleteAttribute('uv');
   g = mergeVertices(g, 1e-5);
-  const p = g.attributes.position;
+
+  // Per-loaf shape parameters.
+  const TAU = Math.PI * 2;
+  const harm = [2, 3, 4, 5, 7].map((k) => ({ k, a: (0.05 / k) * (0.4 + rnd() * 0.6), p: rnd() * TAU }));
+  const wob = { a: 18 + rnd() * 14, b: 20 + rnd() * 14, c: 14 + rnd() * 10, d: 12 + rnd() * 12, p: [rnd() * TAU, rnd() * TAU, rnd() * TAU], amp: 0.05 + rnd() * 0.05 };
+  const tilt = [(rnd() - 0.5) * 0.12, (rnd() - 0.5) * 0.12];
+  const domeAmp = 0.12 + rnd() * 0.06;
+  const charPh = [rnd() * TAU, rnd() * TAU, rnd() * TAU];
+  const tone = 0.9 + rnd() * 0.2;
+  const warm = (rnd() - 0.5) * 0.08;
   const ss = THREE.MathUtils.smoothstep;
-  for (let i = 0; i < p.count; i++) {
-    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-    const u = x / (w / 2), v = z / (d / 2);
+  const uvRot = rnd() * TAU, flip = rnd() < 0.5 ? -1 : 1, uvOff = [rnd(), rnd()];
+  const cr = Math.cos(uvRot), sr = Math.sin(uvRot);
+
+  // Displaced position for an original box vertex (xo, yo, zo); also returns outline data.
+  const shape = (xo, yo, zo) => {
+    const u = xo / (w / 2), v = zo / (d / 2);
     const rr = Math.pow(Math.pow(Math.abs(u), 4) + Math.pow(Math.abs(v), 4), 0.25);
     const k = rr > 1 ? 1 / rr : 1; // pull the box's corners in toward a rounded outline
-    x *= k; z *= k;
+    const th = Math.atan2(v, u);
+    let f = 1;
+    for (const q of harm) f += q.a * Math.cos(q.k * th + q.p);
+    let x = xo * k * f, z = zo * k * f, y = yo;
     const edge = ss(Math.min(rr, 1), 0.7, 1);
-    if (y > 0) y += h * 0.15 * (1 - rr * rr * 0.5) - h * 0.3 * edge; // slight dome, rounded rim
-    else if (y < 0) y += h * 0.2 * edge;
-    p.setXYZ(i, x + 0.004 * Math.sin(z * 90), y + h / 2, z);
+    if (y > 0) {
+      const lift = y / (h / 2);
+      const uneven = 0.5 * Math.sin(x * wob.a + wob.p[0]) * Math.cos(z * wob.b + wob.p[1]) + 0.5 * Math.sin(x * wob.c + z * wob.d + wob.p[2]);
+      y += h * domeAmp * (1 - rr * rr * 0.5) - h * 0.3 * edge;
+      y += lift * h * (wob.amp * uneven * (1 - edge * 0.6) + tilt[0] * u + tilt[1] * v);
+    } else if (y < 0) {
+      y += h * 0.2 * edge;
+    }
+    return { x, y: y + h / 2, z, rr, th, u, v };
+  };
+
+  const p = g.attributes.position;
+  const n = p.count;
+  const uv = new Float32Array(n * 2), col = new Float32Array(n * 4);
+  const c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const xo = p.getX(i), yo = p.getY(i), zo = p.getZ(i);
+    const s = shape(xo, yo, zo);
+    p.setXYZ(i, s.x, s.y, s.z);
+    // UVs: planar on the top, with the rim wall unrolled outward by its depth below the top.
+    const top = shape(xo, h / 2, zo).y;
+    const drop = Math.max(0, top - s.y);
+    const len = Math.hypot(s.x, s.z) || 1;
+    const px = s.x + (s.x / len) * drop, pz = s.z + (s.z / len) * drop;
+    const a = (px / TILE) * flip, b = pz / TILE;
+    uv[i * 2] = a * cr - b * sr + uvOff[0];
+    uv[i * 2 + 1] = a * sr + b * cr + uvOff[1];
+    // Edge browning: darker and redder toward the rim, with irregular charred spots.
+    const rr = Math.min(s.rr, 1.05);
+    const ed = ss(rr, 0.6, 1.0);
+    const nE = 0.5 + 0.25 * Math.sin(5 * s.th + charPh[0]) + 0.17 * Math.sin(11 * s.th + charPh[1]) + 0.08 * Math.sin(23 * s.th + charPh[2]);
+    const chr = ss(nE, 0.58, 0.84) * ss(rr, 0.82, 1.0);
+    const bottom = yo < -h * 0.2 ? 0.85 : 1;
+    const m1 = (1 - 0.28 * ed - 0.42 * chr) * tone * bottom;
+    c.setRGB(m1, Math.pow(m1, 1.25 + ed * 0.4) * (1 + warm), Math.pow(m1, 1.7 + ed * 0.8));
+    col.set([c.r, c.g, c.b, 1], i * 4);
   }
   g.computeVertexNormals();
-  // Baked-bread colours: pale golden sides, a browner crust on top, a little mottling.
-  const side = new THREE.Color(0xedb866), top = new THREE.Color(0xc58532), c = new THREE.Color();
-  const tone = 0.88 + rnd() * 0.24;
-  const n = g.attributes.normal, col = new Float32Array(p.count * 3);
-  for (let i = 0; i < p.count; i++) {
-    c.copy(side).lerp(top, ss(n.getY(i), 0.35, 0.95));
-    c.multiplyScalar(tone * (0.92 + rnd() * 0.16));
-    col.set([c.r, c.g, c.b], i * 3);
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 4));
+  return g.toNonIndexed();
+}
+
+/** Give a geometry a constant vertex colour (with a little per-vertex variation); a = 0 skips the crust. */
+function colored(g, hex, rnd, vary = 0.08) {
+  const c = new THREE.Color(hex), n = g.attributes.position.count, col = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const f = 1 + (rnd() - 0.5) * 2 * vary;
+    col.set([c.r * f, c.g * f, c.b * f, 0], i * 4);
   }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 4));
   return g;
 }
 
-/** Give a geometry a constant vertex colour (with a little per-vertex variation). */
-function colored(g, hex, rnd, vary = 0.08) {
-  const c = new THREE.Color(hex), n = g.attributes.position.count, col = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    const f = 1 + (rnd() - 0.5) * 2 * vary;
-    col.set([c.r * f, c.g * f, c.b * f], i * 3);
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+/** Move a loaf (already non-indexed, with uv/color) into place. */
+function lpart(g, { pos, rot }) {
+  g.applyMatrix4(new THREE.Matrix4().compose(
+    new THREE.Vector3(...pos),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+    new THREE.Vector3(1, 1, 1),
+  ));
   return g;
 }
 
@@ -130,13 +415,31 @@ function cpart(geo, opts) {
   return g;
 }
 
+const CRUST = createBreadTextures();
 const BREAD = new THREE.MeshStandardMaterial({
   name: 'showbread',
   color: 0xffffff,
-  vertexColors: true,
-  roughness: 0.88,
+  vertexColors: true, // rgb: edge browning; a: 1 = bread (takes the crust texture), 0 = resin
+  map: CRUST.map,
+  bumpMap: CRUST.data,
+  bumpScale: 0.0035,
+  roughnessMap: CRUST.data,
+  roughness: 1,
   metalness: 0,
 });
+BREAD.onBeforeCompile = (shader) => {
+  shader.fragmentShader = shader.fragmentShader.replace(
+    '#include <map_fragment>',
+    `#ifdef USE_MAP
+  vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+  #ifdef USE_COLOR_ALPHA
+  sampledDiffuseColor.rgb = mix( vec3( 1.0 ), sampledDiffuseColor.rgb, vColor.a );
+  #endif
+  diffuseColor *= sampledDiffuseColor;
+#endif`,
+  );
+};
+BREAD.customProgramCacheKey = () => 'showbread-crust';
 
 // Gold cup of frankincense (25:29; Lev 24:7): a small footed bowl.
 const CUP = [[0, 0], [0.05, 0], [0.055, 0.012], [0.04, 0.025], [0.09, 0.045], [0.105, 0.075], [0.098, 0.075], [0.085, 0.05], [0.03, 0.035], [0, 0.03]];
@@ -152,7 +455,7 @@ function stacks() {
     for (let i = 0; i < 6; i++) {
       const yaw = (rnd() - 0.5) * 0.07;
       const g = loaf(rnd);
-      bread.push(cpart(g, { pos: [m(sx) + (rnd() - 0.5) * m(0.025), H + i * lt, (rnd() - 0.5) * m(0.025)], rot: [0, yaw, 0] }));
+      bread.push(lpart(g, { pos: [m(sx) + (rnd() - 0.5) * m(0.025), H + i * lt, (rnd() - 0.5) * m(0.025)], rot: [0, yaw, 0] }));
     }
     // The cup of frankincense on top of the stack, with a heap of pale resin.
     const topY = H + 6 * lt + m(0.012);
@@ -214,6 +517,8 @@ export function createShowbread() {
     goldMesh.geometry.dispose();
     breadMesh.geometry.dispose();
     BREAD.dispose();
+    CRUST.map.dispose();
+    CRUST.data.dispose();
   };
   return group;
 }
