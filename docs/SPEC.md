@@ -40,7 +40,55 @@ the center of the courtyard.
      doubled at the front, and the extra half curtain hangs over the back.
   3. **Ram skins dyed red.** The text gives no dimensions.
   4. **Tachash skins** on the outside. The animal and the color are uncertain.
-- Interior furnishings (veil, ark, menorah, table, incense altar) are not built yet.
+- The interior furnishings are specified below.
+
+## Veil (Ex 26:31–33; 36:35–36)
+
+- A curtain of **blue, purple, scarlet and twisted linen** with **cherubim** worked in by a
+  skilled weaver. It divides the Holy Place from the Holy of Holies.
+- It hangs **under the clasps** of the linen covering (26:33), on **gold hooks** from
+  **4 acacia pillars overlaid with gold**, standing on **4 silver sockets**.
+- The linen covering's cherubim (26:1) form the ceiling seen from inside.
+
+## Ark and mercy seat (Ex 25:10–22; 37:1–9)
+
+- **Ark:** acacia chest, **2.5 × 1.5 × 1.5 cubits**, overlaid with pure gold inside and out,
+  with a **gold crown (molding)** around it.
+- **4 gold rings** on its four feet; **two acacia poles overlaid with gold** stay in the rings
+  and are never removed (25:15).
+- **Mercy seat (*kapporet*):** pure gold, 2.5 × 1.5 cubits (thickness not given; rabbinic
+  tradition: 1 handbreadth).
+- **Two cherubim of hammered gold**, of one piece with the mercy seat, one at each end. Their
+  wings spread upward, overshadowing the mercy seat; they face each other and look down
+  toward it (25:20).
+- Placed in the Holy of Holies (26:34).
+
+## Table of showbread (Ex 25:23–30; 37:10–16; Lev 24:5–9)
+
+- Acacia, **2 × 1 cubits, 1.5 high**, overlaid with pure gold, with a **gold crown**, a
+  **frame (rim) a handbreadth wide** with its own crown, **4 gold rings** at the feet near
+  the frame, and **poles** of acacia overlaid with gold.
+- Utensils of pure gold: dishes, pans, jars and bowls.
+- **12 loaves** in **two rows (or stacks) of six**, with pure frankincense on each row.
+- Stands on the **north** side of the Holy Place (26:35; 40:22).
+
+## Menorah (Ex 25:31–40; 37:17–24)
+
+- Hammered from **one talent of pure gold**: a central shaft and **6 branches**, 3 per side.
+- Each branch has **3 almond-shaped cups**, each with a knob and a flower. The shaft has
+  **4 cups** with knobs and flowers; a knob sits under each pair of branches.
+- **7 lamps** on top, giving light toward the front. Gold tongs and snuff dishes.
+- No height is given (rabbinic tradition: 18 handbreadths ≈ 3 cubits).
+- Stands on the **south** side of the Holy Place, opposite the table (26:35; 40:24).
+
+## Altar of incense (Ex 30:1–10; 37:25–28)
+
+- Acacia, **1 × 1 cubit, 2 high**, square, with **horns** of one piece with it, overlaid with
+  pure gold top, sides and horns, with a **gold crown** around it.
+- **2 gold rings** under the crown on each of two opposite sides, for **poles** of acacia
+  overlaid with gold.
+- Placed **before the veil**, in front of the ark (30:6; 40:26). Incense burns on it morning
+  and evening.
 
 ## Bronze altar (Ex 27:1–8; 38:1–7)
 
