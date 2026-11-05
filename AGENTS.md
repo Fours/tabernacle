@@ -214,7 +214,7 @@ context window) with a focused brief.
 Each step can loop until its acceptance criteria are met. Tick the box when the orchestrator
 has checked and committed it.
 
-- [ ] **Step 1: Layout blockout with simple geometry.**
+- [x] **Step 1: Layout blockout with simple geometry.**
   Create `dimensions.js`, the module structure above, the ground, and both camera modes
   (free/dev camera with all presets, and a basic first-person walk with collision against the
   courtyard walls and the large objects). Block out everything with plain boxes and cylinders:
@@ -284,3 +284,16 @@ Record interpretive or technical choices here (date, decision, reason).
   50×50 square, altar centered in the eastern square.
 - 2026-11-04: Board thickness = 1 cubit (rabbinic tradition; not stated in the text).
 - 2026-11-04: Torches are artistic license, added for lighting and atmosphere.
+- 2026-11-04: Pillars placed uniformly every 5 cubits around the perimeter (60 total); the
+  "4 gate + 3 + 3" count is reconciled by crediting each pillar with one 5-cubit span, so the
+  20-cubit gate has posts at z = −10, −5, 0, +5, +10 cubits (one in the middle).
+- 2026-11-04: Gate screen and hangings people pass through are non-colliding; gate pillars
+  collide. The Tabernacle entrance screen collides while interiors are out of scope.
+- 2026-11-04: `top` preset uses a very high camera with a narrow FOV (near-orthographic) so
+  proportions can be measured from screenshots.
+- 2026-11-04: `?view=walk` implies first-person mode (overrides the "view implies free camera"
+  rule for this one preset).
+- 2026-11-04: Player radius 0.3 m, walk 1.4 m/s, run 3.5 m/s. WASD works without pointer lock
+  (the in-app browser pane refuses pointer lock); mouse look needs the lock.
+- 2026-11-04: Open item: the `walk` spawn (z = 0) faces the middle gate pillar — move it to
+  stand in a gap (z ≈ ±1.1 m) when touching the camera code next.
