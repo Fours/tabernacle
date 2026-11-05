@@ -97,6 +97,43 @@ function updateInteriorVisibility() {
   for (const o of interiorMeshes) o.visible = inside;
 }
 
+// Static reflection probe for the gold inside the tent (interiorLight.js): one HDR cube
+// capture from the middle of the Holy Place, with the interior shown, done on the first frame
+// (after the menorah has set the room light) and never again. While capturing, the probe is
+// off and unbound, so nothing samples the target being drawn into.
+const PROBE_POS = new THREE.Vector3(m((T.veil.x + T.interiorMaxX) / 2), m(4), 0);
+const probe = {
+  target: new THREE.WebGLCubeRenderTarget(256, {
+    type: THREE.HalfFloatType,
+    generateMipmaps: true,
+    minFilter: THREE.LinearMipmapLinearFilter,
+  }),
+  captureMs: null,
+  capture() {
+    const t0 = performance.now();
+    INTERIOR.uIlProbeOn.value = 0;
+    INTERIOR.uIlProbe.value = null;
+    const cam = new THREE.CubeCamera(0.05, 40, probe.target);
+    cam.position.copy(PROBE_POS);
+    cam.updateMatrixWorld(true);
+    for (const o of interiorMeshes) o.visible = true;
+    cam.update(renderer, scene);
+    interiorShown = null;
+    updateInteriorVisibility();
+    INTERIOR.uIlProbePos.value.copy(PROBE_POS);
+    INTERIOR.uIlProbe.value = probe.target.texture;
+    INTERIOR.uIlProbeOn.value = 1;
+    renderer.getContext().finish();
+    probe.captureMs = performance.now() - t0;
+    return probe.captureMs;
+  },
+  dispose() {
+    INTERIOR.uIlProbeOn.value = 0;
+    INTERIOR.uIlProbe.value = null;
+    probe.target.dispose();
+  },
+};
+
 // Camera mode
 let rig;
 if (params.cam === 'fp') {
@@ -130,7 +167,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility,
+  updateInteriorVisibility, probe,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 
@@ -144,6 +181,7 @@ renderer.setAnimationLoop((time) => {
   updateInteriorVisibility();
   sky.userData.update(camera, t);
   for (const update of updaters) update(dt, t);
+  if (probe.captureMs === null) probe.capture();
   renderer.info.reset();
   fx.render(t);
   if (debug) debug.update(renderer);

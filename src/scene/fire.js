@@ -602,14 +602,18 @@ export function createLampFlames(wicks, { width = 0.028, height = 0.06, brightne
 }
 
 // ---- Incense smoke --------------------------------------------------------------------
-// A thin, slow, faint wisp rising from the incense altar's coals: one instanced draw of soft
-// camera-facing puffs that all follow the same lazily swaying path, so they read as one ribbon
-// of smoke. Alpha-blended (not additive); no light.
+// A slow, faint plume rising from the incense altar's coals: one instanced draw of soft
+// camera-facing puffs. Near the coals they follow one lazily swaying path (a thin ribbon); as
+// they rise each drifts outward in its own direction and swells, so the plume widens and
+// thins into a soft haze. Alpha-blended (not additive); no light.
 
 const WISP_VERT = /* glsl */ `
 uniform float uTime;
 uniform float uHeight;
 uniform float uSize;
+uniform float uSpread;
+uniform float uGrow;
+uniform float uCycle;
 attribute vec4 aRand;
 varying vec2 vUv;
 varying float vAge;
@@ -617,7 +621,7 @@ varying float vSeed;
 #include <fog_pars_vertex>
 ${BILLBOARD_GLSL}
 void main() {
-  float t = uTime / 11.0 + aRand.z;
+  float t = uTime / uCycle + aRand.z;
   float age = fract(t);
   float rise = uHeight * age * (1.0 - 0.15 * age);
   // Shared sway: the whole column bends the same way at a given height, growing with height.
@@ -626,7 +630,11 @@ void main() {
     0.07 * uHeight * k * sin(age * 5.5 - uTime * 0.55) + 0.02 * uHeight * k * sin(age * 13.0 - uTime * 0.9 + aRand.x * 6.0),
     rise,
     0.06 * uHeight * k * sin(age * 4.3 - uTime * 0.42 + 1.7) + 0.02 * uHeight * k * cos(age * 11.0 - uTime * 0.8 + aRand.y * 6.0));
-  float size = uSize * mix(0.7, 1.1, aRand.y) * (0.6 + 3.2 * age);
+  // Spreading: each puff drifts out in its own (slowly turning) direction as it rises.
+  float ang = aRand.w * 6.2832 + 0.15 * uTime * (aRand.x - 0.5);
+  float spread = uSpread * pow(age, 1.4) * mix(0.25, 1.0, fract(aRand.x * 7.31));
+  p.xz += spread * vec2(cos(ang), sin(ang));
+  float size = uSize * mix(0.7, 1.1, aRand.y) * (0.6 + uGrow * age * age + 1.2 * age);
   vec4 mv = billboard(p, position.xy, size, 1.0);
   gl_Position = projectionMatrix * mv;
   vec4 mvPosition = mv;
@@ -650,10 +658,11 @@ ${NOISE_GLSL}
 void main() {
   vec2 c = vUv * 2.0 - 1.0;
   float n = fFbm(vUv * 3.0 + vec2(vSeed * 9.0, vSeed * 4.0 - uTime * 0.1));
-  float d = length(c) - (n - 0.5) * 0.8;
-  float shape = 1.0 - smoothstep(0.0, 1.0, d);
+  // Older (higher, wider) puffs are rounder and softer-edged, so they blend into a haze.
+  float d = length(c) - (n - 0.5) * mix(0.8, 0.4, vAge);
+  float shape = 1.0 - smoothstep(mix(0.0, -0.6, vAge), 1.0, d);
   if (shape <= 0.0) discard;
-  float fade = smoothstep(0.0, 0.1, vAge) * (1.0 - smoothstep(0.35, 1.0, vAge));
+  float fade = smoothstep(0.0, 0.1, vAge) * (1.0 - smoothstep(0.4, 1.0, vAge)) * mix(1.0, 0.5, vAge);
   // Warmed by the coals at its root, then cool grey-blue.
   vec3 col = mix(uGlow, uColor, smoothstep(0.0, 0.3, vAge));
   gl_FragColor = vec4(col, shape * shape * fade * uOpacity);
@@ -664,20 +673,25 @@ void main() {
 `;
 
 /**
- * Thin incense smoke wisp, one instanced draw. The mesh's origin is the smoke's source.
+ * Incense smoke plume, one instanced draw. The mesh's origin is the smoke's source.
  * @param {{ count?: number, height?: number, size?: number, opacity?: number, color?: number,
- *   glow?: number, seed?: number }} o  height/size in meters.
+ *   glow?: number, seed?: number, spread?: number, grow?: number, cycle?: number }} o
+ *   height/size/spread in meters (spread: how far puffs drift out by the top); grow: extra
+ *   size growth with age; cycle: seconds for a puff to rise.
  * @returns {{ mesh: THREE.Mesh, update(time:number):void, dispose():void }}
  */
-export function createIncenseSmoke({ count = 14, height = 1.4, size = 0.03, opacity = 0.2, color = 0x8a8f9a, glow = 0xd08a50, seed = 5 } = {}) {
+export function createIncenseSmoke({ count = 14, height = 1.4, size = 0.03, opacity = 0.2, color = 0x8a8f9a, glow = 0xd08a50, seed = 5, spread = 0, grow = 2, cycle = 11 } = {}) {
   const rnd = rng(seed * 7919 + 29);
-  const geo = quadParticles(count, rnd, new THREE.Sphere(new THREE.Vector3(0, height * 0.5, 0), height * 0.7));
+  const geo = quadParticles(count, rnd, new THREE.Sphere(new THREE.Vector3(0, height * 0.5, 0), height * 0.7 + spread));
   const mat = new THREE.ShaderMaterial({
     name: 'incense-smoke',
     uniforms: {
       uTime: { value: 0 },
       uHeight: { value: height },
       uSize: { value: size },
+      uSpread: { value: spread },
+      uGrow: { value: grow },
+      uCycle: { value: cycle },
       uOpacity: { value: opacity },
       uColor: { value: new THREE.Color(color) },
       uGlow: { value: new THREE.Color(glow) },

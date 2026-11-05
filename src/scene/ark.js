@@ -331,7 +331,12 @@ export function createArk() {
   }
   cherub.dispose();
 
-  const mesh = new THREE.Mesh(merge(parts), GOLD);
+  // Its own copy of GOLD with the interior mask's ark glint (interiorLight.js IL_GLINT): the
+  // menorah's glow over the veil shows as soft highlights on the ark only, not the walls.
+  const gold = GOLD.clone();
+  gold.name = 'ark-gold';
+  gold.defines = { ...gold.defines, IL_GLINT: '' };
+  const mesh = new THREE.Mesh(merge(parts), gold);
   mesh.name = 'ark-gold';
   group.add(mesh);
 
@@ -341,6 +346,9 @@ export function createArk() {
     box(cx, cz, W + 2 * CW, L + 2 * CW),
     ...[-1, 1].map((sz) => box(cx + (e - w) / 2, cz + sz * ringZ, e + w, 2 * (RING_R + RING_T))),
   ];
-  group.userData.dispose = () => mesh.geometry.dispose();
+  group.userData.dispose = () => {
+    mesh.geometry.dispose();
+    gold.dispose();
+  };
   return group;
 }

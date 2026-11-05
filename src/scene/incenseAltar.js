@@ -151,8 +151,9 @@ export function createIncenseAltar() {
   coalMesh.position.y = H;
   group.add(coalMesh);
 
-  // Thin incense smoke rising from the coals.
-  const smoke = createIncenseSmoke({ count: 120, height: 1.6, size: 0.045, opacity: 0.22, color: 0xb4ab9e });
+  // Incense smoke rising from the coals: a thin ribbon at the root, widening and thinning into a
+  // soft plume as it rises.
+  const smoke = createIncenseSmoke({ count: 240, height: 1.9, size: 0.08, opacity: 0.12, color: 0xb4ab9e, spread: 0.8, grow: 8, cycle: 15 });
   smoke.mesh.position.set(0, H + m(0.14), 0);
   group.add(smoke.mesh);
 

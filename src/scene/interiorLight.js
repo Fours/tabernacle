@@ -53,6 +53,22 @@ export const INTERIOR = {
   // Room reflections on metal west of the veil, relative to uIlHoh: the dim light there shows as
   // gold glints rather than as an evenly dim, brown ark.
   uIlHohGlint: { value: 5.0 },
+  // Static reflection probe (main.js captures it once at load from the middle of the Holy
+  // Place): gold east of the veil reflects the room's actual image, box-projected onto the Holy
+  // Place's walls so the reflections sit in the right place. Off (and unbound) during capture.
+  uIlProbe: { value: null }, // cube render target texture (HDR, mipmapped)
+  uIlProbeOn: { value: 0 },
+  uIlProbePos: { value: new THREE.Vector3() }, // world position the probe was captured from (m)
+  uIlProbeMix: { value: 0.85 }, // fraction of a gold surface's reflection taken from the probe
+  uIlProbeGain: { value: 1.15 },
+  uIlProbeLod: { value: 5.5 }, // mip level per unit roughness (blur: burnished, not a mirror)
+  // Ark glint (materials with the IL_GLINT define only): the menorah's glow coming over the veil
+  // shows as soft gold highlights on the ark and cherubim, without lighting the walls.
+  uIlGlint: { value: 14.0 },
+  uIlGlintPow: { value: 4.0 },
+  uIlGlintBase: { value: 0.03 }, // broad part of the glint (faces turned away from the veil)
+  uIlGlintSrc: { value: new THREE.Vector3(m(T.veil.x), m(6), 0) }, // over the veil's middle
+
 };
 
 const f = (v) => v.toFixed(4);
@@ -76,6 +92,16 @@ uniform float uIlDirect;
 uniform float uIlTint;
 uniform float uIlHoh;
 uniform float uIlHohGlint;
+uniform samplerCube uIlProbe;
+uniform float uIlProbeOn;
+uniform vec3 uIlProbePos;
+uniform float uIlProbeMix;
+uniform float uIlProbeGain;
+uniform float uIlProbeLod;
+uniform float uIlGlint;
+uniform float uIlGlintPow;
+uniform float uIlGlintBase;
+uniform vec3 uIlGlintSrc;
 vec3 ilToWorld(vec3 viewPos) { return ((vec4(viewPos, 1.0) - viewMatrix[3]) * viewMatrix).xyz; }
 // Soft inside-ness of a world point (1 inside the tent's interior box, 0 outside).
 float ilInside(vec3 p) {
@@ -168,6 +194,22 @@ const MAPS_AFTER = /* glsl */ `
   vec3 ilToSrc = normalize(uIlSource - ilW);
   float ilLobe = pow(max(dot(ilR, ilToSrc), 0.0), mix(10.0, 2.0, material.roughness));
   radiance = radiance * ilSky + ilAmb * ilTint * uIlSpec * mix(uIlHohGlint, 1.0, ilEastOfVeil) * (0.2 + uIlLobe * ilLobe + uIlUp * smoothstep(-0.1, 0.8, ilR.y));
+  // Reflection probe, box-projected: find where the reflected ray leaves the Holy Place's box
+  // and look that point up from the probe's position. Blurred by roughness (mip level).
+  float ilPk = ilMetal * ilEastOfVeil * uIlProbeOn;
+  if (ilPk > 0.001) {
+    vec3 ilRd = ilR + vec3(1e-5);
+    vec3 ilT = max((vec3(${f(BOX.xE)}, ${f(BOX.yT)}, ${f(BOX.zH)}) - ilW) / ilRd, (vec3(${f(BOX.veilX)}, 0.0, ${f(-BOX.zH)}) - ilW) / ilRd);
+    float ilHit = max(min(min(ilT.x, ilT.y), ilT.z), 0.0);
+    vec3 ilDir = ilW + ilR * ilHit - uIlProbePos;
+    vec3 ilPc = textureLod(uIlProbe, ilDir, material.roughness * uIlProbeLod).rgb;
+    radiance = mix(radiance, ilPc * ilTint * uIlProbeGain, ilPk * uIlProbeMix);
+  }
+  #ifdef IL_GLINT
+  // The menorah's glow seen over the veil, as a soft highlight on the ark (west of the veil).
+  float ilGl = pow(max(dot(ilR, normalize(uIlGlintSrc - ilW)), 0.0), uIlGlintPow);
+  radiance += uIlAmbient * ilTint * ilIn * (1.0 - ilEastOfVeil) * uIlGlint * (uIlGlintBase + ilGl);
+  #endif
   #endif
 }
 `;
@@ -193,7 +235,7 @@ export function addInteriorMask(mat) {
   // which is now this wrapper for every material).
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v2`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v3`;
   mat.needsUpdate = true;
   return mat;
 }
