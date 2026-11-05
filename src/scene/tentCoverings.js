@@ -167,8 +167,9 @@ function buildCovering(opts) {
   return { geo, per, pointAt, hemPoint };
 }
 
-// Ceiling texture tile (cubits): 5 across the tent (N-S) x one 4-cubit curtain (E-W).
-const CEIL_TILE = { across: 5 };
+// Ceiling texture tile (cubits): the full 10 across the tent (N-S) x one 4-cubit curtain (E-W),
+// so each row's 4 cherubim can face the middle: the two north ones south, the two south north.
+const CEIL_TILE = { across: 10 };
 
 /**
  * Inner linen covering (Ex 26:1-6) as seen from inside: a flat sheet just above the board
@@ -208,7 +209,7 @@ export function createLinenCeiling() {
   weave.repeat.set(m(CEIL_TILE.across) / 0.5, m(L.curtainWidth) / 0.5);
   const mat = new THREE.MeshStandardMaterial({
     name: 'linen-ceiling',
-    map: createCherubimTexture({ w: CEIL_TILE.across, h: L.curtainWidth, ppc: 256, cols: 2, rows: 2, seams: true }),
+    map: createCherubimTexture({ w: CEIL_TILE.across, h: L.curtainWidth, ppc: 256, cols: 4, rows: 2, seams: true, facing: 'center' }),
     bumpMap: weave,
     bumpScale: 0.5,
     roughness: 0.9,

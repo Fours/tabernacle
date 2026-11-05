@@ -240,7 +240,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   ceiling and the veil: an ancient Near Eastern frontal figure (scale-covert band, straight
   primaries, fringed robe and shawl, squared hair with curls) in muted dyes local to the weave
   (indigo `#2e3a5c`, Tyrian purple `#55253f`, kermes scarlet `#93332b`) on unbleached linen
-  `#d9cfb8`, drawn one pixel per 3-px thread and enlarged with a plain-weave thread texture. `?light=work` adds an
+  `#d9cfb8`, drawn one pixel per 3-px thread and enlarged with a plain-weave thread texture.
+  The ceiling (at the user's direction) uses `facing: 'center'`: one tile spans the full
+  10-cubit width with 4 cherubim per row in profile, the two north ones facing south and the
+  two south ones facing north, toward the tent's middle (cf. the mercy-seat cherubim facing
+  one another, Ex 25:20). Facing pairs share their dyes. The profile figure
+  (`drawCherubProfile`) strides forward, far wing raised up and back, near wing swept forward
+  below the face (as on Phoenician/Egyptian winged guardians); frontal almond eye. The veil
+  keeps the frontal figures. `?light=work` adds an
   unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
 - 2026-11-05: Materials:
   - `addMacroVariation` breaks up visible tiling.

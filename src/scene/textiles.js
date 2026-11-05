@@ -833,6 +833,127 @@ export function createSkinTexture({ base = [126, 42, 31], seed = 5, variation = 
   return t;
 }
 
+/** Canvas helpers shared by the cherub drawings. */
+function poly(g, pts, fill) {
+  g.fillStyle = fill;
+  g.beginPath();
+  pts.forEach((p, i) => (i ? g.lineTo(...p) : g.moveTo(...p)));
+  g.closePath();
+  g.fill();
+}
+function line(g, pts, color, w) {
+  g.strokeStyle = color;
+  g.lineWidth = w;
+  g.lineCap = 'butt';
+  g.lineJoin = 'miter';
+  g.beginPath();
+  pts.forEach((p, i) => (i ? g.lineTo(...p) : g.moveTo(...p)));
+  g.stroke();
+}
+const lerp2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+/**
+ * One cherub wing: a band of scale-like coverts along the leading edge (root -> tip, lower edge
+ * cRoot -> cTip) and 8 straight primaries down to a stepped trailing edge (eRoot -> eTip).
+ * Points in px; `s` the figure height in px.
+ */
+function drawWing(g, { root, tip, cRoot, cTip, eRoot, eTip }, s, dye, lw, linen) {
+  const [cW, cR, cA] = dye;
+  const K = 8; // primaries per wing
+  for (let i = 0; i < K; i++) {
+    const t0 = i / K, t1 = (i + 1) / K;
+    const a0 = lerp2(cRoot, cTip, t0), a1 = lerp2(cRoot, cTip, t1);
+    const drop = 0.025 * s * (1 - Math.abs(t0 + t1 - 1)); // a gentle droop mid-wing
+    const b0 = lerp2(eRoot, eTip, t0), b1 = lerp2(eRoot, eTip, t1);
+    poly(g, [a0, a1, [b1[0], b1[1] + drop], [b0[0], b0[1] + drop + 0.02 * s]], i % 2 ? cW : cR);
+    line(g, [a1, [b1[0], b1[1] + drop]], linen, lw * 0.35);
+    // A midrib down each feather.
+    line(g, [lerp2(a0, a1, 0.5), [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + drop + 0.01 * s]], cA, lw * 0.25);
+  }
+  // Coverts: a band of the accent dye with two rows of linen-edged scales.
+  poly(g, [root, tip, cTip, cRoot], cA);
+  for (const [r0, r1, n] of [[0.25, 0.55, 9], [0.6, 0.92, 10]]) {
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n;
+      const top = lerp2(lerp2(root, tip, t), lerp2(cRoot, cTip, t), r0);
+      const bot = lerp2(lerp2(root, tip, t), lerp2(cRoot, cTip, t), r1);
+      const r = Math.abs(tip[0] - root[0]) / n * 0.5;
+      g.fillStyle = cW;
+      g.beginPath();
+      g.ellipse((top[0] + bot[0]) / 2, (top[1] + bot[1]) / 2, r * 0.8, Math.abs(bot[1] - top[1]) * 0.55 + 1, 0, 0, Math.PI);
+      g.fill();
+    }
+  }
+  line(g, [root, tip], linen, lw * 0.3);
+  line(g, [cRoot, cTip], linen, lw * 0.3);
+}
+
+/**
+ * One woven cherub in profile, facing +x (mirror the canvas to face -x): the same manner and
+ * dress as drawCherub, striding forward, the far wing raised up and back and the near wing swept
+ * forward below the face, as on Phoenician and Egyptian winged guardians (cf. Ex 25:20, wings
+ * spread, faces toward one another). (cx, cy) center, `s` height in px.
+ */
+function drawCherubProfile(g, cx, cy, s, dye, lw, linen) {
+  const [cW, cR, cA] = dye;
+  const P = (x, y) => [cx + x * s, cy + y * s];
+  // Far wing, raised up and back behind the body.
+  drawWing(g, {
+    root: P(-0.03, -0.22), tip: P(-0.44, -0.6),
+    cRoot: P(-0.04, -0.14), cTip: P(-0.46, -0.52),
+    eRoot: P(-0.06, 0.03), eTip: P(-0.5, -0.37),
+  }, s, [cR, cW, cA], lw, linen);
+  // Robe in profile: narrow shoulders, widening to a hem that steps forward with the stride.
+  const robe = [P(-0.075, -0.24), P(0.055, -0.24), P(0.11, 0.42), P(-0.13, 0.42)];
+  poly(g, robe, cR);
+  g.save();
+  g.beginPath();
+  robe.forEach((p, i) => (i ? g.lineTo(...p) : g.moveTo(...p)));
+  g.closePath();
+  g.clip();
+  poly(g, [P(-0.2, 0.0), P(-0.08, -0.02), P(0.2, 0.26), P(0.2, 0.33)], cA);
+  for (let k = 0; k < 10; k++) {
+    const a = lerp2(P(-0.2, 0.0), P(0.2, 0.33), k / 9);
+    line(g, [a, [a[0] - 0.012 * s, a[1] + 0.03 * s]], linen, lw * 0.25);
+  }
+  poly(g, [P(-0.2, 0.36), P(0.2, 0.36), P(0.2, 0.42), P(-0.2, 0.42)], cW);
+  g.restore();
+  for (let k = 0; k <= 12; k++) {
+    const x = -0.13 + (0.24 * k) / 12;
+    line(g, [P(x, 0.42), P(x, 0.455)], cA, lw * 0.3);
+  }
+  // Feet pointing forward, the front one advanced.
+  poly(g, [P(-0.1, 0.46), P(-0.03, 0.46), P(0.01, 0.49), P(-0.1, 0.49)], cW);
+  poly(g, [P(0.0, 0.46), P(0.07, 0.46), P(0.12, 0.49), P(0.0, 0.49)], cW);
+  // Near wing, swept forward from the shoulder, rising a little, its feathers hanging below.
+  drawWing(g, {
+    root: P(-0.01, -0.2), tip: P(0.64, -0.4),
+    cRoot: P(0.0, -0.11), cTip: P(0.65, -0.32),
+    eRoot: P(0.02, 0.1), eTip: P(0.68, -0.15),
+  }, s, dye, lw, linen);
+  // Head: the hair a squared mass behind the face down to the shoulders, ending in curls.
+  poly(g, [P(-0.105, -0.45), P(0.03, -0.46), P(0.015, -0.225), P(-0.11, -0.225)], cW);
+  for (let k = 0; k < 4; k++) {
+    g.fillStyle = cA;
+    g.beginPath();
+    g.arc(...P(-0.095 + k * 0.034, -0.232), 0.013 * s, 0, Math.PI * 2);
+    g.fill();
+  }
+  // Face in profile: brow, straight nose, lips, chin.
+  const face = [P(0.0, -0.45), P(0.05, -0.44), P(0.068, -0.385), P(0.1, -0.343), P(0.076, -0.332),
+    P(0.081, -0.316), P(0.071, -0.306), P(0.074, -0.288), P(0.056, -0.268), P(0.014, -0.26), P(0.0, -0.33)];
+  poly(g, face, linen);
+  // Outline the profile in the dark dye so it reads against the linen ground.
+  line(g, face.slice(1, 10), cW, lw * 0.3);
+  // The archaic large almond eye, seen from the front even in profile; brow; mouth.
+  g.fillStyle = cW;
+  g.beginPath();
+  g.ellipse(...P(0.047, -0.366), 0.018 * s, 0.008 * s, 0, 0, Math.PI * 2);
+  g.fill();
+  line(g, [P(0.026, -0.388), P(0.066, -0.382)], cW, lw * 0.3);
+  line(g, [P(0.057, -0.313), P(0.078, -0.313)], cR, lw * 0.35);
+}
+
 /**
  * One woven cherub (Ex 26:1, 31) in an ancient Near Eastern manner (after Phoenician ivories and
  * Assyrian winged figures): a standing robed figure seen from the front, rigid and symmetrical,
@@ -861,39 +982,12 @@ function drawCherub(g, cx, cy, s, dye, lw, linen) {
     g.stroke();
   };
   const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-  const K = 8; // primaries per wing
   for (const side of [-1, 1]) {
-    // Leading edge (shoulder to tip), the covert band's lower edge, and the trailing edge.
-    const root = P(0.07 * side, -0.21), tip = P(0.62 * side, -0.56);
-    const cRoot = P(0.08 * side, -0.13), cTip = P(0.62 * side, -0.48);
-    const eRoot = P(0.1 * side, 0.06), eTip = P(0.64 * side, -0.34);
-    // Primaries: straight strips from the coverts to a stepped, squared-off trailing edge.
-    for (let i = 0; i < K; i++) {
-      const t0 = i / K, t1 = (i + 1) / K;
-      const a0 = lerp(cRoot, cTip, t0), a1 = lerp(cRoot, cTip, t1);
-      const drop = 0.025 * s * (1 - Math.abs(t0 + t1 - 1)); // a gentle droop mid-wing
-      const b0 = lerp(eRoot, eTip, t0), b1 = lerp(eRoot, eTip, t1);
-      poly([a0, a1, [b1[0], b1[1] + drop], [b0[0], b0[1] + drop + 0.02 * s]], i % 2 ? cW : cR);
-      line([a1, [b1[0], b1[1] + drop]], linen, lw * 0.35);
-      // A midrib down each feather.
-      line([lerp(a0, a1, 0.5), [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + drop + 0.01 * s]], cA, lw * 0.25);
-    }
-    // Coverts: a band of the accent dye with two rows of linen-edged scales.
-    poly([root, tip, cTip, cRoot], cA);
-    for (const [r0, r1, n] of [[0.25, 0.55, 9], [0.6, 0.92, 10]]) {
-      for (let k = 0; k < n; k++) {
-        const t = (k + 0.5) / n;
-        const top = lerp(lerp(root, tip, t), lerp(cRoot, cTip, t), r0);
-        const bot = lerp(lerp(root, tip, t), lerp(cRoot, cTip, t), r1);
-        const r = Math.abs(tip[0] - root[0]) / n * 0.5;
-        g.fillStyle = cW;
-        g.beginPath();
-        g.ellipse((top[0] + bot[0]) / 2, (top[1] + bot[1]) / 2, r * 0.8, Math.abs(bot[1] - top[1]) * 0.55 + 1, 0, 0, Math.PI);
-        g.fill();
-      }
-    }
-    line([root, tip], linen, lw * 0.3);
-    line([cRoot, cTip], linen, lw * 0.3);
+    drawWing(g, {
+      root: P(0.07 * side, -0.21), tip: P(0.62 * side, -0.56),
+      cRoot: P(0.08 * side, -0.13), cTip: P(0.62 * side, -0.48),
+      eRoot: P(0.1 * side, 0.06), eTip: P(0.64 * side, -0.34),
+    }, s, dye, lw, linen);
   }
   // Robe: shoulders to ankles, straight-sided, with a fringed hem and a diagonal fringed shawl.
   const robe = [P(-0.09, -0.22), P(0.09, -0.22), P(0.13, 0.42), P(-0.13, 0.42)];
@@ -966,9 +1060,11 @@ function drawRosette(g, x, y, r, petal, center) {
  * The canvas spans `w` x `h` cubits at `ppc` px per cubit, with `cols` x `rows` figures; figure
  * "up" is the canvas top. `seams`: a sewn curtain join along the top and bottom edges (half on
  * each, so tiles join into one seam; ceiling). `border`: dyed bands at top and bottom and a
- * diamond lattice behind the figures (veil, denser work).
+ * diamond lattice behind the figures (veil, denser work). `facing`: 'front' (frontal figures) or
+ * 'center' (profile figures, each half of the columns turned toward the canvas's middle, the
+ * facing pairs in matching dyes; ceiling).
  */
-export function createCherubimTexture({ w = 5, h = 4, ppc = 256, cols = 2, rows = 2, seams = false, border = false, seed = 47 } = {}) {
+export function createCherubimTexture({ w = 5, h = 4, ppc = 256, cols = 2, rows = 2, seams = false, border = false, seed = 47, facing = 'front' } = {}) {
   const W = Math.round(w * ppc), H = Math.round(h * ppc);
   // The design is drawn at one pixel per thread (TH px), then enlarged without smoothing and
   // given a plain-weave thread texture, so outlines step like real tapestry weaving.
@@ -1058,8 +1154,20 @@ export function createCherubimTexture({ w = 5, h = 4, ppc = 256, cols = 2, rows 
   const s = Math.min(ch * 0.86, (cw * 0.9) / 1.26);
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      const k = i + j;
-      drawCherub(g, (i + 0.5) * cw, top + (j + 0.5) * ch + s * 0.02, s, [DYES[k % 3], DYES[(k + 1) % 3], DYES[(k + 2) % 3]], lw, LINEN);
+      const fx = (i + 0.5) * cw, fy = top + (j + 0.5) * ch + s * 0.02;
+      if (facing === 'center') {
+        const dir = i + 0.5 < cols / 2 ? 1 : -1; // toward the middle column line
+        const k = Math.min(i, cols - 1 - i) + j; // mirrored pairs share their dyes
+        g.save();
+        g.translate(fx, 0);
+        g.scale(dir, 1);
+        // Shift back a little so the forward-reaching wing doesn't crowd the middle.
+        drawCherubProfile(g, -0.06 * s, fy, s, [DYES[k % 3], DYES[(k + 1) % 3], DYES[(k + 2) % 3]], lw, LINEN);
+        g.restore();
+      } else {
+        const k = i + j;
+        drawCherub(g, fx, fy, s, [DYES[k % 3], DYES[(k + 1) % 3], DYES[(k + 2) % 3]], lw, LINEN);
+      }
     }
   }
 
