@@ -297,7 +297,7 @@ has checked and committed it.
   *Accept when:* every preset looks clearly better than before (compare screenshots before
   and after), with no big frame-rate drop.
 
-- [ ] **Step 8: Starry sky.**
+- [x] **Step 8: Starry sky.**
   A dark night sky with a believable star field (varied brightness, a faint Milky Way band, and
   optional subtle twinkle) and maybe a dim moon. It shouldn't overpower the firelight.
   *Accept when:* looking up in `walk` mode shows a convincing desert night sky.
@@ -395,3 +395,9 @@ Record interpretive or technical choices here (date, decision, reason).
 - 2026-11-05: Ambient occlusion skipped (GTAO needs a second scene render, ~+85 draws, and
   conflicts with transparent fire sprites).
 - 2026-11-05: Perf after Step 7: ~3.7–5.2 ms/frame at 2048×1536 with fx, 78–102 draw calls.
+- 2026-11-05: Sky is a camera-following dome (`scene/sky.js`, 1 draw call, no assets):
+  anti-aliased hashed-cell stars (5 layers), procedural Milky Way with dust lanes, slow twinkle,
+  small dim moon along the moon-light direction. Horizon and below-horizon color = fog color.
+- 2026-11-05: First person (`cam=fp`) is the default. `?view=<preset>` implies free except
+  `walk`; `?cam=` always wins. `PLAYER.lookSpeed` 0.7; vertical-only head bob on by default
+  (`?bob=0` disables). `?view=sky` preset looks up ~42° toward the NW from the walk spawn.
