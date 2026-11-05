@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALTAR as A, ALTAR_UTENSILS as U, m } from '../config/dimensions.js';
+import { ALTAR as A, ALTAR_UTENSILS as U, CUBIT, m } from '../config/dimensions.js';
 import { box } from './colliders.js';
 import { BRONZE_PLATED, ACACIA, EARTH, addFireBounce } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
@@ -10,29 +10,90 @@ function lathe(profile, segments = 24) {
   return new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(m(r), m(y))), segments);
 }
 
-/** Tapered, outward-curving horn rising from a corner; sits at the local origin. */
-function hornGeometry(outDir) {
-  const hh = m(A.hornHeight), out = m(A.hornOutward);
+/**
+ * Tapered, outward-curving horn rising from a corner; sits at the local origin (the center of
+ * the wall corner). The upper horn is a round tube along the curve; toward the bottom its
+ * cross-section morphs into a square whose two outer faces are flush with the altar's outer
+ * walls, so the horn grows out of the corner as one cast piece. `sx`, `sz` give the corner.
+ */
+function hornGeometry(sx, sz) {
+  const hh = m(A.hornHeight), out = m(A.hornOutward), outDir = new THREE.Vector3(sx, 0, sz).normalize();
   const pts = [[0, 0], [0.05, 0.4], [0.35, 0.75], [1, 1]].map(
     ([o, h]) => new THREE.Vector3(outDir.x * o * out, h * hh, outDir.z * o * out),
   );
   const curve = new THREE.CatmullRomCurve3(pts);
-  const ts = 18, rs = 10;
-  const tube = new THREE.TubeGeometry(curve, ts, 1, rs, false);
-  const p = tube.attributes.position;
+  const ts = 24, rs = 32; // rs divisible by 8 so ring vertices land on the square's corners
   const rBase = m(A.hornBaseRadius), rTip = m(A.hornTipRadius);
-  const c = new THREE.Vector3(), v = new THREE.Vector3();
+  // Square foot: outer faces on the outer walls (half a wall thickness out from the corner
+  // center), side = the horn's base diameter, so it overhangs the rim inward a little.
+  const half = rBase, outer = m(A.wallThickness) / 2;
+  const sqC = new THREE.Vector3(sx * (outer - half), 0, sz * (outer - half));
+  const f = A.hornFoot; // fraction of the horn over which the square foot rounds into the horn
+  const c = new THREE.Vector3(), tan = new THREE.Vector3(), v = new THREE.Vector3(), sq = new THREE.Vector3();
+  const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  const pos = [];
   for (let i = 0; i <= ts; i++) {
     const t = i / ts;
     curve.getPointAt(t, c);
+    curve.getTangentAt(t, tan);
+    q.setFromUnitVectors(up, tan);
     const r = THREE.MathUtils.lerp(rBase, rTip, Math.pow(t, 1.4)); // stays stout, then rounds off
+    const w = 1 - THREE.MathUtils.smoothstep(t, 0, f); // 1 = square foot, 0 = round horn
     for (let j = 0; j <= rs; j++) {
-      const k = i * (rs + 1) + j;
-      v.fromBufferAttribute(p, k).sub(c).multiplyScalar(r).add(c);
-      p.setXYZ(k, v.x, v.y, v.z);
+      const a = (j / rs) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      v.set(ca * r, 0, sa * r).applyQuaternion(q).add(c);
+      if (w > 0) {
+        const k = half / Math.max(Math.abs(ca), Math.abs(sa));
+        sq.set(sqC.x + ca * k, c.y, sqC.z + sa * k);
+        v.lerp(sq, w);
+      }
+      pos.push(v.x, v.y, v.z);
     }
   }
-  return [tube, new THREE.SphereGeometry(rTip, 8, 6).translate(pts[3].x, pts[3].y, pts[3].z)];
+  const idx = [];
+  for (let i = 0; i < ts; i++) {
+    for (let j = 0; j < rs; j++) {
+      const a = i * (rs + 1) + j, b = a + rs + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  // Weld the normals along the ring seam (first and last vertex of each ring coincide).
+  const n = g.attributes.normal;
+  for (let i = 0; i <= ts; i++) {
+    const a = i * (rs + 1), b = a + rs;
+    v.set(n.getX(a) + n.getX(b), n.getY(a) + n.getY(b), n.getZ(a) + n.getZ(b)).normalize();
+    n.setXYZ(a, v.x, v.y, v.z);
+    n.setXYZ(b, v.x, v.y, v.z);
+  }
+  // Bottom cap (the foot overhangs the hollow, so it can be seen from inside).
+  const cap = new THREE.PlaneGeometry(2 * half, 2 * half).rotateX(Math.PI / 2).translate(sqC.x, 0, sqC.z);
+  return [g, cap, new THREE.SphereGeometry(rTip, 8, 6).translate(pts[3].x, pts[3].y, pts[3].z)];
+}
+
+/**
+ * Box-project UVs in cubits, like part(…, 'cubit'), but choosing the projection per triangle
+ * (from its face normal) so curved surfaces don't smear where the dominant axis changes. Lets
+ * the horns carry the same plate texture (mottling, patina, seams) as the walls.
+ */
+function cubitUVsPerFace(g) {
+  const p = g.attributes.position, uv = g.attributes.uv;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), fn = new THREE.Vector3();
+  for (let i = 0; i < p.count; i += 3) {
+    a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); c.fromBufferAttribute(p, i + 2);
+    fn.subVectors(c, b).cross(a.clone().sub(b));
+    const ax = Math.abs(fn.x), ay = Math.abs(fn.y), az = Math.abs(fn.z);
+    for (let k = 0; k < 3; k++) {
+      const x = p.getX(i + k), y = p.getY(i + k), z = p.getZ(i + k);
+      let u, w;
+      if (ax >= ay && ax >= az) { u = z; w = y; } else if (ay >= az) { u = x; w = z; } else { u = x; w = y; }
+      uv.setXY(i + k, u / CUBIT, w / CUBIT);
+    }
+  }
+  return g;
 }
 
 /** Gradient for the grate's heat glow: uv.x = heat (0 cold .. 1 glowing), sRGB. */
@@ -163,9 +224,8 @@ export function createAltar() {
   const horns = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      const dir = new THREE.Vector3(sx, 0, sz).normalize();
-      for (const g of hornGeometry(dir)) {
-        horns.push(part(g, { pos: [sx * (L - t) / 2, H - m(0.03), sz * (W - t) / 2] }));
+      for (const g of hornGeometry(sx, sz)) {
+        horns.push(cubitUVsPerFace(part(g, { pos: [sx * (L - t) / 2, H - m(0.005), sz * (W - t) / 2] })));
       }
     }
   }
