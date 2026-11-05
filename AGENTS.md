@@ -289,7 +289,7 @@ has checked and committed it.
   *Accept when:* the `gate` and `walk` views are readable and atmospheric at night without
   the work light.
 
-- [ ] **Step 7: Shaders & post-processing.**
+- [x] **Step 7: Shaders & post-processing.**
   Tone mapping and color grading for night, bloom on the flames, subtle fog or haze, ambient
   occlusion if affordable, and improved materials (bronze, silver, gold, linen, sand). Optional
   heat shimmer above the altar.
@@ -376,3 +376,21 @@ Record interpretive or technical choices here (date, decision, reason).
   charred wrap with glowing embers/cracks; the approach torch near the walk spawn blows out
   without tone mapping. FPS can't be measured while the browser pane is hidden (throttled);
   use draw calls + frame time from `renderer.info` / a timed render loop instead.
+- 2026-11-05: ACES Filmic tone mapping, exposure 1.1, sRGB output. Post chain in
+  `render/postfx.js`: MSAA half-float render → bloom (threshold 2.0) → night grade (cool lift,
+  vignette, grain, heat shimmer above the altar) → OutputPass. `?fx=0` disables it; `?tm=` and
+  `?exposure=` are debug overrides. Step 7 notes above are all addressed.
+- 2026-11-05: Night haze `FogExp2(0x0b0f1c, 0.012)`; additive fire sprites fade to black in fog.
+  Generated night environment (`render/environment.js`, intensity 0.35): cool sky, warm
+  horizon band.
+- 2026-11-05: Altar light 105 cd, decay 1.5 (non-physical), 1.2 m above hearth, PCF radius 5,
+  plus an unshadowed 14 cd fill 3.2 m above the fire (10 point lights; 1 shadow caster).
+  Altar bronze uses `shadowSide = DoubleSide` (fixes base light leak). Fake firelight bounce
+  onto the altar walls (`addFireBounce`).
+- 2026-11-05: Altar horns 0.3-cubit base / 0.09 tip, blunt; separate non-shadow-casting mesh.
+- 2026-11-05: Materials: use `addMacroVariation` to break up tiling; goat-hair tile spans
+  2 curtains × 4 cubits; skins 8×8-cubit tile; tachash dark brown leather; torch heads are
+  charred wraps with HDR glowing cracks.
+- 2026-11-05: Ambient occlusion skipped (GTAO needs a second scene render, ~+85 draws, and
+  conflicts with transparent fire sprites).
+- 2026-11-05: Perf after Step 7: ~3.7–5.2 ms/frame at 2048×1536 with fx, 78–102 draw calls.
