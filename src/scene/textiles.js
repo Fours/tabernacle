@@ -1040,6 +1040,157 @@ function drawCherub(g, cx, cy, s, dye, lw, linen) {
   line([P(-0.012, -0.285), P(0.012, -0.285)], cR, lw * 0.3);
 }
 
+/** A leaf: a pointed ellipse from (x0, y0) to (x1, y1), `w` px wide. */
+function drawLeaf(g, x0, y0, x1, y1, w, color) {
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  g.fillStyle = color;
+  g.beginPath();
+  g.ellipse((x0 + x1) / 2, (y0 + y1) / 2, len / 2, w / 2, Math.atan2(y1 - y0, x1 - x0), 0, Math.PI * 2);
+  g.fill();
+}
+
+/** Point on a quadratic Bezier. */
+const quad = (a, b, c, t) => [
+  (1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0],
+  (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1],
+];
+
+/**
+ * A stylized date palm, the "sacred tree" of Near Eastern art that cherubim flank (cf. 1 Kings
+ * 6:29, cherubim, palm trees and open flowers): a scaled trunk, a crown of drooping fronds with
+ * volutes at its base, and hanging date clusters. Base at (x, yb), height `h` px.
+ * `dye` = [trunk, fronds, fruit].
+ */
+function drawPalm(g, x, yb, h, dye, lw, linen) {
+  const [cT, cF, cD] = dye;
+  const yc = yb - 0.66 * h; // crown center
+  // Trunk, tapering, with chevron scales.
+  poly(g, [[x - 0.045 * h, yb], [x + 0.045 * h, yb], [x + 0.028 * h, yc], [x - 0.028 * h, yc]], cT);
+  for (let y = yb - 0.04 * h; y > yc + 0.03 * h; y -= 0.05 * h) {
+    const hw = 0.028 * h + 0.017 * h * ((y - yc) / (yb - yc));
+    line(g, [[x - hw, y - 0.02 * h], [x, y], [x + hw, y - 0.02 * h]], linen, lw * 0.3);
+  }
+  // Roots / base mound.
+  for (const sd of [-1, 1]) drawLeaf(g, x, yb, x + sd * 0.12 * h, yb - 0.035 * h, 0.035 * h, cT);
+  // Fronds: 5 a side, from nearly upright to drooping, each a curved rib with leaflets.
+  const R = 0.36 * h;
+  for (const sd of [-1, 1]) {
+    for (let k = 0; k < 5; k++) {
+      // From nearly upright to arching out and drooping: each rib rises, then bends down.
+      const a = (-78 + k * 24) * (Math.PI / 180);
+      const ctl = [x + sd * Math.cos(a) * R * 0.55, yc + Math.sin(a) * R * 0.55 - 0.1 * h];
+      const tip = [x + sd * (0.12 + 0.2 * Math.cos(a * 0.6)) * h * (0.7 + 0.08 * k),
+        yc + Math.sin(a) * R * 0.5 + 0.035 * h * k];
+      const pts = [];
+      for (let t = 0; t <= 1.0001; t += 0.1) pts.push(quad([x, yc], ctl, tip, t));
+      for (let n = 2; n < pts.length; n++) {
+        const [px, py] = pts[n], [qx, qy] = pts[n - 1];
+        const ang = Math.atan2(py - qy, px - qx), ll = 0.07 * h * (1 - (n / pts.length) * 0.55);
+        // Leaflets angled back along the rib, both sides.
+        for (const e of [-1, 1]) {
+          const la = ang + e * 2.3;
+          drawLeaf(g, px, py, px + Math.cos(la) * ll, py + Math.sin(la) * ll, 0.016 * h, cF);
+        }
+      }
+      line(g, pts, k % 2 ? cT : cF, lw * 0.45);
+    }
+  }
+  // Volutes at the crown's base (the palmette's curls) and the crown's knot.
+  for (const sd of [-1, 1]) {
+    g.strokeStyle = cD;
+    g.lineWidth = lw * 0.5;
+    g.beginPath();
+    g.arc(x + sd * 0.055 * h, yc + 0.035 * h, 0.03 * h, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.fillStyle = cT;
+  g.beginPath();
+  g.ellipse(x, yc, 0.04 * h, 0.03 * h, 0, 0, Math.PI * 2);
+  g.fill();
+  // Date clusters hanging under the crown.
+  for (const sd of [-1, 1]) {
+    for (let k = 0; k < 9; k++) {
+      const row = Math.floor(Math.sqrt(k * 2)), col = k - (row * (row + 1)) / 2;
+      g.fillStyle = cD;
+      g.beginPath();
+      g.arc(x + sd * (0.085 * h + (col - row / 2) * 0.022 * h), yc + 0.07 * h + row * 0.022 * h, 0.011 * h, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+}
+
+/** A pomegranate hanging from (x, y): round fruit with a crowned calyx (cf. Ex 28:33). */
+function drawPomegranate(g, x, y, r, fill, accent, linen, lw) {
+  g.fillStyle = fill;
+  g.beginPath();
+  g.arc(x, y + r, r, 0, Math.PI * 2);
+  g.fill();
+  // Calyx crown pointing down, and a highlight seam.
+  poly(g, [[x - 0.45 * r, y + 1.9 * r], [x - 0.3 * r, y + 2.35 * r], [x - 0.1 * r, y + 2.0 * r], [x, y + 2.4 * r],
+    [x + 0.1 * r, y + 2.0 * r], [x + 0.3 * r, y + 2.35 * r], [x + 0.45 * r, y + 1.9 * r]], accent);
+  line(g, [[x - 0.35 * r, y + 0.5 * r], [x - 0.5 * r, y + 1.2 * r]], linen, lw * 0.3);
+  line(g, [[x, y - 0.25 * r], [x, y + 0.05 * r]], accent, lw * 0.4);
+}
+
+/**
+ * A lily plant (the Temple's "lily-work", 1 Kings 7:19): a stem with long leaves, an open lily
+ * at the top (an upright petal between two out-curling ones), and two side branches each
+ * ending in a hanging pomegranate. Base at (x, yb), height `h` px. `dye` = [stem, petal, fruit].
+ */
+function drawLily(g, x, yb, h, dye, lw, linen) {
+  const [cS, cP, cF] = dye;
+  const yt = yb - 0.8 * h;
+  line(g, [[x, yb], [x, yt]], cS, lw * 0.6);
+  // Leaves from the base, and pairs up the stem.
+  for (const sd of [-1, 1]) {
+    drawLeaf(g, x, yb - 0.02 * h, x + sd * 0.16 * h, yb - 0.3 * h, 0.05 * h, cS);
+    drawLeaf(g, x, yb - 0.32 * h, x + sd * 0.11 * h, yb - 0.46 * h, 0.035 * h, cS);
+  }
+  // Side branches with pomegranates.
+  for (const sd of [-1, 1]) {
+    const b0 = [x, yb - 0.55 * h], b1 = [x + sd * 0.1 * h, yb - 0.68 * h], b2 = [x + sd * 0.17 * h, yb - 0.6 * h];
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += 0.2) pts.push(quad(b0, b1, b2, t));
+    line(g, pts, cS, lw * 0.4);
+    drawPomegranate(g, b2[0], b2[1], 0.045 * h, cF, cS, linen, lw);
+  }
+  // The open lily: sepals curling out and down, the upright petal, stamens.
+  for (const sd of [-1, 1]) {
+    const p0 = [x, yt + 0.02 * h], p1 = [x + sd * 0.13 * h, yt - 0.06 * h], p2 = [x + sd * 0.13 * h, yt + 0.04 * h];
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += 0.125) pts.push(quad(p0, p1, p2, t));
+    line(g, pts, cP, lw * 1.1);
+    g.fillStyle = cP;
+    g.beginPath();
+    g.arc(p2[0] - sd * 0.015 * h, p2[1], 0.022 * h, 0, Math.PI * 2);
+    g.fill();
+    line(g, [[x + sd * 0.012 * h, yt - 0.02 * h], [x + sd * 0.05 * h, yt - 0.14 * h]], cF, lw * 0.3);
+  }
+  drawLeaf(g, x, yt + 0.02 * h, x, yt - 0.17 * h, 0.06 * h, cP);
+  poly(g, [[x - 0.035 * h, yt + 0.04 * h], [x + 0.035 * h, yt + 0.04 * h], [x, yt - 0.02 * h]], cF);
+}
+
+/** A small flowering sprig for the ground line: three stems, leaves and little open flowers. */
+function drawSprig(g, x, yb, h, dye, lw) {
+  const [cS, cP, cC] = dye;
+  for (const [dx, hh] of [[-0.3, 0.7], [0, 1], [0.3, 0.75]]) {
+    const tx = x + dx * h * 0.5, ty = yb - hh * h;
+    line(g, [[x, yb], [x + dx * h * 0.25, yb - hh * h * 0.5], [tx, ty]], cS, lw * 0.35);
+    drawLeaf(g, x + dx * h * 0.2, yb - hh * h * 0.4, x + dx * h * 0.2 + (dx >= 0 ? 1 : -1) * 0.22 * h, yb - hh * h * 0.55, 0.08 * h, cS);
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2;
+      g.fillStyle = cP;
+      g.beginPath();
+      g.arc(tx + Math.cos(a) * 0.07 * h, ty + Math.sin(a) * 0.07 * h, 0.05 * h, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = cC;
+    g.beginPath();
+    g.arc(tx, ty, 0.04 * h, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
 /** Small eight-petal rosette. */
 function drawRosette(g, x, y, r, petal, center) {
   for (let k = 0; k < 8; k++) {
@@ -1152,6 +1303,28 @@ export function createCherubimTexture({ w = 5, h = 4, ppc = 256, cols = 2, rows 
     }
   }
   const s = Math.min(ch * 0.86, (cw * 0.9) / 1.26);
+  // Garden between the figures (drawn first, so the cherubim lie over any overlap): sacred palms
+  // in the wide gaps, lily-and-pomegranate stalks in the narrow ones, flowering sprigs along
+  // each row's ground line at the figures' feet.
+  for (let j = 0; j < rows; j++) {
+    const yb = top + (j + 0.5) * ch + s * 0.51; // ground line, just under the feet
+    const dyeAt = (k) => [DYES[k % 3], DYES[(k + 1) % 3], DYES[(k + 2) % 3]];
+    if (facing === 'center') {
+      // Palm between each facing pair (the middle of the canvas), lilies between figures facing
+      // the same way and at the canvas edges (which meet the next tile's edge).
+      drawPalm(g, W / 2, yb, s * 1.0, dyeAt(2 + j), lw, LINEN);
+      for (let i = 1; i < cols; i++) if (i !== cols / 2) drawLily(g, i * cw, yb, s * 0.95, dyeAt(i + j), lw, LINEN);
+      for (const x of [0, W]) drawLily(g, x, yb, s * 0.95, dyeAt(j + 1), lw, LINEN);
+    } else {
+      // A palm in each gap between frontal figures, under their wingtips.
+      for (let i = 1; i < cols; i++) drawPalm(g, i * cw, yb, s * 0.71, dyeAt(i + j + 1), lw, LINEN);
+    }
+    for (let i = 0; i < cols; i++) {
+      for (const sd of [-1, 1]) {
+        drawSprig(g, (i + 0.5) * cw + sd * cw * 0.3, yb, s * 0.2, dyeAt(i + j + (sd > 0 ? 1 : 2)), lw);
+      }
+    }
+  }
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const fx = (i + 0.5) * cw, fy = top + (j + 0.5) * ch + s * 0.02;

@@ -247,7 +247,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   one another, Ex 25:20). Facing pairs share their dyes. The profile figure
   (`drawCherubProfile`) strides forward, far wing raised up and back, near wing swept forward
   below the face (as on Phoenician/Egyptian winged guardians); frontal almond eye. The veil
-  keeps the frontal figures. `?light=work` adds an
+  keeps the frontal figures.
+- 2026-11-05: Garden ornament between the cherubim on the ceiling and veil (at the user's
+  direction; after 1 Kings 6:29's "cherubim and palm trees and open flowers", 7:19's lily-work
+  and the pomegranates of Ex 28:33), in the same three dyes on linen, drawn before the figures
+  so they lie over any overlap. The ceiling has a sacred date palm (scaled trunk, arching
+  fronds, volutes, date clusters) between each facing pair and lily-and-pomegranate stalks in
+  the other gaps. The veil has a palm in each gap between its frontal figures. Both have
+  small flowering sprigs along each row's ground line. `?light=work` adds an
   unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
 - 2026-11-05: Materials:
   - `addMacroVariation` breaks up visible tiling.
