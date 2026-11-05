@@ -35,6 +35,22 @@ vec4 billboard(vec3 center, vec2 corner, float size, float stretch) {
 }
 `;
 
+// Fog for additive sprites: fade toward black (adding the fog color would brighten them).
+const FOG_ADDITIVE_GLSL = /* glsl */ `
+#include <fog_pars_fragment>
+float fogAmount() {
+#ifdef USE_FOG
+  #ifdef FOG_EXP2
+  return 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+  #else
+  return smoothstep(fogNear, fogFar, vFogDepth);
+  #endif
+#else
+  return 0.0;
+#endif
+}
+`;
+
 const HASH_GLSL = /* glsl */ `
 float h11(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 `;
@@ -49,6 +65,7 @@ attribute vec4 aRand;
 varying vec2 vUv;
 varying float vAge;
 varying float vSeed;
+#include <fog_pars_vertex>
 ${HASH_GLSL}
 ${BILLBOARD_GLSL}
 void main() {
@@ -72,6 +89,8 @@ void main() {
   float size = uSize * mix(0.7, 1.3, aRand.y) * (1.0 - 0.6 * age) * (0.75 + 0.25 * (1.0 - r / uRadius));
   vec4 mv = billboard(p, position.xy, size, 1.6);
   gl_Position = projectionMatrix * mv;
+  vec4 mvPosition = mv;
+  #include <fog_vertex>
   vUv = uv;
   vAge = age;
   vSeed = aRand.x;
@@ -85,6 +104,7 @@ varying vec2 vUv;
 varying float vAge;
 varying float vSeed;
 ${NOISE_GLSL}
+${FOG_ADDITIVE_GLSL}
 vec3 fireRamp(float t) {
   vec3 c = mix(vec3(0.35, 0.03, 0.0), vec3(1.0, 0.28, 0.03), smoothstep(0.0, 0.4, t));
   c = mix(c, vec3(1.0, 0.62, 0.18), smoothstep(0.4, 0.75, t));
@@ -100,7 +120,7 @@ void main() {
   if (shape <= 0.0) discard;
   float heat = clamp((1.0 - vAge * 1.15) * (0.35 + 0.75 * shape), 0.0, 1.0);
   float fade = smoothstep(0.0, 0.1, vAge) * (1.0 - smoothstep(0.6, 1.0, vAge));
-  gl_FragColor = vec4(fireRamp(heat) * uBrightness, shape * fade * 0.55);
+  gl_FragColor = vec4(fireRamp(heat) * uBrightness * (1.0 - fogAmount()), shape * fade * 0.55);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
@@ -116,6 +136,7 @@ uniform vec2 uWind;
 attribute vec4 aRand;
 varying float vAge;
 varying float vTwinkle;
+#include <fog_pars_vertex>
 ${HASH_GLSL}
 void main() {
   float life = mix(1.4, 3.4, aRand.w);
@@ -135,6 +156,8 @@ void main() {
   p.xz += uWind * rise;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   gl_Position = projectionMatrix * mv;
+  vec4 mvPosition = mv;
+  #include <fog_vertex>
   float size = uSize * mix(0.6, 1.4, aRand.y);
   gl_PointSize = clamp(size * projectionMatrix[1][1] * 0.5 * uViewportH / -mv.z, 1.5, 9.0);
   vAge = age;
@@ -146,13 +169,14 @@ const EMBER_FRAG = /* glsl */ `
 uniform float uBrightness;
 varying float vAge;
 varying float vTwinkle;
+${FOG_ADDITIVE_GLSL}
 void main() {
   vec2 c = gl_PointCoord * 2.0 - 1.0;
   float d = dot(c, c);
   if (d > 1.0) discard;
   float fade = smoothstep(0.0, 0.06, vAge) * (1.0 - smoothstep(0.45, 1.0, vAge));
   vec3 col = mix(vec3(1.0, 0.72, 0.3), vec3(0.85, 0.16, 0.02), smoothstep(0.0, 0.8, vAge));
-  gl_FragColor = vec4(col * uBrightness * 1.6, (1.0 - d) * fade * (0.45 + 0.55 * vTwinkle));
+  gl_FragColor = vec4(col * uBrightness * 1.6 * (1.0 - fogAmount()), (1.0 - d) * fade * (0.45 + 0.55 * vTwinkle));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
@@ -168,6 +192,7 @@ attribute vec4 aRand;
 varying vec2 vUv;
 varying float vAge;
 varying float vSeed;
+#include <fog_pars_vertex>
 ${HASH_GLSL}
 ${BILLBOARD_GLSL}
 void main() {
@@ -187,6 +212,8 @@ void main() {
   float size = uRadius * mix(0.8, 1.2, aRand.y) * (0.7 + 2.6 * age);
   vec4 mv = billboard(p, position.xy, size, 1.0);
   gl_Position = projectionMatrix * mv;
+  vec4 mvPosition = mv;
+  #include <fog_vertex>
   vUv = uv;
   vAge = age;
   vSeed = aRand.x;
@@ -200,6 +227,7 @@ uniform float uBrightness;
 varying vec2 vUv;
 varying float vAge;
 varying float vSeed;
+#include <fog_pars_fragment>
 ${NOISE_GLSL}
 void main() {
   vec2 c = vUv * 2.0 - 1.0;
@@ -213,8 +241,12 @@ void main() {
   gl_FragColor = vec4(col, shape * fade * uOpacity);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
+  #include <fog_fragment>
 }
 `;
+
+/** Per-material copy of three's fog uniforms (filled in by the renderer when scene.fog is set). */
+const fogUniforms = () => THREE.UniformsUtils.clone(THREE.UniformsLib.fog);
 
 /** Deterministic pseudo-random generator. */
 function rng(seed) {
@@ -328,7 +360,8 @@ export function createFire(o = {}) {
   const flameGeo = quadParticles(flames, rnd, bounds);
   const flameMat = new THREE.ShaderMaterial({
     name: 'fire-flames',
-    uniforms: u,
+    uniforms: { ...u, ...fogUniforms() },
+    fog: true,
     vertexShader: FLAME_VERT,
     fragmentShader: FLAME_FRAG,
     transparent: true,
@@ -352,7 +385,8 @@ export function createFire(o = {}) {
     geo.boundingSphere = eb;
     const mat = new THREE.ShaderMaterial({
       name: 'fire-embers',
-      uniforms: { ...u, uSize: { value: Math.max(0.012, radius * 0.05) }, uViewportH: { value: 1000 } },
+      uniforms: { ...u, ...fogUniforms(), uSize: { value: Math.max(0.012, radius * 0.05) }, uViewportH: { value: 1000 } },
+      fog: true,
       vertexShader: EMBER_VERT,
       fragmentShader: EMBER_FRAG,
       transparent: true,
@@ -379,7 +413,8 @@ export function createFire(o = {}) {
     const geo = quadParticles(smoke, rnd, sb);
     const mat = new THREE.ShaderMaterial({
       name: 'fire-smoke',
-      uniforms: { ...u, uSmokeHeight: { value: smokeHeight }, uOpacity: { value: smokeOpacity } },
+      uniforms: { ...u, ...fogUniforms(), uSmokeHeight: { value: smokeHeight }, uOpacity: { value: smokeOpacity } },
+      fog: true,
       vertexShader: SMOKE_VERT,
       fragmentShader: SMOKE_FRAG,
       transparent: true,

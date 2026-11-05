@@ -33,6 +33,8 @@ renderer.info.autoReset = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070f);
+// Thin cool night haze: depth on the far hangings and the desert fading into the dark.
+scene.fog = new THREE.FogExp2(0x0b0f1c, 0.012);
 scene.environment = createNightEnvironment(renderer);
 scene.environmentIntensity = 0.35;
 
