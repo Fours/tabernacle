@@ -256,7 +256,7 @@ has checked and committed it.
   wall, altar centered in the eastern half). The `walk` mode lets you walk in through the gate
   at eye height, and walls block movement. Hangings are clearly taller than eye level.
 
-- [ ] **Step 2: Courtyard walls in detail.**
+- [x] **Step 2: Courtyard walls in detail.**
   Pillars with bronze sockets, silver capitals, silver fillets between pillars, and hooks.
   Linen hangings with cloth-like shading and slight sag or folds. The embroidered gate screen
   in blue, purple and scarlet. Bronze pegs and cords staking the pillars outward.
@@ -326,5 +326,12 @@ Record interpretive or technical choices here (date, decision, reason).
   rule for this one preset).
 - 2026-11-04: Player radius 0.3 m, walk 1.4 m/s, run 3.5 m/s. WASD works without pointer lock
   (the in-app browser pane refuses pointer lock); mouse look needs the lock.
-- 2026-11-04: Open item: the `walk` spawn (z = 0) faces the middle gate pillar — move it to
-  stand in a gap (z ≈ ±1.1 m) when touching the camera code next.
+- 2026-11-04: `walk` spawn is at z = +2.5 cubits, in the gap south of the middle gate pillar.
+- 2026-11-05: Courtyard pillar shaft is 5.25 cubits (socket included) plus a 0.3-cubit silver
+  capital, so the 5-cubit hanging hung from hooks clears the ground. Sockets 0.8×0.8×0.5 cubits.
+- 2026-11-05: Hangings and gate screen hang from silver hooks on the inner side of the pillar
+  line. Fillets are silver rods joining adjacent capitals. One bronze peg + cord per pillar,
+  staked outward 3 cubits (diagonal at corners). Pegs and cords don't collide.
+- 2026-11-05: Gate screen embroidery is geometric only (bands, lozenges, eight-pointed stars).
+- 2026-11-05: Shared materials/colors live in `src/scene/materials.js`; textile textures
+  (linen, embroidered screen) in `src/scene/textiles.js`. Reuse them.
