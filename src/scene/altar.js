@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ALTAR as A, ALTAR_UTENSILS as U, m } from '../config/dimensions.js';
 import { box } from './colliders.js';
-import { BRONZE_PLATED, ACACIA, EARTH } from './materials.js';
+import { BRONZE_PLATED, ACACIA, EARTH, addFireBounce } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 
 /** Lathe of a [radius, height] profile given in cubits (bottom to top, outer then inner). */
@@ -204,6 +204,11 @@ export function createAltar() {
   group.add(hearth);
 
   group.position.set(m(A.x), 0, m(A.z));
+  // Firelit sand bounces warm light onto the altar's outer walls (they face away from the
+  // flames, so otherwise only the dim night fill reaches them). Flicker via userData.bounce.
+  const bounce = { value: 1 };
+  addFireBounce(BRONZE_PLATED, { center: group.position, inner: 1.0, outer: 4.0, height: 2.4, strength: 2.6, level: bounce });
+  group.userData.bounce = bounce;
   // World-space hearth info for the fire (Step 5): center, surface height, inner side (meters).
   group.userData.hearth = { x: m(A.x), y: hy, z: m(A.z), size: inner };
   group.userData.colliders = [

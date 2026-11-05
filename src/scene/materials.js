@@ -75,6 +75,45 @@ export function addMacroVariation(mat, { scale = 0.25, amount = 0.15, dust = 0, 
   return mat;
 }
 
+/**
+ * Fake one-bounce firelight: the sand round a big fire is brightly lit and throws warm light
+ * back up onto nearby surfaces that face away from the flames (e.g. the altar's outer walls).
+ * Adds irradiance that fades with horizontal distance from `center` (inner..outer meters) and
+ * with height, strongest on faces that look down/outward. `level` is a shared uniform
+ * ({value}) for flicker. Patches `onBeforeCompile` (chains any existing patch).
+ */
+export function addFireBounce(mat, { center, inner = 1.2, outer = 4.5, height = 2.5, strength = 3, color = 0xff8a40, level }) {
+  const prev = mat.onBeforeCompile;
+  const c = new THREE.Color(color).multiplyScalar(strength);
+  mat.onBeforeCompile = (shader, renderer) => {
+    if (prev) prev(shader, renderer);
+    shader.uniforms.uBounceLevel = level;
+    shader.uniforms.uBounceCenter = { value: new THREE.Vector3(center.x, center.y, center.z) };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBouncePos;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvBouncePos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBouncePos;\nuniform float uBounceLevel;\nuniform vec3 uBounceCenter;')
+      .replace(
+        '#include <lights_fragment_end>',
+        `{
+  vec3 nW = inverseTransformDirection(normal, viewMatrix);
+  vec2 dxz = vBouncePos.xz - uBounceCenter.xz;
+  float d = length(dxz);
+  float fall = 1.0 - smoothstep(${inner.toFixed(3)}, ${outer.toFixed(3)}, d);
+  fall *= 1.0 - smoothstep(0.0, ${height.toFixed(3)}, vBouncePos.y - uBounceCenter.y);
+  // Faces looking down or away from the fire's axis catch the light off the sand.
+  float facing = clamp(0.55 - 0.45 * nW.y + 0.35 * dot(nW.xz, d > 0.001 ? dxz / d : vec2(0.0)), 0.0, 1.0);
+  irradiance += vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)}) * fall * facing * uBounceLevel;
+}
+#include <lights_fragment_end>`,
+      );
+  };
+  const key = mat.customProgramCacheKey ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => `${key}|bounce-${inner}-${outer}-${height}-${strength}`;
+  return mat;
+}
+
 /** Vertical wood-grain texture for acacia (procedural). */
 function acaciaGrainTexture() {
   const w = 64, h = 256;

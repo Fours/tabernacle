@@ -54,6 +54,10 @@ for (const g of elements) {
   if (g.userData.update) updaters.push(g.userData.update);
 }
 scene.add(createLighting({ work: params.light === 'work' }));
+// The altar's firelight bounce (materials.js addFireBounce) flickers with the fire.
+updaters.push(() => {
+  altar.userData.bounce.value = 1 + 0.25 * altarFire.userData.fire.level;
+});
 
 // Camera mode
 let rig;
