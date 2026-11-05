@@ -730,6 +730,64 @@ export function createGoatHairTexture({ curtains = 2, heightCubits = 4 } = {}) {
 }
 
 /**
+ * Tileable cloth for the camp tents (scene/camp.js): a light, neutral coarse weave so the
+ * per-tent instance colour sets the tone (black goat hair to faded undyed cloth). The tile is
+ * 1.5 m square: two woven strips (~0.75 m) sewn along their length (v = across the strips),
+ * with faint lighter warp bands, a seam per strip, and soft weathering stains.
+ */
+export function createTentClothTexture() {
+  const S = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const rnd = seeded(83);
+  g.fillStyle = '#b8b2a8';
+  g.fillRect(0, 0, S, S);
+  // Two strips; each its own batch tone and a couple of lighter woven bands along it.
+  for (let k = 0; k < 2; k++) {
+    const y0 = k * (S / 2);
+    g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,250,240'},${0.04 + rnd() * 0.06})`;
+    g.fillRect(0, y0, S, S / 2);
+    for (let b = 0; b < 2; b++) {
+      const by = y0 + 12 + rnd() * (S / 2 - 30);
+      g.fillStyle = `rgba(235,228,215,${0.1 + rnd() * 0.1})`;
+      g.fillRect(0, by, S, 3 + rnd() * 6);
+    }
+    // Seam at the strip edge (wraps at y = 0 / S).
+    g.fillStyle = 'rgba(0,0,0,0.35)';
+    g.fillRect(0, y0, S, 2);
+    g.fillRect(0, y0 === 0 ? S - 1 : y0 - 1, S, 1);
+  }
+  // Coarse weave: 2 px warp/weft threads, low contrast.
+  for (let y = 0; y < S; y += 2) {
+    g.fillStyle = `rgba(0,0,0,${rnd() * 0.08})`;
+    g.fillRect(0, y, S, 1);
+  }
+  for (let x = 0; x < S; x += 2) {
+    g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,250,240'},${rnd() * 0.07})`;
+    g.fillRect(x, 0, 1, S);
+  }
+  // Weathering: soft dark stains (dust, smoke), drawn wrapped so the tile stays seamless.
+  for (let i = 0; i < 14; i++) {
+    const x = rnd() * S, y = rnd() * S, r = 10 + rnd() * 40, a = 0.05 + rnd() * 0.07;
+    for (const ox of [-S, 0, S]) {
+      for (const oy of [-S, 0, S]) {
+        const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+        gr.addColorStop(0, `rgba(40,32,24,${a})`);
+        gr.addColorStop(1, 'rgba(40,32,24,0)');
+        g.fillStyle = gr;
+        g.fillRect(x + ox - r, y + oy - r, 2 * r, 2 * r);
+      }
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+/**
  * Pieced animal skins stitched into a covering (ram skins dyed red, tachash). The tile spans
  * `tile` cubits square: rows of irregular hides (`hide` = [width, height] in cubits, widths
  * varying per hide, rows of varying height), overlapping at sewn seams, with mottling, a

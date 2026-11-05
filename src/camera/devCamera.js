@@ -74,6 +74,13 @@ export const PRESETS = {
   firepillarfar: { pos: [130, eye, 70], target: [m(-25), 75, 0], fov: 70 },
   // Close on the fire: its tapered foot above the tent roof, fading up into the shaft.
   firepillarfoot: { pos: [m(10), m(6), m(34)], target: [m(-25), 19, 0], fov: 62 },
+  // The camp of Israel from ~58 m up over Judah's camp (east), looking west over the court:
+  // the Levites' rows round the court, the tribal blocks and the lanes between them fading
+  // into the night haze (lower than a true overview: the fog hides anything much further).
+  camp: { pos: [72, 58, 24], target: [0, 0, -8], fov: 60 },
+  // Eye height just outside the gate's north post, looking north-west past the north-east
+  // corner of the hangings over the nearest tents (Merari's rows, Dan's camp beyond).
+  campwalk: { pos: [m(hx) + 5, eye, -8], target: [5, eye + 0.3, -40], fov: 65 },
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {

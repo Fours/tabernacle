@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { getParams } from './debug/params.js';
 import { createGround } from './scene/ground.js';
 import { createGroundScatter } from './scene/groundScatter.js';
+import { createCamp } from './scene/camp.js';
 import { createCourtyard } from './scene/courtyard.js';
 import { createAltar } from './scene/altar.js';
 import { createTabernacle } from './scene/tabernacle.js';
@@ -58,8 +59,10 @@ const menorah = createMenorah();
 const tabernacle = createTabernacle();
 const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
 const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holies
-const groundScatter = createGroundScatter(); // rocks and scrub (Step 9 clears it under tents)
-const elements = [createGround(), groundScatter, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
+const groundScatter = createGroundScatter(); // rocks and scrub
+const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
+groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
+const elements = [createGround(), groundScatter, camp, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
@@ -176,7 +179,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe, pillarOfFire, groundScatter,
+  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 
