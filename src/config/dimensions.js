@@ -296,9 +296,6 @@ export const TORCHES = {
     // Flanking the approach path outside the gate, nearest the spawn.
     { x: 59, z: -7, light: true },
     { x: 59, z: 7, light: true },
-    // Outside the east corners.
-    { x: 54, z: -28, light: true },
-    { x: 54, z: 28, light: true },
     // Inside, near the east corners (clear of the gate-altar-tent axis).
     { x: 40, z: -21, light: true },
     { x: 40, z: 21, light: true },
