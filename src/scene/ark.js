@@ -4,6 +4,7 @@ import { ARK as A, m } from '../config/dimensions.js';
 import { GOLD, GOLD_PATINA, addGoldPatina } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
+import { arkOrnamentParts } from './arkOrnament.js';
 
 // The ark of the covenant (Ex 25:10-22; 37:1-9) in the Holy of Holies: a 2.5 x 1.5 x 1.5 cubit
 // gold-overlaid chest with a crown around its top, four short feet with a gold ring on each, two
@@ -32,37 +33,12 @@ const SEAT_TOP = H + KT;
 
 function chestParts() {
   const g = [];
-  // Body (gold-overlaid acacia) on four short, slightly tapered square feet.
+  // Body (gold-overlaid acacia) on four short feet, with its crown (zer, Ex 25:11), plinth,
+  // panels, pilasters, feet and the mercy seat's border (arkOrnament.js).
   g.push(boxPart(W, H - FH, L, [0, (H + FH) / 2, 0]));
-  const fs = m(A.footSize);
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      const foot = new THREE.CylinderGeometry(fs / Math.SQRT2, fs * 0.82 / Math.SQRT2, FH, 4).rotateY(Math.PI / 4);
-      g.push(part(foot, { pos: [sx * (W / 2 - fs / 2), FH / 2, sz * (L / 2 - fs / 2)] }));
-    }
-  }
-  // A plain band around the foot of the body.
-  const bp = m(0.02), bh = m(0.06);
-  for (const s of [-1, 1]) {
-    g.push(boxPart(W + 2 * bp, bh, bp, [0, FH + bh / 2, s * (L / 2 + bp / 2)]));
-    g.push(boxPart(bp, bh, L, [s * (W / 2 + bp / 2), FH + bh / 2, 0]));
-  }
-  // Crown (zer) around the top: a band projecting from the sides, rising above the rim so the
-  // mercy seat sits inside it, with a rounded roll along its top and a bead along its foot.
-  const y0 = H - C_BELOW, y1 = SEAT_TOP + C_LIP, ch = y1 - y0, cy = (y0 + y1) / 2;
-  const roll = CW * 0.55, bead = m(0.025);
-  for (const s of [-1, 1]) {
-    g.push(boxPart(W + 2 * CW, ch, CW, [0, cy, s * (L / 2 + CW / 2)]));
-    g.push(boxPart(CW, ch, L, [s * (W / 2 + CW / 2), cy, 0]));
-    const rx = new THREE.CylinderGeometry(roll, roll, W + 2 * CW + 2 * roll * 0.6, 10).rotateZ(Math.PI / 2);
-    g.push(part(rx, { pos: [0, y1, s * (L / 2 + CW - roll * 0.4)] }));
-    const rz = new THREE.CylinderGeometry(roll, roll, L + 2 * CW + 2 * roll * 0.6, 10).rotateX(Math.PI / 2);
-    g.push(part(rz, { pos: [s * (W / 2 + CW - roll * 0.4), y1, 0] }));
-    const bx = new THREE.CylinderGeometry(bead, bead, W + 2 * CW, 8).rotateZ(Math.PI / 2);
-    g.push(part(bx, { pos: [0, y0 + bead * 0.3, s * (L / 2 + CW)] }));
-    const bz = new THREE.CylinderGeometry(bead, bead, L + 2 * CW, 8).rotateX(Math.PI / 2);
-    g.push(part(bz, { pos: [s * (W / 2 + CW), y0 + bead * 0.3, 0] }));
-  }
+  g.push(...arkOrnamentParts({
+    W, L, H, FH, FS: m(A.footSize), SEAT_TOP, CW, C_BELOW, C_LIP, ringX, ringY: m(A.ringHeight),
+  }));
   // Mercy seat: a slab of pure gold the size of the ark, one handbreadth thick, inside the crown.
   g.push(boxPart(W, KT, L, [0, H + KT / 2, 0]));
   // A gold ring on each foot (on the N and S faces), held by a short staple, and the two poles
