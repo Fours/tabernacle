@@ -4,9 +4,11 @@ import { box } from './colliders.js';
 import { GOLD, GOLD_OVERLAY, SILVER, BRONZE, ROPE } from './materials.js';
 import { part, merge } from './bronzeParts.js';
 import { createLinenTexture, createEmbroideredScreenTexture } from './textiles.js';
-import { createCoverings } from './tentCoverings.js';
+import { createCoverings, createLinenCeiling } from './tentCoverings.js';
+import { createVeil } from './veil.js';
 
-// Tabernacle tent exterior (Ex 26; 36:8-38). Dimensions in cubits from dimensions.js.
+// Tabernacle tent (Ex 26; 36:8-38): boards, bars, entrance, plus the interior shell (linen
+// ceiling, veil). Dimensions in cubits from dimensions.js.
 // Interior spans x = interiorMinX..interiorMaxX, z = centerZ ± interiorWidth/2; the boards
 // stand outside that box (1 cubit thick). East (+X) is the entrance.
 
@@ -38,7 +40,7 @@ const mat4 = (x, y, z, rotY = 0) =>
     new THREE.Vector3(1, 1, 1),
   );
 
-function buildBoardsAndSockets(group) {
+function buildBoardsAndSockets(group, veilSockets = []) {
   const boards = boardPlacements();
   const boardGeo = new THREE.BoxGeometry(m(BW - T.boardGap), m(H), m(BT));
   boardGeo.translate(0, m(H / 2), 0);
@@ -51,7 +53,7 @@ function buildBoardsAndSockets(group) {
   sockGeo.computeVertexNormals();
   sockGeo.scale(m(BW / 2 - 0.06), m(T.socketHeight), m(BT + 2 * T.socketProud));
   sockGeo.translate(0, m(T.socketHeight / 2), 0);
-  const sockMesh = new THREE.InstancedMesh(sockGeo, SILVER, boards.length * 2);
+  const sockMesh = new THREE.InstancedMesh(sockGeo, SILVER, boards.length * 2 + veilSockets.length);
   sockMesh.name = 'silver-sockets';
   sockMesh.receiveShadow = true;
   const c = new THREE.Color();
@@ -65,6 +67,11 @@ function buildBoardsAndSockets(group) {
       const off = new THREE.Matrix4().makeTranslation(m((k - 0.5) * (BW / 2)), 0, 0);
       sockMesh.setMatrixAt(i * 2 + k, M.clone().multiply(off));
     }
+  });
+  // The veil pillars' silver sockets (Ex 26:32): same casting, scaled to a square footprint.
+  const sx = T.veil.socket / (BW / 2 - 0.06), sz = T.veil.socket / (BT + 2 * T.socketProud);
+  veilSockets.forEach(([x, z], i) => {
+    sockMesh.setMatrixAt(boards.length * 2 + i, mat4(x, 0, z).multiply(new THREE.Matrix4().makeScale(sx, 1, sz)));
   });
   group.add(boardMesh, sockMesh);
 }
@@ -182,7 +189,8 @@ function screenMesh() {
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'entrance-screen';
-  mesh.receiveShadow = true;
+  // Casts so the altar fire doesn't shine through the screen into the Holy Place.
+  mesh.castShadow = mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -190,11 +198,15 @@ export function createTabernacle() {
   const group = new THREE.Group();
   group.name = 'tabernacle';
 
-  buildBoardsAndSockets(group);
+  const veil = createVeil();
+  buildBoardsAndSockets(group, veil.socketPositions);
+
+  const ceiling = createLinenCeiling();
+  group.add(ceiling.mesh, veil.mesh);
 
   const ent = entranceParts();
-  const goldMesh = new THREE.Mesh(merge([...barParts(), ...ent.gold]), GOLD);
-  goldMesh.name = 'gold-bars-rings-pillars';
+  const goldMesh = new THREE.Mesh(merge([...barParts(), ...ent.gold, ...veil.goldParts, ...ceiling.goldParts]), GOLD);
+  goldMesh.name = 'gold-bars-rings-pillars-veil-clasps';
   goldMesh.castShadow = goldMesh.receiveShadow = true;
   group.add(goldMesh);
 
@@ -210,14 +222,20 @@ export function createTabernacle() {
   ropeMesh.name = 'tent-cords';
   group.add(ropeMesh);
 
-  // Colliders: the draped body (boards + hanging coverings) and the entrance (screen,
-  // pillars, front flap). Pins and cords don't collide (as in the courtyard).
+  // Colliders: the side and west walls with their hanging coverings, the entrance pillars'
+  // sockets and the veil. The entrance screen is walk-through (like the gate screens); pins
+  // and cords don't collide (as in the courtyard).
   const { xW, xE, zN, zS } = cov.rect;
   const so = cov.standOut;
-  const ex = T.interiorMaxX;
+  const x0 = xW - so, x1 = xE + so;
+  const zIn = T.centerZ - HW, zIs = T.centerZ + HW; // interior faces of the side walls
+  const s = T.entranceSocket;
   const colliders = [
-    box(m((xW - so + ex) / 2), m((zN + zS) / 2), m(ex - (xW - so)), m(zS - zN + 2 * so)),
-    box(m((ex + xE + so) / 2), m((zN + zS) / 2), m(xE + so - ex), m(zS - zN + 2 * so)),
+    box(m((x0 + x1) / 2), m((zN - so + zIn) / 2), m(x1 - x0), m(zIn - (zN - so))),
+    box(m((x0 + x1) / 2), m((zIs + zS + so) / 2), m(x1 - x0), m(zS + so - zIs)),
+    box(m((x0 + T.interiorMinX) / 2), m(T.centerZ), m(T.interiorMinX - x0), m(zS - zN + 2 * so)),
+    ...pillarZs().map((z) => box(m(T.entrancePillarX), m(z), m(s), m(s))),
+    ...veil.colliders,
   ];
   group.userData.colliders = colliders;
   return group;

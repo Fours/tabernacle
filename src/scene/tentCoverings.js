@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
-import { createGoatHairTexture, createSkinTexture } from './textiles.js';
+import { createGoatHairTexture, createSkinTexture, createCherubimTexture, createLinenTexture } from './textiles.js';
 import { addMacroVariation } from './materials.js';
 import { part } from './bronzeParts.js';
 
@@ -165,6 +165,69 @@ function buildCovering(opts) {
   geo.setIndex(idx);
   geo.computeVertexNormals();
   return { geo, per, pointAt, hemPoint };
+}
+
+// Ceiling texture tile (cubits): 5 across the tent (N-S) x one 4-cubit curtain (E-W).
+const CEIL_TILE = { across: 5 };
+
+/**
+ * Inner linen covering (Ex 26:1-6) as seen from inside: a flat sheet just above the board
+ * tops (sagging with the goat hair), reaching over the boards so no gap shows at the walls.
+ * Its curtains run N-S; figures stand head to the east, seams fall every 4 cubits from the
+ * front edge, and the gold clasps (26:6) hang under the clasp line. Returns { mesh, goldParts }.
+ */
+export function createLinenCeiling() {
+  const L = T.linen;
+  const xW = T.interiorMinX - T.boardThickness, xE = T.interiorMaxX;
+  const zO = HW + T.boardThickness;
+  const yAt = (x, z) => TOP + L.above - roofSag(x, z);
+  const nx = Math.round(xE - xW), nz = Math.round((2 * zO) / 0.5);
+  const pos = [], uv = [], idx = [];
+  for (let j = 0; j <= nz; j++) {
+    const z = T.centerZ - zO + (2 * zO * j) / nz;
+    for (let i = 0; i <= nx; i++) {
+      const x = xW + ((xE - xW) * i) / nx;
+      pos.push(m(x), m(yAt(x, z)), m(z));
+      // One curtain per tile in v, from the front edge (x = 0) westward. Figures' heads point
+      // east, so they stand upright to someone entering and looking up toward the veil.
+      uv.push((z - T.centerZ + HW) / CEIL_TILE.across, (x - T.interiorMaxX) / L.curtainWidth);
+    }
+  }
+  for (let j = 0; j < nz; j++) {
+    for (let i = 0; i < nx; i++) {
+      const a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
+      idx.push(a, b, c, b, d, c); // facing down
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const weave = createLinenTexture();
+  weave.repeat.set(m(CEIL_TILE.across) / 0.5, m(L.curtainWidth) / 0.5);
+  const mat = new THREE.MeshStandardMaterial({
+    name: 'linen-ceiling',
+    map: createCherubimTexture({ w: CEIL_TILE.across, h: L.curtainWidth, ppc: 256, cols: 2, rows: 2, seams: true }),
+    bumpMap: weave,
+    bumpScale: 0.5,
+    roughness: 0.9,
+  });
+  addMacroVariation(mat, { scale: 0.5, amount: 0.08 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'linen-ceiling';
+  mesh.receiveShadow = true;
+
+  // Gold clasps joining the two sets of five curtains, hanging just under the clasp line.
+  const goldParts = [];
+  const xC = T.interiorMaxX - L.claspAt;
+  for (let k = 0; k < L.clasps; k++) {
+    const z = T.centerZ + ((k + 0.5) / L.clasps) * L.curtainLength - L.curtainLength / 2;
+    if (Math.abs(z - T.centerZ) >= HW - 0.1) continue;
+    const g = new THREE.TorusGeometry(m(0.08), m(0.022), 4, 10).scale(1.7, 1, 1);
+    goldParts.push(part(g, { pos: [m(xC), m(yAt(xC, z) - 0.035), m(z)], rot: [Math.PI / 2, 0, 0] }));
+  }
+  return { mesh, goldParts };
 }
 
 /** Cylinder between two points (cubits), as a mergeable part. */

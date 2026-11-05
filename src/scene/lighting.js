@@ -16,6 +16,11 @@ export function createLighting({ work = false } = {}) {
     const sun = new THREE.DirectionalLight(0xffffff, 1.8);
     sun.position.set(30, 60, 45);
     group.add(sun);
+    // The Holy Place has no light of its own until the menorah; its gold walls are metal and
+    // only read with a nearby light, so work mode adds an unshadowed one inside.
+    const inner = new THREE.PointLight(0xffffff, 8, 0, 1.2);
+    inner.position.set(-4.5, 1.8, 0);
+    group.add(inner);
   }
   return group;
 }

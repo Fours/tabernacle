@@ -68,8 +68,29 @@ export const TABERNACLE = {
   entranceSocket: 0.9, // bronze socket footprint, 1 cubit high like the silver ones (not in text)
   screenTop: 9.5, // screen hung from gold hooks on the pillars' inner side (not in text)
   screenHem: 0.08,
-  // Coverings (Ex 26:1-14). The inner linen covering is hidden under the goat hair from
-  // outside and is not modeled (Decisions log).
+  // Inner linen covering (Ex 26:1-6): 10 curtains of 28x4 cubits running N-S across the roof,
+  // joined into two sets of 5 by 50 gold clasps. Only the ceiling seen from inside is modeled;
+  // its sides hang down the outside of the boards under the goat hair (Decisions log).
+  linen: {
+    curtains: 10,
+    curtainLength: 28, // N-S, across the tent
+    curtainWidth: 4, // E-W
+    claspAt: 20, // clasp line: 5 curtains in from the front (x = -20), above the veil (26:33)
+    clasps: 50,
+    above: 0.01, // sheet sits this far above the board tops, under the goat hair (not in text)
+  },
+  // Veil (Ex 26:31-33; 36:35-36): hangs under the clasps on gold hooks from 4 gold-overlaid
+  // acacia pillars on silver sockets, the pillars on the Holy of Holies (west) side.
+  veil: {
+    x: -20, // cloth plane (under the linen clasp line)
+    pillars: 4, // evenly spaced: one in the middle of each quarter of the 10-cubit width
+    pillarRadius: 0.25, // not in text
+    pillarOffset: 0.45, // pillar centers west of the cloth; sockets stay behind it (not in text)
+    socket: 0.8, // silver socket footprint, 1 cubit high like the boards' (not in text)
+    hem: 0.06, // hem above the ground (not in text)
+    topGap: 0.06, // cloth top this far under the ceiling (not in text)
+  },
+  // Coverings (Ex 26:7-14).
   roofSag: 0.22, // coverings dip slightly between the walls (not in text)
   coverEastOverhang: 0.85, // roof coverings reach past the board ends over the pillars
   goatHair: {

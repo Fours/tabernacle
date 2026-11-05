@@ -32,6 +32,12 @@ export const PRESETS = {
   tentroof: { pos: [m(14), m(30), m(24)], target: [m(-14), m(8), 0] },
   // Close-up of the tent's south-east corner at the hem: boards, sockets, bars, pins, flap.
   tentcorner: { pos: [m(7), m(2.8), m(15)], target: [m(-6), m(2), m(6)], fov: 50 },
+  // Inside the Holy Place: just in from the entrance looking west at eye height.
+  holyplace: { pos: [m(TABERNACLE.interiorMaxX - 1.5), eye, 0], target: [m(-20), eye, 0], fov: 65 },
+  // Looking up at the linen ceiling's cherubim toward the clasp line over the veil.
+  ceiling: { pos: [m(-7), eye, m(1)], target: [m(-15), m(10), m(-0.5)], fov: 70 },
+  // Facing the veil from the Holy Place.
+  veil: { pos: [m(-9), eye, m(0.5)], target: [m(TABERNACLE.veil.x), m(4.6), 0], fov: 62 },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },

@@ -390,3 +390,254 @@ export function createSkinTexture({ base = [126, 42, 31], seed = 5, variation = 
   t.anisotropy = 8;
   return t;
 }
+
+/**
+ * One woven cherub (Ex 26:1, 31): a standing robed figure seen from the front with both wings
+ * spread up and out, in the three dyes on linen. (cx, cy) is the figure's center and `s` its
+ * height in px; the wingspan is about 1.25 s. `dye` = [wing, robe, accent] colors.
+ */
+function drawCherub(g, cx, cy, s, dye, lw) {
+  const [cW, cR, cA] = dye;
+  const P = (x, y) => [cx + x * s, cy + y * s];
+  const LINEN = '#efe7d3';
+  const shadowed = (path, fill) => {
+    g.save();
+    g.fillStyle = 'rgba(40,25,20,0.3)';
+    g.translate(lw * 0.3, lw * 0.45);
+    g.beginPath();
+    path();
+    g.fill();
+    g.restore();
+    g.fillStyle = fill;
+    g.beginPath();
+    path();
+    g.fill();
+  };
+  const line = (pts, color, w, dash = true) => {
+    g.save();
+    g.strokeStyle = color;
+    g.lineWidth = w;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    if (dash) g.setLineDash([w * 1.4, w * 0.5]);
+    g.beginPath();
+    pts.forEach((p, i) => (i ? g.lineTo(...p) : g.moveTo(...p)));
+    g.stroke();
+    g.restore();
+  };
+  const quadPt = (a, c, b, t) => [
+    (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0],
+    (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1],
+  ];
+  const N = 7;
+  for (const side of [-1, 1]) {
+    const root = P(0.07 * side, -0.19), ctrl = P(0.26 * side, -0.56), tip = P(0.62 * side, -0.47);
+    const end = P(0.1 * side, 0.1);
+    // Scallop points along the trailing edge, hanging lower toward the middle of the wing.
+    const scal = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const b = [tip[0] + (end[0] - tip[0]) * t, tip[1] + (end[1] - tip[1]) * t];
+      scal.push([b[0] + 0.03 * s * side * Math.sin(Math.PI * t), b[1] + 0.12 * s * Math.sin(Math.PI * t)]);
+    }
+    const wing = () => {
+      g.moveTo(...root);
+      g.quadraticCurveTo(...ctrl, ...tip);
+      for (let i = 1; i <= N; i++) {
+        const a = scal[i - 1], b = scal[i];
+        const mx = (a[0] + b[0]) / 2 + 0.035 * s * side * 0.4, my = (a[1] + b[1]) / 2 + 0.05 * s;
+        g.quadraticCurveTo(mx, my, ...b);
+      }
+      g.closePath();
+    };
+    shadowed(wing, cW);
+    // Primary feathers: stitched linen lines from the wing's arm to each scallop.
+    for (let i = 0; i < N; i++) {
+      const a = quadPt(root, ctrl, tip, 1 - (i + 0.5) / N * 0.85);
+      const b = [(scal[i][0] + scal[i + 1][0]) / 2, (scal[i][1] + scal[i + 1][1]) / 2 + 0.035 * s];
+      line([a, b], LINEN, lw * 0.55);
+    }
+    // Coverts: a band of the accent dye along the leading edge, with linen scale dots.
+    const arm = [];
+    for (let k = 0; k <= 12; k++) arm.push(quadPt(root, ctrl, tip, k / 12));
+    line(arm, cA, lw * 2.2, false);
+    for (let k = 1; k < 12; k++) {
+      const p = quadPt(root, ctrl, tip, k / 12);
+      g.fillStyle = LINEN;
+      g.beginPath();
+      g.arc(p[0], p[1] + lw * 0.9, lw * 0.45, 0, Math.PI * 2);
+      g.fill();
+    }
+    line([...arm, ...scal, root], cR, lw * 0.6);
+  }
+  // Robe: shoulders to feet, flaring slightly, with a belt and a hem band.
+  const robe = () => {
+    g.moveTo(...P(-0.085, -0.22));
+    g.lineTo(...P(0.085, -0.22));
+    g.quadraticCurveTo(...P(0.12, 0.1), ...P(0.16, 0.46));
+    g.lineTo(...P(-0.16, 0.46));
+    g.quadraticCurveTo(...P(-0.12, 0.1), ...P(-0.085, -0.22));
+    g.closePath();
+  };
+  shadowed(robe, cR);
+  g.save();
+  g.beginPath();
+  robe();
+  g.clip();
+  g.fillStyle = cA;
+  g.fillRect(...P(-0.3, 0.38), 0.6 * s, 0.08 * s);
+  g.fillStyle = cW;
+  g.fillRect(...P(-0.3, -0.01), 0.6 * s, 0.035 * s);
+  g.restore();
+  for (const x of [-0.07, 0, 0.07]) line([P(x * 0.6, 0.03), P(x * 1.3, 0.37)], 'rgba(30,15,20,0.45)', lw * 0.45, false);
+  // Feet below the hem.
+  for (const x of [-0.06, 0.06]) {
+    g.fillStyle = cA;
+    g.beginPath();
+    g.ellipse(...P(x, 0.485), 0.04 * s, 0.018 * s, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  // Head: linen face ringed in the accent dye, hair in the wing dye.
+  g.fillStyle = 'rgba(40,25,20,0.3)';
+  g.beginPath();
+  g.arc(...P(0.006, -0.315), 0.075 * s, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = LINEN;
+  g.beginPath();
+  g.arc(...P(0, -0.32), 0.072 * s, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = cW;
+  g.beginPath();
+  g.arc(...P(0, -0.33), 0.074 * s, Math.PI * 1.02, Math.PI * 1.98);
+  g.quadraticCurveTo(...P(0, -0.35), ...P(-0.073, -0.33));
+  g.fill();
+  line([[cx + 0.072 * s, cy - 0.32 * s]].concat(Array.from({ length: 25 }, (_, i) => {
+    const a = (i / 24) * Math.PI * 2;
+    return P(0.072 * Math.cos(a), -0.32 + 0.072 * Math.sin(a));
+  })), cA, lw * 0.6, false);
+  // Arms raised toward the wings.
+  for (const side of [-1, 1]) line([P(0.08 * side, -0.19), P(0.17 * side, -0.1), P(0.2 * side, -0.2)], cA, lw * 0.9, false);
+}
+
+/** Small eight-petal rosette. */
+function drawRosette(g, x, y, r, petal, center) {
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    g.fillStyle = petal;
+    g.beginPath();
+    g.ellipse(x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.55, r * 0.42, r * 0.2, a, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = center;
+  g.beginPath();
+  g.arc(x, y, r * 0.25, 0, Math.PI * 2);
+  g.fill();
+}
+
+/**
+ * Linen woven with cherubim in blue, purple and scarlet (Ex 26:1 inner covering; 26:31 veil).
+ * The canvas spans `w` x `h` cubits at `ppc` px per cubit, with `cols` x `rows` figures; figure
+ * "up" is the canvas top. `seams`: a sewn curtain join along the top and bottom edges (half on
+ * each, so tiles join into one seam; ceiling). `border`: dyed bands at top and bottom and a
+ * diamond lattice behind the figures (veil, denser work).
+ */
+export function createCherubimTexture({ w = 5, h = 4, ppc = 256, cols = 2, rows = 2, seams = false, border = false, seed = 47 } = {}) {
+  const W = Math.round(w * ppc), H = Math.round(h * ppc);
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  const rnd = seeded(seed);
+  paintWeave(g, W, H, rnd, '#ebe4d2');
+  const BLUE = hex(COLORS.blue), PURPLE = hex(COLORS.purple), SCARLET = hex(COLORS.scarlet);
+  const DYES = [BLUE, PURPLE, SCARLET];
+  const lw = Math.max(3, ppc * 0.035);
+
+  let top = 0, bot = H;
+  const band = (y, bh, color) => {
+    g.fillStyle = color;
+    g.fillRect(0, y, W, bh);
+    for (let yy = y; yy < y + bh; yy += 2) {
+      g.fillStyle = `rgba(0,0,0,${0.05 + rnd() * 0.08})`;
+      g.fillRect(0, yy, W, 1);
+    }
+  };
+  if (border) {
+    const u = ppc * 0.12;
+    for (const flip of [false, true]) {
+      const at = (o, bh) => (flip ? H - o - bh : o);
+      band(at(0, u * 0.5), u * 0.5, SCARLET);
+      band(at(u * 0.8, u * 1.6), u * 1.6, BLUE);
+      band(at(u * 2.7, u * 0.6), u * 0.6, PURPLE);
+      band(at(u * 3.6, u * 0.35), u * 0.35, SCARLET);
+      // Rosettes along the blue band.
+      for (let x = u; x < W; x += u * 2.2) drawRosette(g, x, at(u * 1.6, 0), u * 0.6, '#efe7d3', SCARLET);
+    }
+    top = ppc * 0.12 * 4.3;
+    bot = H - top;
+  }
+  if (seams) {
+    // Selvage stripes (blue, scarlet) and the sewn join, centered on the canvas edges.
+    for (const y0 of [0, H]) {
+      const s = y0 ? -1 : 1;
+      const at = (o, bh) => (s > 0 ? y0 + o : y0 - o - bh);
+      band(at(ppc * 0.05, ppc * 0.06), ppc * 0.06, BLUE);
+      band(at(ppc * 0.14, ppc * 0.03), ppc * 0.03, SCARLET);
+      band(at(ppc * 0.2, ppc * 0.04), ppc * 0.04, PURPLE);
+      g.fillStyle = 'rgba(60,45,30,0.55)';
+      g.fillRect(0, at(0, ppc * 0.018), W, ppc * 0.018);
+      g.fillStyle = 'rgba(255,250,235,0.5)';
+      for (let x = rnd() * 6; x < W; x += 9 + rnd() * 3) g.fillRect(x, at(ppc * 0.022, 2), 5, 2);
+    }
+    top = ppc * 0.28;
+    bot = H - top;
+  }
+
+  const cw = W / cols, ch = (bot - top) / rows;
+  if (border) {
+    // Diamond lattice in the field behind the figures, stitched in the dyes.
+    g.save();
+    g.beginPath();
+    g.rect(0, top, W, bot - top);
+    g.clip();
+    for (let i = 0; i <= cols; i++) {
+      for (let j = 0; j <= rows; j++) {
+        const x = i * cw, y = top + j * ch;
+        g.fillStyle = 'rgba(34,63,140,0.08)';
+        g.beginPath();
+        g.moveTo(x, y - ch / 2);
+        g.lineTo(x + cw / 2, y);
+        g.lineTo(x, y + ch / 2);
+        g.lineTo(x - cw / 2, y);
+        g.closePath();
+        g.fill();
+        g.strokeStyle = DYES[(i + j) % 3];
+        g.lineWidth = lw * 0.6;
+        g.setLineDash([lw, lw * 0.6]);
+        g.stroke();
+        g.setLineDash([]);
+        drawRosette(g, x, y, Math.min(cw, ch) * 0.09, DYES[(i + j + 1) % 3], '#efe7d3');
+      }
+    }
+    g.restore();
+  } else {
+    for (let i = 0; i <= cols; i++) {
+      for (let j = 0; j <= rows; j++) {
+        if (seams && (j === 0 || j === rows)) continue;
+        drawRosette(g, i * cw, top + j * ch, Math.min(cw, ch) * 0.07, DYES[(i + j) % 3], '#efe7d3');
+      }
+    }
+  }
+  const s = Math.min(ch * 0.86, (cw * 0.9) / 1.26);
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const k = i + j;
+      drawCherub(g, (i + 0.5) * cw, top + (j + 0.5) * ch + s * 0.02, s, [DYES[k % 3], DYES[(k + 1) % 3], DYES[(k + 2) % 3]], lw);
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
