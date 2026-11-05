@@ -276,6 +276,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - The goat-hair texture tile spans 2 curtains × 4 cubits.
   - The skin textures tile every 8×8 cubits.
   - The tachash is dark brown leather.
+- 2026-11-05: Gold patina (`addGoldPatina` in materials.js): one shared shader patch with 3D
+  world-space noise (the 2D projected noise streaks): tarnish patches, grime near the floor,
+  under overhangs and in concave creases (screen-space curvature), smudges at hand height
+  (0.6–1.5 m) and fine roughness scratches; metalness stays ≥ 0.75. On GOLD and the ark's
+  clone (`GOLD_PATINA`: scale 2, tarnish 0.18; `clone()` drops `onBeforeCompile`, so clones
+  must be patched explicitly) and, gentler, on GOLD_OVERLAY so the walls don't blotch. Inside
+  the tent the interior mask sets the hue, so the wear shows as darkening and roughness. No
+  textures or extra draws; about +0.35 ms at `holyplace`.
 - 2026-11-05: The pillar of fire is one analytic-volume draw: a flared bounding cylinder drawn
   back faces only, whose shader takes the ray's closest approach to the axis with a Gaussian
   density, wobbled by fire.js noise (`NOISE_GLSL`) and brighter with path length when looking

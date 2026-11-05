@@ -121,7 +121,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   ≤ baseline +3; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 3: Gold patina** — model: Opus / effort: medium
+- [x] **Step 3: Gold patina** — model: Opus / effort: medium
   **Goal:** Subtle dirt and tarnish on every gold surface (ark, cherubim, mercy seat, menorah,
   table and vessels, incense altar, veil hooks/pillars, boards, rings, bars, clasps): still
   shiny, but with variation in color and roughness, darker grime in recesses and toward the
