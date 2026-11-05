@@ -87,8 +87,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
   east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
-  with emissive coals (no light) and a faint smoke wisp (`createIncenseSmoke` in fire.js,
-  40 instanced puffs).
+  with emissive coals (no light) and a faint smoke plume (`createIncenseSmoke` in fire.js):
+  240 instanced puffs that drift outward in slowly turning directions and swell with height
+  (spread 0.8, grow 8, 15 s cycle, opacity 0.12), a thin ribbon widening into a soft haze.
 - 2026-11-05: Ark (`scene/ark.js`): 2.5 × 1.5 × 1.5 cubits including 0.14-cubit feet, at
   x = −25, z = 0, long axis N–S. Crown molding rises 0.04 cubit above the mercy seat, which is
   1 handbreadth thick (Sukkah 5a). Rings on the N and S faces at the feet; poles E–W from
@@ -121,7 +122,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   0.3 m above and 0.35 m north of the lamps. Its 7 flames are one instanced emissive draw
   (`createLampFlames` in fire.js), not `createFire`, with a soft halo (`halo` 0.5).
 - 2026-11-05: Incense coals are emissive 0xff5a14 at ~10 (pulsing) so they reach bloom's 2.0
-  threshold; incense smoke is 120 instanced puffs at opacity 0.22.
+  threshold. The smoke has no light.
 - 2026-11-05: Interior light mask (`scene/interiorLight.js`, `applyInteriorMask(scene)` in
   main.js) patches every `MeshStandardMaterial`. A fragment pushed 0.3 m along its normal is
   tested against the tent's interior box. Point lights are classed inside/outside by position
@@ -132,6 +133,15 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   metal reflections there are boosted ×5 (`uIlHohGlint`) so the ark glints. Tuning uniforms:
   `__tabernacle.interior` (`uIlFalloff` 0.28, `uIlMetalDiffuse` 0.25, `uIlSpec` 5, `uIlLobe` 4,
   `uIlTint` 0.5, `uIlDirect` 0.7).
+- 2026-11-05: A static reflection probe (256 px HalfFloat cube with mips) is captured once on
+  the first frame from (−4.5, 1.8, 0) m with the interior shown; `__tabernacle.probe.capture()`
+  re-captures it after interior changes. Gold east of the veil samples it, projected onto the
+  Holy Place's walls, blurred by roughness (`uIlProbeLod` 5.5, `uIlProbeMix` 0.85,
+  `uIlProbeGain` 1.15). The probe is unbound during capture (no feedback). No per-frame cost;
+  capture takes ~60–200 ms warm.
+- 2026-11-05: The ark has its own GOLD clone with an `IL_GLINT` term: a soft highlight from the
+  menorah's glow over the veil (x = veil, y = 2.7 m; `uIlGlint` 14, pow 4, base 0.03),
+  flickering with the room ambient. No light, so the Holy of Holies walls stay dark.
 - 2026-11-05: Interior furnishing meshes and the veil cloth are hidden while the camera is
   outside the tent (`updateInteriorVisibility` in main.js); lights are never toggled. The veil
   pillars and hooks are part of the tent's gold mesh and stay drawn.

@@ -57,7 +57,7 @@ sound; daytime.
 
 ## Steps
 
-- [ ] **Step 1: Interior finish** — model: Opus / effort: medium
+- [x] **Step 1: Interior finish** — model: Opus / effort: medium
   **Goal:**
   - Reflective gold walls: a static cube-camera reflection probe captured at load from the
     middle of the Holy Place (interior shown, after the scene is assembled), fed into the gold
