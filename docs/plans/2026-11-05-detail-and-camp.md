@@ -174,7 +174,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   stack layout and frankincense cups unchanged; no extra draws; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 7: Incense smoke** — model: Opus / effort: medium
+- [x] **Step 7: Incense smoke** — model: Opus / effort: medium
   **Goal:** Replace or rework `createIncenseSmoke` so the smoke rises as a thin, nearly laminar
   thread from the coals, then twists into curling, folding wisps (curl-noise advected ribbons
   or strands) that widen and fade with height; gentle drift; translucent grey-blue lit warm at

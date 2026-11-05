@@ -158,9 +158,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
   east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
-  with emissive coals (no light) and a faint smoke plume (`createIncenseSmoke` in fire.js):
-  240 instanced puffs that drift outward in slowly turning directions and swell with height
-  (spread 0.8, grow 8, 15 s cycle, opacity 0.12), a thin ribbon widening into a soft haze.
+  with emissive coals (no light) and a thin smoke thread (`createIncenseSmoke` in fire.js):
+  8 ribbons × 110 segments in one draw, placed in the vertex shader. A laminar thread for the
+  first 0.2 m, then sway with waves travelling up the flow, noise eddies and a slow drift; with
+  height each ribbon peels off (up to 0.2 m), curls, twists (narrower and denser edge-on) and
+  widens, and upward-scrolling streak noise breaks it into a faint haze by 1.3 m. Warm at the
+  coals, grey-blue above, per-ribbon opacity 0.2, alpha-blended, no light.
 - 2026-11-05: Ark (`scene/ark.js`): 2.5 × 1.5 × 1.5 cubits including 0.14-cubit feet, at
   x = −25, z = 0, long axis N–S. Crown molding rises 0.04 cubit above the mercy seat, which is
   1 handbreadth thick (Sukkah 5a). Rings on the N and S faces at the feet; poles E–W from
