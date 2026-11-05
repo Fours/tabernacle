@@ -79,6 +79,16 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   handbreadths. Cups are flared almond calyxes opening upward. Outer lamps face the centre; the
   middle lamp faces west, toward the veil (Menachot 98b). At x = −8, z = +2.5 cubits, branches
   E–W. One merged mesh, no shadow. Tongs and snuff dishes aren't modelled.
+- 2026-11-05: Table of showbread (`scene/showbread.js`): 2×1×1.5 cubits at x = −8, z = −2.5,
+  long axis E–W. Frame 1 handbreadth wide, a crown on the top and a bead crown on the frame;
+  rings on the legs of the long sides, poles E–W (closed gold cylinders, no acacia core).
+  12 flat loaves in two stacks of six, each topped by a gold frankincense cup with resin.
+  Gold dishes, bowl, jars and pan stand on the floor north of the table (no collider).
+- 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
+  east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
+  bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
+  with emissive coals (no light) and a faint smoke wisp (`createIncenseSmoke` in fire.js,
+  40 instanced puffs).
 
 ## Fire & lighting
 
@@ -106,7 +116,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   and only light fragments on their own side. Inside, the moon, hemisphere fill and env map
   are cut (30% cool spill in the first 1.5 m from the entrance) and replaced by a warm room
   ambient that flickers with the lamps and fades with distance from the menorah. West of the
-  veil, menorah light and ambient drop to 5%. Tuning uniforms: `__tabernacle.interior`.
+  veil, menorah light and ambient drop to 5%. Tuning uniforms: `__tabernacle.interior`
+  (defaults `uIlFalloff` 0.28, `uIlSpec` 14, `uIlMetalDiffuse` 0.65, so furnishings far from
+  the menorah stay readable).
 - 2026-11-05: Inside the tent, metals are burnished: roughness ≥ 0.45, 40% diffuse, room
   reflections tinted by the metal colour. The board texture's burnish streaks are fainter.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
