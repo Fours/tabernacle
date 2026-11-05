@@ -96,7 +96,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: Cherubim: kneeling childlike figures (Sukkah 5b, Rashi on 25:18), about
   10 handbreadths to the wing tips, heads bowed, hands joined, wings raised and forward with
   tips nearly meeting over the center. The body is a signed-distance sculpture meshed at load
-  with marching cubes (~120 ms); wings are three rows of feather blades. Ark and cherubim are
+  with marching cubes (~120 ms); wings are three rows of feather blades plus two rows
+  of coverts along the bone on both faces. Ark and cherubim are
   one gold mesh (1 draw, ~105k triangles).
 
 ## Fire & lighting
@@ -118,21 +119,29 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   pitch-soaked cloth wrap on top and glowing HDR cracks.
 - 2026-11-05: The menorah has one warm point light (0xffc080, 8 cd, decay 1.6, no shadow),
   0.3 m above and 0.35 m north of the lamps. Its 7 flames are one instanced emissive draw
-  (`createLampFlames` in fire.js), not `createFire`.
+  (`createLampFlames` in fire.js), not `createFire`, with a soft halo (`halo` 0.5).
+- 2026-11-05: Incense coals are emissive 0xff5a14 at ~10 (pulsing) so they reach bloom's 2.0
+  threshold; incense smoke is 120 instanced puffs at opacity 0.22.
 - 2026-11-05: Interior light mask (`scene/interiorLight.js`, `applyInteriorMask(scene)` in
   main.js) patches every `MeshStandardMaterial`. A fragment pushed 0.3 m along its normal is
   tested against the tent's interior box. Point lights are classed inside/outside by position
   and only light fragments on their own side. Inside, the moon, hemisphere fill and env map
   are cut (30% cool spill in the first 1.5 m from the entrance) and replaced by a warm room
   ambient that flickers with the lamps and fades with distance from the menorah. West of the
-  veil, menorah light and ambient drop to 8% (`uIlHoh`; `?light=work` sets it to 100%). Tuning uniforms: `__tabernacle.interior`
-  (defaults `uIlFalloff` 0.28, `uIlSpec` 14, `uIlMetalDiffuse` 0.65, so furnishings far from
-  the menorah stay readable).
+  veil, menorah light and ambient drop to 8% (`uIlHoh`; `?light=work` sets it to 100%), and
+  metal reflections there are boosted ×5 (`uIlHohGlint`) so the ark glints. Tuning uniforms:
+  `__tabernacle.interior` (`uIlFalloff` 0.28, `uIlMetalDiffuse` 0.25, `uIlSpec` 5, `uIlLobe` 4,
+  `uIlTint` 0.5, `uIlDirect` 0.7).
 - 2026-11-05: Interior furnishing meshes and the veil cloth are hidden while the camera is
   outside the tent (`updateInteriorVisibility` in main.js); lights are never toggled. The veil
   pillars and hooks are part of the tent's gold mesh and stay drawn.
-- 2026-11-05: Inside the tent, metals are burnished: roughness ≥ 0.45, 40% diffuse, room
-  reflections tinted by the metal colour. The board texture's burnish streaks are fainter.
+- 2026-11-05: Inside the tent, metals are burnished (roughness ≥ 0.45) and gold-hued metal is
+  re-coloured to `uIlGold` (1, 0.7, 0.2 linear), keeping its texture detail; silver is left
+  alone and exterior gold is unchanged. In r187 a metal's indirect reflectance is
+  `material.diffuseColor` and the Lambert term is `diffuseContribution`; the patch sets both,
+  plus `specularColorBlended` scaled by `uIlDirect`. The shared GOLD colour alone read brown.
+- 2026-11-05: The gold board overlay has soft mottling and hammer dimples, no vertical streaks
+  (they read as wood grain); per-board tint varies 0.96–1.02.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
 
@@ -157,8 +166,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - Slow twinkle.
   - A small dim moon along the moon-light direction.
   - The horizon and everything below it use the fog color.
-- 2026-11-05: `createCherubimTexture` (textiles.js) draws the woven cherubim — a robed,
-  front-facing figure with spread wings — for both the ceiling and the veil. `?light=work` adds an
+- 2026-11-05: `createCherubimTexture` (textiles.js) draws the woven cherubim for both the
+  ceiling and the veil: an ancient Near Eastern frontal figure (scale-covert band, straight
+  primaries, fringed robe and shawl, squared hair with curls) in muted dyes local to the weave
+  (indigo `#2e3a5c`, Tyrian purple `#55253f`, kermes scarlet `#93332b`) on unbleached linen
+  `#d9cfb8`, drawn one pixel per 3-px thread and enlarged with a plain-weave thread texture. `?light=work` adds an
   unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
 - 2026-11-05: Materials:
   - `addMacroVariation` breaks up visible tiling.
