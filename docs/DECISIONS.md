@@ -16,6 +16,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The gate stands open (artistic license, at the user's direction, so the player
   can walk in). Ex 27:16 gives the gate 4 pillars; this build had a post at z = 0 and now
   leaves it out, drawing the two middle panels aside.
+- 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
+  left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
+  0.5 × 0.5 cubit; not in the text) carries the screen.
 
 ## Courtyard
 
@@ -66,8 +69,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   of the side walls.
 - 2026-11-05: All 5 bars per wall are on the outside of the boards, held by gold rings. The
   top and bottom rows are two half-length bars each; the middle bar runs the full length.
-- 2026-11-05: The entrance pillars stand at x = +0.4 cubits, z = −5 … +5. The screen hangs from
-  gold hooks on their inner side.
+- 2026-11-05: The door screen hangs from 6 gold hooks per side under the beam, split in the
+  middle. Each half is gathered at the beam, cinched at 4 cubits (`doorTieHeight`) by a
+  tasselled cord through a gold staple on the front board's inner face, and flares to the
+  hem. `scene/drape.js` (`addGatheredDrape`) builds both these and the gate drapes. The beam
+  uses plain GOLD so it merges into the tent's gold mesh.
 - 2026-11-05: The door screen's embroidery is related to the gate's but distinct: two rows of
   sacred palms with lilies, an almond-blossom row (echoing Ex 25:33), rosette dividers and
   lotus-and-bud friezes. Nothing sits on the centre split.
@@ -84,8 +90,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the ground. 4 gold pillars (radius 0.25, no capitals, Ex 36:36) at z = ±1.25 and ±3.75, centers
   0.45 cubit west of the cloth, on silver sockets 0.8 cubit square × 1 high; gold hooks on their
   east face. Same weave on both sides.
-- 2026-11-05: The entrance screen casts shadows, so the altar's shadowed light doesn't shine
-  into the Holy Place.
+- 2026-11-05: The gathered door screen casts shadows. Exterior point lights reach 50% at the
+  doorway, fading out over 2 m inside (`EXT_SPILL`), so the altar's shadowed light spills
+  softly through the open door instead of stopping at a hard line.
 - 2026-11-05: The ram skins (red) and tachash cover the roof only. The ram skins droop about
   1 cubit over the edges; the tachash is inset 0.6 cubit.
 - 2026-11-05: The tent has 18 bronze pins with cords (Ex 35:18). They don't collide.
@@ -162,7 +169,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   menorah's glow over the veil (x = veil, y = 2.7 m; `uIlGlint` 14, pow 4, base 0.03),
   flickering with the room ambient. No light, so the Holy of Holies walls stay dark.
 - 2026-11-05: Interior furnishing meshes and the veil cloth are hidden while the camera is
-  outside the tent (`updateInteriorVisibility` in main.js); lights are never toggled. The veil
+  outside the tent (`updateInteriorVisibility` in main.js), except that the veil, menorah,
+  table and incense altar show whenever the camera is east of the tent front (x > 0), so the
+  Holy Place can be seen through the open door; the ark shows only inside. Lights are never
+  toggled. The veil
   pillars and hooks are part of the tent's gold mesh and stay drawn.
 - 2026-11-05: Inside the tent, metals are burnished (roughness ≥ 0.45) and gold-hued metal is
   re-coloured to `uIlGold` (1, 0.7, 0.2 linear), keeping its texture detail; silver is left
@@ -225,8 +235,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   pointer lock; mouse look still needs it.
 - 2026-11-05: `PLAYER.lookSpeed` is 0.7. Head bob is vertical only and on by default.
 - 2026-11-04: Gate screens and hangings people walk through don't collide; the gate pillars
-  and the gathered middle drapes do. The tent's entrance screen is walk-through; the entrance pillar sockets, side and west
-  walls and the veil collide, so the player can reach x ≈ −19.2 cubits in the Holy Place.
+  and the gathered middle drapes do. The tent door's tied-back cloth has two 0.2 m circle colliders
+  (z = ±2.11 m); side and west walls, furnishings and the veil collide. Walking west on z = 0
+  through the door stops at the incense altar's poles (x ≈ −7.64 m).
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 

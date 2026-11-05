@@ -135,7 +135,7 @@ sound; daytime.
   right (no new leaks or wedge shadows). Build passes, console clean, budgets met.
   **Carry-over notes:**
 
-- [ ] **Step 6: Open the tent door** — model: Opus / effort: medium
+- [x] **Step 6: Open the tent door** — model: Opus / effort: medium
   **Goal:** Remove the 5 entrance pillars (and their sockets, capitals and hooks). Add a
   gold-overlaid acacia beam across the top of the opening between the corner boards. Hang the
   Step 3 screen from it, split in the middle, gathered into realistic folds and tied back to the
@@ -173,3 +173,6 @@ sound; daytime.
   `holyplace` is unchanged. Build passes, console clean, no unrunnable shaders, frame time
   within ~1 ms of the pre-step `gate`, draws within budget. Update the performance baseline.
   **Carry-over notes:**
+  - After Step 6, `gate` is 108 draws (furnishings show through the open door). The pillar
+    should add at most 1–2 draws (merge column + shaft into one mesh if possible); a gate
+    count up to ~110 is accepted and goes in the new baseline.
