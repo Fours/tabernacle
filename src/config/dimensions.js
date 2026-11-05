@@ -15,12 +15,21 @@ export const COURTYARD = {
   pillarSpacing: 5,
   pillarCount: 60,
   pillarDiameter: 0.5, // not in text (AGENTS.md default)
-  pillarHeight: 5, // not in text (AGENTS.md default)
+  // Not in text. Wood shaft top (from ground, incl. socket); hooks sit on the capital just
+  // below this so the 5-cubit hanging clears the ground. Capital adds capitalHeight above.
+  pillarHeight: 5.25,
+  capitalHeight: 0.3, // silver-overlaid capital above the shaft (not in text)
+  capitalSleeve: 0.25, // silver overlay reaching down the shaft (not in text)
+  socketWidth: 0.8, // bronze socket, square (not in text)
+  socketHeight: 0.5, // (not in text)
+  filletDiameter: 0.08, // silver fillet rods joining the capitals (not in text)
+  hangingClearance: 0.07, // hem above ground at the pillars (not in text)
+  hangingSag: 0.1, // top-edge sag mid-span between hooks (not in text)
+  pegDistance: 3, // bronze pegs: horizontal distance outward from pillar line (not in text)
   gateWidth: 20, // centered on east side
   gatePillars: 4,
   sideHangingWidth: 15, // each side of the gate, east side
   sideHangingPillars: 3,
-  hangingThickness: 0.1, // blockout panel thickness (not in text)
 };
 
 // Tabernacle tent (Ex 26; 36:8-38)

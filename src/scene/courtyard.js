@@ -1,6 +1,13 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COURTYARD as C, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
+import { ACACIA, BRONZE, SILVER, ROPE, COLORS } from './materials.js';
+import { createLinenTexture, createEmbroideredScreenTexture } from './textiles.js';
+
+// Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
+// hooks and fillets; fine linen hangings hung on the inner side of the pillar line; the
+// embroidered east gate screen; bronze pegs and cords staking each pillar outward.
 
 /** Pillar positions (cubits) around the perimeter, corners counted once. */
 export function pillarPositions() {
@@ -17,64 +24,297 @@ export function pillarPositions() {
   return pts;
 }
 
+// ---- Derived sizes (meters) ------------------------------------------------------------
+const PR = m(C.pillarDiameter / 2); // shaft radius
+const SHAFT_TOP = m(C.pillarHeight);
+const SLEEVE_R = PR * 1.1; // silver overlay radius
+const SLEEVE_H = m(C.capitalSleeve);
+const CAP_H = m(C.capitalHeight);
+const SOCKET_W = m(C.socketWidth), SOCKET_H = m(C.socketHeight);
+// Hook: stem out from the sleeve, then a J-curve opening upward. Local +X = outward.
+const HOOK_STEM = 0.07, HOOK_R = 0.028, HOOK_TUBE = 0.01;
+const HOOK_REACH = HOOK_STEM + HOOK_R; // from sleeve surface to bowl centre
+const HANG_H = m(C.hangingHeight);
+const HANG_TOP = HANG_H + m(C.hangingClearance); // top edge at the hooks
+const HOOK_Y = HANG_TOP + HOOK_R - 0.006; // hook attach height (bowl bottom ~ cloth top)
+const CLOTH_OFFSET = SLEEVE_R + HOOK_REACH; // cloth plane, inward from the pillar line
+const FILLET_Y = SHAFT_TOP - 0.035;
+const CORD_HOOK_Y = HOOK_Y - 0.05;
+
+function pillarGeometries() {
+  // Bronze socket: square block with a stepped top and a collar around the shaft foot.
+  const sock = [
+    new THREE.BoxGeometry(SOCKET_W, SOCKET_H * 0.78, SOCKET_W).translate(0, SOCKET_H * 0.39, 0),
+    new THREE.BoxGeometry(SOCKET_W * 0.82, SOCKET_H * 0.22, SOCKET_W * 0.82).translate(0, SOCKET_H * 0.89, 0),
+    new THREE.CylinderGeometry(PR * 1.25, PR * 1.4, 0.03, 16).translate(0, SOCKET_H + 0.015, 0),
+  ];
+  // Acacia shaft (slight taper), from socket to the capital.
+  const shaftH = SHAFT_TOP - SOCKET_H;
+  const shaft = new THREE.CylinderGeometry(PR * 0.95, PR, shaftH, 16).translate(0, SOCKET_H + shaftH / 2, 0);
+  // Silver-overlaid capital: sleeve down the shaft, bead, flared top, abacus and knob.
+  const T = SHAFT_TOP;
+  const cap = [
+    new THREE.CylinderGeometry(SLEEVE_R, SLEEVE_R, SLEEVE_H, 16).translate(0, T - SLEEVE_H / 2, 0),
+    new THREE.TorusGeometry(SLEEVE_R, 0.008, 6, 20).rotateX(Math.PI / 2).translate(0, T - SLEEVE_H, 0),
+    new THREE.TorusGeometry(SLEEVE_R, 0.007, 6, 20).rotateX(Math.PI / 2).translate(0, T - 0.012, 0),
+    new THREE.CylinderGeometry(PR * 1.55, SLEEVE_R, CAP_H * 0.4, 16).translate(0, T + CAP_H * 0.2, 0),
+    new THREE.CylinderGeometry(PR * 1.55, PR * 1.55, CAP_H * 0.15, 16).translate(0, T + CAP_H * 0.475, 0),
+    new THREE.SphereGeometry(PR * 0.85, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2)
+      .scale(1, (CAP_H * 0.45) / (PR * 0.85), 1)
+      .translate(0, T + CAP_H * 0.55, 0),
+  ];
+  // Hook: stem along +X, J-bend (lower half-torus) and a short upturned tip.
+  const hook = [
+    new THREE.CylinderGeometry(HOOK_TUBE, HOOK_TUBE, HOOK_STEM, 6).rotateZ(Math.PI / 2).translate(HOOK_STEM / 2, 0, 0),
+    new THREE.TorusGeometry(HOOK_R, HOOK_TUBE, 6, 10, Math.PI).rotateZ(Math.PI).translate(HOOK_STEM + HOOK_R, 0, 0),
+    new THREE.CylinderGeometry(HOOK_TUBE * 0.9, HOOK_TUBE * 0.6, 0.014, 6).translate(HOOK_STEM + 2 * HOOK_R, 0.007, 0),
+  ];
+  return {
+    socket: mergeGeometries(sock.map((g) => g.toNonIndexed())),
+    shaft,
+    capital: mergeGeometries(cap.map((g) => g.toNonIndexed())),
+    hook: mergeGeometries(hook.map((g) => g.toNonIndexed())),
+  };
+}
+
+/**
+ * Walls: centre point, along-axis a, inward normal n (XZ), half-length (m) and pillar
+ * along-coordinates (m). Cloth ranges exclude the gate on the east wall.
+ */
+function walls() {
+  const hx = m(C.length / 2), hz = m(C.width / 2), s = m(C.pillarSpacing);
+  const coords = (half) => {
+    const out = [];
+    for (let v = -half; v <= half + 1e-6; v += s) out.push(v);
+    return out;
+  };
+  const gw = m(C.gateWidth) / 2;
+  return [
+    { name: 'north', c: [0, -hz], a: [1, 0], n: [0, 1], half: hx, pillars: coords(hx) },
+    { name: 'south', c: [0, hz], a: [1, 0], n: [0, -1], half: hx, pillars: coords(hx) },
+    { name: 'west', c: [-hx, 0], a: [0, 1], n: [1, 0], half: hz, pillars: coords(hz) },
+    { name: 'east', c: [hx, 0], a: [0, 1], n: [-1, 0], half: hz, pillars: coords(hz), gate: [-gw, gw] },
+  ];
+}
+
+/**
+ * Append a hanging between along-coords s0..s1 of a wall to `buf`. Hung from hooks at both
+ * ends: the top edge sags between them, with vertical folds (function of the world
+ * along-coordinate so adjacent spans join without seams).
+ */
+function addClothSpan(buf, wall, s0, s1, uvFn) {
+  const len = s1 - s0;
+  const cols = Math.max(4, Math.round(len / 0.045));
+  const rows = 6;
+  const sag = m(C.hangingSag);
+  const [cx, cz] = wall.c, [ax, az] = wall.a, [nx, nz] = wall.n;
+  const base = buf.pos.length / 3;
+  for (let j = 0; j <= rows; j++) {
+    const t = j / rows; // 0 top .. 1 hem
+    for (let i = 0; i <= cols; i++) {
+      const u = i / cols;
+      const s = s0 + u * len;
+      const bell = Math.sin(Math.PI * u);
+      const amp = 0.022 * (0.3 + 0.7 * bell) * (0.85 + 0.35 * t);
+      const fold = amp * (0.65 * Math.sin((2 * Math.PI * s) / 0.3 + 0.7) + 0.35 * Math.sin((2 * Math.PI * s) / 0.71 + 2.1));
+      // Slight inward billow low on the cloth, mid-span.
+      const off = CLOTH_OFFSET + fold + 0.012 * bell * t;
+      const y = HANG_TOP - t * HANG_H - sag * bell * (1 - 0.65 * t);
+      buf.pos.push(cx + ax * s + nx * off, y, cz + az * s + nz * off);
+      const [uu, vv] = uvFn(s, 1 - t);
+      buf.uv.push(uu, vv);
+    }
+  }
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const a = base + j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+      buf.idx.push(a, c, b, b, c, d);
+    }
+  }
+}
+
+function clothGeometry(buf) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(buf.pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(buf.uv, 2));
+  g.setIndex(buf.idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Add cloth spans for along-range [r0, r1] of a wall, splitting at pillars (hook points). */
+function addClothRange(buf, wall, r0, r1, uvFn) {
+  const stops = [r0, ...wall.pillars.filter((p) => p > r0 + 1e-6 && p < r1 - 1e-6), r1];
+  for (let k = 0; k < stops.length - 1; k++) addClothSpan(buf, wall, stops[k], stops[k + 1], uvFn);
+}
+
 export function createCourtyard() {
   const group = new THREE.Group();
   group.name = 'courtyard';
   const colliders = [];
+  const geo = pillarGeometries();
 
-  const hx = m(C.length / 2), hz = m(C.width / 2);
-  const H = m(C.hangingHeight), T = m(C.hangingThickness);
-
-  // Pillars (InstancedMesh)
+  // ---- Pillars: socket / shaft / capital as three InstancedMeshes -------------------------
   const pts = pillarPositions();
-  if (pts.length !== C.pillarCount) {
-    console.warn(`Expected ${C.pillarCount} pillars, got ${pts.length}`);
-  }
-  const pr = m(C.pillarDiameter / 2), ph = m(C.pillarHeight);
-  const pillarGeo = new THREE.CylinderGeometry(pr, pr, ph, 12);
-  pillarGeo.translate(0, ph / 2, 0);
-  const pillars = new THREE.InstancedMesh(
-    pillarGeo,
-    new THREE.MeshStandardMaterial({ color: 0x7a5a32, roughness: 0.8 }),
-    pts.length,
-  );
-  pillars.name = 'pillars';
-  const mat4 = new THREE.Matrix4();
+  if (pts.length !== C.pillarCount) console.warn(`Expected ${C.pillarCount} pillars, got ${pts.length}`);
+  const sockets = new THREE.InstancedMesh(geo.socket, BRONZE, pts.length);
+  const shafts = new THREE.InstancedMesh(geo.shaft, ACACIA, pts.length);
+  const capitals = new THREE.InstancedMesh(geo.capital, SILVER, pts.length);
+  sockets.name = 'pillar-sockets';
+  shafts.name = 'pillar-shafts';
+  capitals.name = 'pillar-capitals';
+  const M = new THREE.Matrix4();
   pts.forEach(([x, z], i) => {
-    mat4.makeTranslation(m(x), 0, m(z));
-    pillars.setMatrixAt(i, mat4);
-    colliders.push(circle(m(x), m(z), pr));
+    M.makeTranslation(m(x), 0, m(z));
+    sockets.setMatrixAt(i, M);
+    shafts.setMatrixAt(i, M);
+    capitals.setMatrixAt(i, M);
+    colliders.push(circle(m(x), m(z), (SOCKET_W / 2) * 1.1));
   });
-  pillars.instanceMatrix.needsUpdate = true;
-  group.add(pillars);
+  group.add(sockets, shafts, capitals);
 
-  // Hangings: thin flat panels along the pillar line.
-  const linen = new THREE.MeshStandardMaterial({ color: 0xeee8d8, roughness: 0.9, side: THREE.DoubleSide });
-  const addPanel = (cx, cz, sx, sz, mat, collide = true) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, H, sz), mat);
-    mesh.position.set(cx, H / 2, cz);
-    group.add(mesh);
-    if (collide) colliders.push(box(cx, cz, sx, sz));
-    return mesh;
+  // ---- Hangings, gate screen, fillets, hooks ---------------------------------------------
+  const linenBuf = { pos: [], uv: [], idx: [] };
+  const gateBuf = { pos: [], uv: [], idx: [] };
+  const fillets = []; // [x0,z0,x1,z1]
+  const hookMats = [];
+  const hx = m(C.length / 2), hz = m(C.width / 2);
+  const q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1);
+  const Y = new THREE.Vector3(0, 1, 0);
+  const hookAt = (x, z, dirX, dirZ, y, stretch = 1) => {
+    // Hook local +X -> (dirX, dirZ); positioned on the sleeve surface.
+    q.setFromAxisAngle(Y, Math.atan2(-dirZ, dirX));
+    v.set(x + dirX * SLEEVE_R * 0.97, y, z + dirZ * SLEEVE_R * 0.97);
+    sc.set(stretch, 1, 1);
+    hookMats.push(new THREE.Matrix4().compose(v.clone(), q.clone(), sc.clone()));
   };
-  addPanel(0, -hz, 2 * hx, T, linen).name = 'hanging-north';
-  addPanel(0, hz, 2 * hx, T, linen).name = 'hanging-south';
-  addPanel(-hx, 0, T, 2 * hz, linen).name = 'hanging-west';
-  // East: two 15-cubit hangings, gate opening centered.
-  const gw = m(C.gateWidth), sw = m(C.sideHangingWidth);
-  addPanel(hx, -(gw / 2 + sw / 2), T, sw, linen).name = 'hanging-east-north';
-  addPanel(hx, gw / 2 + sw / 2, T, sw, linen).name = 'hanging-east-south';
+  const linenUV = (s, vv) => [s / 0.5, (vv * HANG_H) / 0.5];
 
-  // Gate screen: distinct color, semi-transparent and NON-colliding in the blockout
-  // (it is a hanging people pass through; the gate pillars still collide).
-  const gateMat = new THREE.MeshStandardMaterial({
-    color: 0x4a3aa0,
-    transparent: true,
-    opacity: 0.45,
-    depthWrite: false,
+  for (const w of walls()) {
+    const [cx, cz] = w.c, [ax, az] = w.a, [nx, nz] = w.n;
+    const at = (s) => [cx + ax * s, cz + az * s];
+    // Cloth ends at the crossing with the neighbouring wall's cloth at each corner.
+    const r0 = -w.half + CLOTH_OFFSET, r1 = w.half - CLOTH_OFFSET;
+    if (w.gate) {
+      const [g0, g1] = w.gate;
+      addClothRange(linenBuf, w, r0, g0, linenUV);
+      addClothRange(linenBuf, w, g1, r1, linenUV);
+      // Gate screen: u runs left->right as seen from outside (east), i.e. +z -> -z.
+      addClothRange(gateBuf, w, g0, g1, (s, vv) => [(g1 - s) / (g1 - g0), vv]);
+      // Hanging colliders exclude the gate (screen is passable; gate pillars collide).
+      for (const [a0, a1] of [[-w.half, g0], [g1, w.half]]) {
+        const [mx, mz] = at((a0 + a1) / 2);
+        const l = a1 - a0;
+        colliders.push(box(mx + nx * CLOTH_OFFSET / 2, mz + nz * CLOTH_OFFSET / 2,
+          Math.abs(ax) * l + Math.abs(nx) * (CLOTH_OFFSET + 0.12),
+          Math.abs(az) * l + Math.abs(nz) * (CLOTH_OFFSET + 0.12)));
+      }
+    } else {
+      addClothRange(linenBuf, w, r0, r1, linenUV);
+      const [mx, mz] = at(0);
+      const l = 2 * w.half;
+      colliders.push(box(mx + nx * CLOTH_OFFSET / 2, mz + nz * CLOTH_OFFSET / 2,
+        Math.abs(ax) * l + Math.abs(nx) * (CLOTH_OFFSET + 0.12),
+        Math.abs(az) * l + Math.abs(nz) * (CLOTH_OFFSET + 0.12)));
+    }
+    // Fillets join each pair of adjacent pillars on this wall.
+    for (let k = 0; k < w.pillars.length - 1; k++) fillets.push([...at(w.pillars[k]), ...at(w.pillars[k + 1])]);
+    // Inner hooks (cloth side). Corner pillars get one diagonal hook, added once below.
+    for (const s of w.pillars) {
+      if (Math.abs(Math.abs(s) - w.half) < 1e-6) continue;
+      const [px, pz] = at(s);
+      hookAt(px, pz, nx, nz, HOOK_Y);
+    }
+  }
+  // Corner hooks reach diagonally to where the two hangings cross.
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const reach = Math.SQRT2 * CLOTH_OFFSET - SLEEVE_R;
+    hookAt(sx * hx, sz * hz, -sx * Math.SQRT1_2, -sz * Math.SQRT1_2, HOOK_Y, reach / HOOK_REACH);
+  }
+
+  const linen = new THREE.MeshStandardMaterial({
+    name: 'linen',
+    color: COLORS.linen,
+    map: createLinenTexture(),
+    roughness: 0.92,
     side: THREE.DoubleSide,
   });
-  addPanel(hx, 0, T, gw, gateMat, false).name = 'gate-screen';
+  linen.bumpMap = linen.map;
+  linen.bumpScale = 0.6;
+  const hangings = new THREE.Mesh(clothGeometry(linenBuf), linen);
+  hangings.name = 'hangings';
+  group.add(hangings);
+
+  const weave = createLinenTexture();
+  weave.repeat.set(m(C.gateWidth) / 0.5, HANG_H / 0.5);
+  const gateMat = new THREE.MeshStandardMaterial({
+    name: 'gate-screen',
+    map: createEmbroideredScreenTexture({ panels: C.gateWidth / C.pillarSpacing }),
+    bumpMap: weave,
+    bumpScale: 0.6,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+  });
+  const gate = new THREE.Mesh(clothGeometry(gateBuf), gateMat);
+  gate.name = 'gate-screen'; // non-colliding (Decisions log)
+  group.add(gate);
+
+  // Silver fillets: rods between capitals (unit cylinder along X, scaled per span).
+  const filletGeo = new THREE.CylinderGeometry(m(C.filletDiameter / 2), m(C.filletDiameter / 2), 1, 8)
+    .rotateZ(Math.PI / 2);
+  const filletMesh = new THREE.InstancedMesh(filletGeo, SILVER, fillets.length);
+  filletMesh.name = 'fillets';
+  fillets.forEach(([x0, z0, x1, z1], i) => {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    q.setFromAxisAngle(Y, Math.atan2(-(z1 - z0), x1 - x0));
+    M.compose(v.set((x0 + x1) / 2, FILLET_Y, (z0 + z1) / 2), q, sc.set(len, 1, 1));
+    filletMesh.setMatrixAt(i, M);
+  });
+  group.add(filletMesh);
+
+  // ---- Bronze pegs and cords: each pillar staked outward ---------------------------------
+  const pegGeo = mergeGeometries([
+    new THREE.CylinderGeometry(0.013, 0.004, 0.3, 8).translate(0, -0.03, 0),
+    new THREE.CylinderGeometry(0.026, 0.02, 0.025, 10).translate(0, 0.125, 0),
+    new THREE.TorusGeometry(0.016, 0.005, 5, 10).rotateX(Math.PI / 2).translate(0, 0.095, 0),
+  ].map((g) => g.toNonIndexed()));
+  const cordGeo = new THREE.CylinderGeometry(0.006, 0.006, 1, 5);
+  const pegs = new THREE.InstancedMesh(pegGeo, BRONZE, pts.length);
+  const cords = new THREE.InstancedMesh(cordGeo, ROPE, pts.length);
+  pegs.name = 'pegs';
+  cords.name = 'cords';
+  const pegDist = m(C.pegDistance), tilt = THREE.MathUtils.degToRad(22);
+  const axis = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3();
+  pts.forEach(([xc, zc], i) => {
+    const x = m(xc), z = m(zc);
+    // Outward direction: wall normal(s) away from the courtyard (diagonal at corners).
+    let ox = Math.abs(Math.abs(x) - hx) < 1e-6 ? Math.sign(x) : 0;
+    let oz = Math.abs(Math.abs(z) - hz) < 1e-6 ? Math.sign(z) : 0;
+    const ol = Math.hypot(ox, oz);
+    ox /= ol;
+    oz /= ol;
+    hookAt(x, z, ox, oz, CORD_HOOK_Y);
+    // Peg in the ground, top leaning away from the pillar.
+    const px = x + ox * pegDist, pz = z + oz * pegDist;
+    axis.set(oz, 0, -ox).normalize();
+    q.setFromAxisAngle(axis, tilt);
+    M.compose(v.set(px, 0, pz), q, sc.set(1, 1, 1));
+    pegs.setMatrixAt(i, M);
+    // Cord from the outer hook's bowl to the peg's neck.
+    const r = SLEEVE_R + HOOK_REACH;
+    a.set(x + ox * r, CORD_HOOK_Y - HOOK_R * 0.7, z + oz * r);
+    b.set(0, 0.1, 0).applyQuaternion(q).add(v);
+    const len = a.distanceTo(b);
+    q.setFromUnitVectors(Y, b.clone().sub(a).normalize());
+    M.compose(v.copy(a).add(b).multiplyScalar(0.5), q, sc.set(1, len, 1));
+    cords.setMatrixAt(i, M);
+  });
+  group.add(pegs, cords);
+
+  const hooks = new THREE.InstancedMesh(geo.hook, SILVER, hookMats.length);
+  hooks.name = 'hooks';
+  hookMats.forEach((mm, i) => hooks.setMatrixAt(i, mm));
+  group.add(hooks);
 
   group.userData.colliders = colliders;
   return group;
