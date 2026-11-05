@@ -282,7 +282,7 @@ has checked and committed it.
   *Accept when:* the scene at real night lighting is lit mainly by the altar fire, the flicker
   looks natural, and the frame rate holds.
 
-- [ ] **Step 6: Torches.**
+- [x] **Step 6: Torches.**
   Period-appropriate torches on posts. Put them on both sides of the courtyard gate first, then
   wherever else they improve the composition and keep the ground walkable (e.g. outside the
   corners or along the approach to the gate). Reuse `fire.js`. Respect the light budget.
@@ -368,3 +368,11 @@ Record interpretive or technical choices here (date, decision, reason).
 - 2026-11-05: Step 7 notes: add tone mapping/exposure (surfaces near the fire clip; retune the
   240 cd after); add fog support to the fire ShaderMaterials; fix the thin bright light leak
   along the altar's base edge and soften the hard dark self-shadow square around the altar.
+- 2026-11-05: Torches (artistic license): 2.4 m wooden post in a stone cairn with a pitch-soaked
+  cloth-wrapped head. 10 torches (positions in `TORCHES`): gate pair, approach pair, east
+  outside corners, inside near the east corners (8 with non-shadow point lights, ~28 cd), plus
+  the 2 west outside corners (glow only). 9 point lights total; torch fires have no smoke.
+- 2026-11-05: Step 7 notes: torch heads' flat orange emissive reads as a pot — make it a dark
+  charred wrap with glowing embers/cracks; the approach torch near the walk spawn blows out
+  without tone mapping. FPS can't be measured while the browser pane is hidden (throttled);
+  use draw calls + frame time from `renderer.info` / a timed render loop instead.
