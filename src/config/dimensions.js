@@ -46,8 +46,51 @@ export const TABERNACLE = {
   interiorMinX: -30,
   interiorMaxX: 0,
   centerZ: 0,
-  roofThickness: 0.25, // blockout slab (not in text)
-  entranceScreenThickness: 0.1, // blockout (not in text)
+  sideBoards: 20, // per long side (Ex 26:18, 20)
+  westBoards: 6, // plus 2 corner boards (Ex 26:22-23)
+  cornerBoards: 2,
+  boardGap: 0.015, // visible seam between boards (not in text)
+  // Silver sockets: 2 per board (Ex 26:19). Rashi: 1 cubit high; the board's notched base
+  // (tenons) sits inside them, so the board top stays at 10 cubits.
+  socketHeight: 1,
+  socketProud: 0.05, // how far a socket stands out from the board faces (not in text)
+  // Bars (Ex 26:26-28): 5 per wall; top and bottom rows are two half-length bars, the middle
+  // bar runs the full length. Shown on the outside of the boards, held by gold rings.
+  barHeights: [2, 5, 8.4], // bottom, middle, top row centers (not in text)
+  barRadius: 0.12, // not in text
+  barOffset: 0.3, // bar center distance out from the board face (not in text)
+  ringTube: 0.035, // not in text
+  // East entrance (Ex 26:36-37): 5 gold-overlaid acacia pillars on bronze sockets.
+  entrancePillars: 5,
+  entrancePillarX: 0.4, // pillar centers stand just east of the board ends (not in text)
+  entrancePillarRadius: 0.28, // not in text
+  entranceCapitalHeight: 0.6, // gold capital (Ex 36:38), not in text
+  entranceSocket: 0.9, // bronze socket footprint, 1 cubit high like the silver ones (not in text)
+  screenTop: 9.5, // screen hung from gold hooks on the pillars' inner side (not in text)
+  screenHem: 0.08,
+  // Coverings (Ex 26:1-14). The inner linen covering is hidden under the goat hair from
+  // outside and is not modeled (Decisions log).
+  roofSag: 0.22, // coverings dip slightly between the walls (not in text)
+  coverEastOverhang: 0.85, // roof coverings reach past the board ends over the pillars
+  goatHair: {
+    curtains: 11,
+    curtainLength: 30, // N-S, across the tent
+    curtainWidth: 4, // E-W
+    clearance: 0.04, // sits this far above the board tops (over the linen)
+    edgeRadius: 0.35, // rounding where the sheet turns down over the roof edge
+    // Ex 26:13 "about 1 cubit" above the ground on the sides; it stands off the boards over
+    // the bars, so the hem rides a little higher and the gold shows above the sockets.
+    hemSide: 1.55,
+    hemBack: 0.15, // the extra half curtain hangs down the back to near the ground (26:12)
+    flap: 2, // the doubled sixth curtain folds over the front (26:9)
+    standOff: 0.2, // extra offset from the boards where it hangs over the bars
+    foldAmp: 0.32,
+    claspAt: 24, // E-W material position (from the flap hem) of the clasp line: 6 curtains
+    clasps: 50, // bronze clasps (26:11)
+    pegDistance: 2, // tent pins (35:18): cords run out this far from the hem
+  },
+  ramSkins: { margin: 0.15, edgeRadius: 0.3, droop: 1, above: 0.06 }, // roof only
+  tachash: { inset: 0.6, edgeRadius: 0.035, droop: 0, above: 0.11 }, // roof only, top-most (rolled lip)
 };
 
 // Bronze altar (Ex 27:1-8; 38:1-7). Only length/width/height are in the text; the rest is

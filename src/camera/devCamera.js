@@ -22,6 +22,12 @@ export const PRESETS = {
     pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],
     target: [m(TABERNACLE.interiorMaxX), m(4), 0],
   },
+  // Tent from the north-west (back and north side, west drape, corner).
+  tentback: { pos: [m(-46), m(7), m(-21)], target: [m(-24), m(4), m(-2)] },
+  // High view over the tent roof from the south-east: tachash on top, red ram skins below.
+  tentroof: { pos: [m(14), m(30), m(24)], target: [m(-14), m(8), 0] },
+  // Close-up of the tent's south-east corner at the hem: boards, sockets, bars, pins, flap.
+  tentcorner: { pos: [m(7), m(2.8), m(15)], target: [m(-6), m(2), m(6)], fov: 50 },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },
