@@ -291,12 +291,12 @@ export const EARTH = new THREE.MeshStandardMaterial({
   roughness: 1,
 });
 
-/** Still water in the laver (dark, glossy). */
+/** Still water in the laver (dark, glossy; laver.js adds ripples and drips). */
 export const WATER = new THREE.MeshStandardMaterial({
   name: 'water',
-  color: 0x14222c,
-  roughness: 0.08,
-  metalness: 0.2,
+  color: 0x0d1714,
+  roughness: 0.05,
+  metalness: 0,
 });
 
 /**

@@ -172,6 +172,10 @@ export const LAVER = {
   footRadius: 0.85,
   stemRadius: 0.28,
   spouts: 4, // small bronze spouts around the basin (not in text)
+  waterLevel: 1.8, // water surface height (not in text)
+  flutes: 16, // flutes on the stem (not in text)
+  handles: 2, // cast ring handles under the rim (not in text)
+  lotus: 18, // lotus + bud pairs in the basin's frieze (not in text)
 };
 
 // Menorah (Ex 25:31-40; 37:17-24). The text gives no height; rabbinic tradition (Menachot 28b)

@@ -22,6 +22,8 @@ export const PRESETS = {
   // Close-up of a gate-side torch from the approach: post, wrapped head, cairn, flame.
   torch: { pos: [m(59 + 5), m(5.4), m(-7 - 4)], target: [m(59), m(5.2), m(-7)], fov: 50 },
   laver: { pos: [m(10 + 6), m(3.2), m(3 + 6)], target: [m(10), m(1.2), m(3)] },
+  // Close over the laver's rim from the south-east: basin, water, a spout and its tap.
+  laverclose: { pos: [m(10 + 1.9), m(2.75), m(3 + 2.1)], target: [m(10 - 0.2), m(1.55), m(3 - 0.2)], fov: 50 },
   tent: {
     pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],
     target: [m(TABERNACLE.interiorMaxX), m(4), 0],
