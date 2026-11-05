@@ -108,8 +108,8 @@ void main() {
   // Stars: dim dense field, medium field, rare bright ones, plus galactic population.
   vec3 stars = vec3(0.0);
   stars += starLayer(d, 90.0, 0.35, 0.030, 1.4, false);
-  stars += starLayer(d, 36.0, 0.2, 0.045, 2.0, false);
-  stars += starLayer(d, 11.0, 0.12, 0.060, 3.2, false);
+  stars += starLayer(d, 36.0, 0.2, 0.040, 1.8, false);
+  stars += starLayer(d, 11.0, 0.12, 0.034, 2.4, false);
   stars += starLayer(d, 150.0, 0.9, 0.035, 0.8, true);
   stars += starLayer(d, 55.0, 0.6, 0.040, 1.3, true);
   // Dust lanes also dim the stars behind them a little.
@@ -118,8 +118,8 @@ void main() {
 
   // Small dim moon, with a faint halo.
   float md = dot(d, uMoonDir);
-  float disc = smoothstep(0.99990, 0.99993, md);
-  float halo = exp(-(1.0 - md) * 900.0);
+  float disc = smoothstep(0.999984, 0.999988, md);
+  float halo = exp(-(1.0 - md) * 2500.0);
   col += vec3(0.55, 0.62, 0.8) * disc * 0.9 + vec3(0.06, 0.08, 0.13) * halo * 0.5;
 
   gl_FragColor = vec4(col, 1.0);
