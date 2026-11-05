@@ -317,10 +317,10 @@ export const PILLAR_OF_FIRE = {
   x: -25, // cubits (middle of the Holy of Holies)
   z: 0, // cubits
   baseY: 8.5, // m, ~4 m above the roof coverings' top (~4.45-4.6 m): the fire hangs in the sky
-  columnHeight: 12, // m, the fire itself
+  columnHeight: 24, // m, the fire itself, fading and slowly narrowing into the shaft
   columnRadius: 1.25, // m, Gaussian radius of the fire's density (tapers to a point at its foot)
   shaftHeight: 150, // m, the yellowish light above the fire, fading gradually into the sky
   shaftRadius: 0.55, // m at its foot, widening upward
   shaftSpread: 0.006, // radius gained per meter of height
-  light: { color: 0xffb35a, intensity: 90, decay: 1.6, y: 3.5 }, // cd; y: m above baseY (~12 m, in the fire's body); no shadow
+  light: { color: 0xffb35a, intensity: 90, decay: 1.6, y: 5 }, // cd; y: m above baseY (~13.5 m, in the fire's body); no shadow
 };

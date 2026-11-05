@@ -77,23 +77,28 @@ void main() {
   float sc = s - sway;
   float n1 = fFbm(vec2(sc * 0.75 + 3.0, y * 0.42 - T * 0.55));
   float n2 = fFbm(vec2(sc * 1.6 + 11.0, y * 0.95 - T * 1.05));
-  // Foot tapers down almost to a point: radius grows from ~6% over the lowest ~38%.
-  float taper = mix(0.06, 1.0, pow(smoothstep(0.0, uColH * 0.38, y), 0.6));
-  float sig = uColR * (0.7 + 0.65 * n1) * taper;
+  // Foot tapers down almost to a point over its lowest ~4.5 m; above that the column narrows
+  // very slowly to ~45% at its top, where it has faded into the shaft of light.
+  float taper = mix(0.06, 1.0, pow(smoothstep(0.0, 4.5, y), 0.6));
+  float rise = smoothstep(uColH * 0.3, uColH, y);
+  float sig = uColR * (0.7 + 0.65 * n1) * taper * mix(1.0, 0.45, rise);
   float g = exp(-(sc * sc) / max(sig * sig, 1e-3));
-  float colY = smoothstep(0.0, 0.6, y) * mix(0.55, 1.0, taper)
-    * (1.0 - smoothstep(uColH * 0.72, uColH * 1.08, y));
+  float colY = smoothstep(0.0, 0.6, y) * mix(0.55, 1.0, taper);
   float dens = g * colY * clamp(0.2 + 1.5 * (n2 - 0.15), 0.0, 1.6);
-  float heat = clamp(dens * 0.85 * (1.0 - 0.2 * smoothstep(uColH * 0.5, uColH, y)), 0.0, 1.0);
-  vec3 col = pillarRamp(heat) * dens * uColGain;
+  // Long, smooth fade as it rises; the color stays hot and drifts toward the shaft's yellow
+  // (rather than cooling to red) so it hands over to the light cleanly.
+  float fade = 1.0 - smoothstep(uColH * 0.4, uColH, y);
+  float heat = clamp(dens * 0.85, 0.0, 1.0);
+  vec3 fireC = mix(pillarRamp(heat), vec3(1.0, 0.68, 0.24) * 1.2, 0.6 * rise);
+  vec3 col = fireC * dens * fade * uColGain;
 
   // Shaft of light above it: widening, faint slow streaks rising, fading into the sky.
-  float ys = y - uColH * 0.75;
+  float ys = y - uColH * 0.7;
   float sigS = uShaftR + uShaftSpread * max(ys, 0.0);
   float sw = s - 0.5 * sway;
   float gs = exp(-(sw * sw) / (sigS * sigS));
   float streak = fNoise(vec2(sw / sigS * 2.2 + 5.0, y * 0.06 - T * 0.12));
-  float shaftY = smoothstep(uColH * 0.45, uColH * 1.05, y) * exp(-max(ys, 0.0) / (uShaftH * 0.4))
+  float shaftY = smoothstep(uColH * 0.35, uColH * 0.95, y) * exp(-max(ys, 0.0) / (uShaftH * 0.4))
     * (1.0 - smoothstep(uShaftH * 0.2, uShaftH * 1.0, ys));
   col += vec3(1.0, 0.68, 0.24) * gs * shaftY * (0.7 + 0.6 * streak) * uShaftGain;
 

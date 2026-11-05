@@ -18,9 +18,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   leaves it out, drawing the two middle panels aside.
 - 2026-11-05: The pillar of fire (Num 9:15–16) stands over the Holy of Holies (x = −25,
   z = 0 cubits). Its sizes are artistic license. The cloud by day isn't built. Revised the same
-  day: the fire hangs in the sky ~4 m above the roof (foot at 8.5 m), a ~12 m column whose foot
-  tapers almost to a point, then a thin (0.55 m) yellowish shaft 150 m tall fading gradually,
-  as if reaching the clouds.
+  day: the fire hangs in the sky ~4 m above the roof (foot at 8.5 m), a 24 m column whose foot
+  tapers almost to a point over ~4.5 m. Above that it narrows very slowly (to ~45% at its top)
+  and fades out over its upper 60%, its color drifting to the shaft's yellow, so it hands over
+  smoothly to a thin (0.55 m) yellowish shaft 150 m tall, fading gradually as if reaching the
+  clouds.
 - 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
   left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
   0.5 × 0.5 cubit; not in the text) carries the screen.
@@ -192,7 +194,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The gold board overlay has soft mottling and hammer dimples, no vertical streaks
   (they read as wood grain); per-board tint varies 0.96–1.02.
 - 2026-11-05: The pillar of fire's light (`scene/pillarOfFire.js`): 0xffb35a, 90 cd, decay
-  1.6, no shadow, ~12 m up in the fire's body (above the tent's interior box, so the mask
+  1.6, no shadow, ~13.5 m up in the fire's body (above the tent's interior box, so the mask
   classes it as outside), breathing ±10%. Raised with the fire, so 60 → 90 cd to keep the roof
   lit. The column's core is HDR (gain 2.6) and blooms; the thin shaft (gain 0.5) stays under
   bloom's threshold.

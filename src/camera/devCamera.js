@@ -58,8 +58,8 @@ export const PRESETS = {
   firepillar: { pos: [m(45), eye, m(20)], target: [m(-25), 22, 0], fov: 75 },
   // Far out in the desert to the south-east: the whole shaft, fading up toward the clouds.
   firepillarfar: { pos: [130, eye, 70], target: [m(-25), 75, 0], fov: 70 },
-  // Close on the fire's tapered foot above the tent roof.
-  firepillarfoot: { pos: [m(10), m(6), m(28)], target: [m(-25), 15, 0], fov: 55 },
+  // Close on the fire: its tapered foot above the tent roof, fading up into the shaft.
+  firepillarfoot: { pos: [m(10), m(6), m(34)], target: [m(-25), 19, 0], fov: 62 },
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {
