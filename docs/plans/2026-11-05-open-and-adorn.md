@@ -85,7 +85,7 @@ sound; daytime.
   sky still reads as a rich star field. Build passes, console clean, budgets met.
   **Carry-over notes:**
 
-- [ ] **Step 3: Floral/garden embroidery on gate and tent door** — model: Opus / effort: medium
+- [x] **Step 3: Floral/garden embroidery on gate and tent door** — model: Opus / effort: medium
   **Goal:** New procedural embroidery for both the courtyard gate screen and the tent entrance
   screen: ornate garden motifs (vines, leaves, palm and almond trees, pomegranates, lilies,
   rosettes, borders) in blue, purple, scarlet and white linen, reading as needlework

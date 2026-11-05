@@ -26,11 +26,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   pillar line. Fillets are silver rods joining neighbouring capitals.
 - 2026-11-05: Each pillar has one bronze peg and cord, staked 3 cubits outward (diagonally at
   the corners).
-- 2026-11-05: The gate screen embroidery is geometric only (bands, lozenges, eight-pointed
-  stars). No figures.
-
-## Bronze altar & laver
-
+- 2026-11-05: The gate screen has garden embroidery in an ancient Near Eastern manner (at the
+  user's direction, replacing the earlier geometric design): a running blue vine with
+  palmettes, hanging lilies and pomegranates (blue, purple, scarlet, after Ex 28:33), and
+  rosette borders. No figures. It repeats every 2.5 cubits, so it survives being gathered.
 - 2026-11-05: The altar is hollow, with walls 0.35 cubit thick. It is filled with earth to
   0.45 cubit below the rim as a hearth (rabbinic). `altar.userData.hearth = {x, y, z, size}` is
   in world meters.
@@ -52,6 +51,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   top and bottom rows are two half-length bars each; the middle bar runs the full length.
 - 2026-11-05: The entrance pillars stand at x = +0.4 cubits, z = −5 … +5. The screen hangs from
   gold hooks on their inner side.
+- 2026-11-05: The door screen's embroidery is related to the gate's but distinct: two rows of
+  sacred palms with lilies, an almond-blossom row (echoing Ex 25:33), rosette dividers and
+  lotus-and-bud friezes. Nothing sits on the centre split.
 - 2026-11-05: Goat-hair covering:
   - The side hem is at 1.55 cubits, not 1, so the gold boards show above the sockets.
   - The back hem is at 0.15 cubit.
@@ -179,6 +181,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - Star sizes are capped so none reads as oversized: largest layer rBase 0.034, gain 2.4; mid
     layer 0.040, 1.8 (the earlier 0.060/3.2 stars and the 0.8° moon looked too big).
   - The horizon and everything below it use the fog color.
+- 2026-11-05: The embroidered screens (`createEmbroideredScreenTextures` in textiles.js,
+  design `gate`/`door`) are procedural canvas pairs: a colour map with satin, fishbone,
+  couched and stem stitches, and a height map (linen weave plus raised stitching) used as
+  the bump map at `bumpScale` 0.6. ~227 px/m, mipmaps, anisotropy 8, ~30–40 ms each at load.
 - 2026-11-05: `createCherubimTexture` (textiles.js) draws the woven cherubim for both the
   ceiling and the veil: an ancient Near Eastern frontal figure (scale-covert band, straight
   primaries, fringed robe and shawl, squared hair with curls) in muted dyes local to the weave
