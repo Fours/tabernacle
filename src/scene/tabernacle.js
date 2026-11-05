@@ -3,7 +3,7 @@ import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { box } from './colliders.js';
 import { GOLD, GOLD_OVERLAY, SILVER, BRONZE, ROPE } from './materials.js';
 import { part, merge } from './bronzeParts.js';
-import { createLinenTexture, createEmbroideredScreenTexture } from './textiles.js';
+import { createEmbroideredScreenTextures } from './textiles.js';
 import { createCoverings, createLinenCeiling } from './tentCoverings.js';
 import { createVeil } from './veil.js';
 
@@ -177,12 +177,11 @@ function screenMesh() {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const weave = createLinenTexture();
-  weave.repeat.set(m(W) / 0.5, m(Hh) / 0.5);
+  const tex = createEmbroideredScreenTextures({ design: 'door', width: 1024, height: Math.round((1024 * Hh) / W) });
   const mat = new THREE.MeshStandardMaterial({
     name: 'tent-screen',
-    map: createEmbroideredScreenTexture({ width: 1024, height: 1024, panels: zs.length - 1, rows: 3 }),
-    bumpMap: weave,
+    map: tex.map,
+    bumpMap: tex.bumpMap,
     bumpScale: 0.6,
     roughness: 0.9,
     side: THREE.DoubleSide,

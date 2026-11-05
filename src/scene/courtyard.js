@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COURTYARD as C, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
 import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './materials.js';
-import { createLinenTexture, createEmbroideredScreenTexture } from './textiles.js';
+import { createLinenTexture, createEmbroideredScreenTextures } from './textiles.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
 // hooks and fillets; fine linen hangings hung on the inner side of the pillar line; the
@@ -249,12 +249,11 @@ export function createCourtyard() {
   hangings.castShadow = hangings.receiveShadow = true;
   group.add(hangings);
 
-  const weave = createLinenTexture();
-  weave.repeat.set(m(C.gateWidth) / 0.5, HANG_H / 0.5);
+  const gateTex = createEmbroideredScreenTextures({ design: 'gate', width: 2048, height: 512 });
   const gateMat = new THREE.MeshStandardMaterial({
     name: 'gate-screen',
-    map: createEmbroideredScreenTexture({ panels: C.gateWidth / C.pillarSpacing }),
-    bumpMap: weave,
+    map: gateTex.map,
+    bumpMap: gateTex.bumpMap,
     bumpScale: 0.6,
     roughness: 0.9,
     side: THREE.DoubleSide,
