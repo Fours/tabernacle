@@ -13,7 +13,9 @@ Three.js.
   gate with embroidered drapes tied back), the bronze altar with its perpetual fire, the laver, and the tent with its layered
   coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
   with its mercy seat and cherubim in the Holy of Holies. The tent door is half open: its south half is drawn across, the north half tied back. There are
-  also 6 torches, the pillar of fire over the Holy of Holies, post-processing and a starry sky.
+  also 6 torches, the pillar of fire over the Holy of Holies, rocks and scrub on the ground, the
+  camp of Israel around the court (thousands of instanced tents, Num 2–3), post-processing and a
+  starry sky.
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
@@ -68,6 +70,7 @@ src/
   scene/
     ground.js           procedural sand
     groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
+    camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
     drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
     altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
@@ -88,9 +91,9 @@ src/
     ark.js              ark, mercy seat, two hammered cherubim, poles
     sky.js              star dome, Milky Way (no moon)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
-    textiles.js         procedural linen, embroidered screen, goat hair, skin textures
+    textiles.js         procedural linen, embroidered screen, goat hair, skin, tent cloth textures
     bronzeParts.js      geometry merge helpers
-    colliders.js        2D box and circle colliders, resolveCircle
+    colliders.js        2D box, circle, oriented-box and spatial-grid colliders, resolveCircle
   camera/
     devCamera.js        free orbit camera + PRESETS
     firstPerson.js      pointer-lock walking, collision, head bob, simulate()
@@ -108,8 +111,8 @@ src/
   wires both up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`. Use
   `addMacroVariation` on large tiled surfaces.
-- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 76–113
-  times per frame (`gate` 109, interior views 76–86).
+- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 77–116
+  times per frame (`gate` 116, interior views 86–97; the camp adds 6).
 - **Light budget:** 8 point lights (altar fire + fill, 4 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials, and bloom picks up values above 2.0.
@@ -135,12 +138,15 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 
 - **Overview:** `top` (near-orthographic plan), `iso`
 - **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub)
-- **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`
-- **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
-- **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `ark`,
-  `holyofholies`
+- **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`, `laverclose`
+- **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
+  the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW)
+- **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `smoke` (the
+  incense altar's smoke from the side), `ark`, `holyofholies`
 - **Torches and sky:** `torch`, `sky`, `firepillar` (the pillar of fire and its shaft from the courtyard),
   `firepillarfoot` (its tapered foot), `firepillarfar` (the whole shaft from the desert)
+- **Camp:** `camp` (high oblique from the east: Levites' rows, tribal blocks, lanes), `campwalk`
+  (eye height outside the gate, looking north-west over the nearest tents)
 - **First person:** `walk`
 
 Add presets when a task needs a new view.

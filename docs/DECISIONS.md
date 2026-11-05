@@ -346,7 +346,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
-## Performance baseline (2026-11-05, after opening the gate and door and adding the pillar of fire)
+## Performance baseline (2026-11-05, after the detail-and-camp plan)
 
 - Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on. The GPU on
   this machine flips between a fast mode (`gate` ~0.3–0.8 ms per frame) and a throttled mode
@@ -355,6 +355,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   (one capture of ~60–200 ms at load), the open door +0.15 ms at `gate` (furnishings drawn
   through it), the pillar volume ≤0.04 ms except +0.4 ms at `firepillar`, the 12th light
   most of the rest (<1 ms throttled).
-- Draw calls: `gate` 109, `iso` 113, `tent` 88, `firepillar` 98, `holyplace` 86,
-  `holyofholies` 76. The Holy Place furnishings and veil now show whenever the camera is east
-  of the tent front, which is why `gate` rose from 99.
+- Draw calls (2026-11-05, after the detail-and-camp plan): `gate` 116, `iso` 116, `tent` 99,
+  `firepillar` 109, `holyplace` 97, `holyofholies` 86, `camp` 116, `campwalk` 77. Before the
+  plan: `gate` 109, `iso` 113, `tent` 88, `firepillar` 98, `holyplace` 86, `holyofholies` 76.
+  The Holy Place furnishings and veil show whenever the camera is east of the tent front. The
+  camp's 6 instanced draws are in every view (its bounding sphere spans the whole ground).
+- The camp (Step 9, throttled mode, same session, camp hidden vs shown): +0.1 ms at `gate`,
+  +0.2–0.3 ms at `camp`; ~4,500 tents, ~119k triangles; ~11 ms to build plus ~12 ms to clear
+  the ground scatter under it at load.
