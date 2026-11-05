@@ -23,14 +23,14 @@ export function createAltarFire(hearth) {
     embers: 140,
     smoke: 22,
     smokeHeight: 5,
-    // Decay 1.6 (not the physical 2) with a lower intensity: a big fire is a large source, so
+    // Decay 1.5 (not the physical 2) with a lower intensity: a big fire is a large source, so
     // the near rim/horns shouldn't blow out while the far courtyard stays lit.
-    intensity: 95,
-    decay: 1.6,
-    // Well above the rim (and the horns' bases) so the walls don't shadow the courtyard; high
-    // enough that the walls' shadow square on the sand stays small.
-    lightOffset: [0, 1.45, 0],
-    shadowRadius: 7,
+    intensity: 105,
+    decay: 1.5,
+    // Well above the rim (and the horns' bases) so the walls don't shadow the courtyard, low
+    // enough that the rim's shadow edge falls past the carrying poles (not a lit line on them).
+    lightOffset: [0, 1.2, 0],
+    shadowRadius: 5,
     flicker: 0.22,
     castShadow: true,
     wind: [0.06, 0.02],
@@ -38,9 +38,18 @@ export function createAltarFire(hearth) {
   fire.group.position.y = 0.04;
   group.add(fire.group);
 
+  // The flame tops reach well above the rim, so the sand right round the altar isn't fully in
+  // the walls' shadow: a weak unshadowed fill high over the fire softens that dark square.
+  const FILL = 14;
+  const fill = new THREE.PointLight(0xff9a48, FILL, 0, 1.5);
+  fill.name = 'fire-fill';
+  fill.position.set(0, 3.2, 0);
+  group.add(fill);
+
   group.userData.fire = fire;
   group.userData.update = (dt, time) => {
     fire.update(dt, time);
+    fill.intensity = FILL * (1 + 0.15 * fire.level);
     wood.update(time, fire.level);
   };
   group.userData.colliders = [];

@@ -26,7 +26,7 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 // Filmic tone mapping so the fire's HDR highlights roll off instead of clipping.
 const TONE = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping, neutral: THREE.NeutralToneMapping, none: THREE.NoToneMapping };
 renderer.toneMapping = TONE[params.tm] ?? THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = params.exposure ?? 1.0;
+renderer.toneMappingExposure = params.exposure ?? 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 // Several passes per frame: count draw calls for the whole frame (reset in the loop).
 renderer.info.autoReset = false;

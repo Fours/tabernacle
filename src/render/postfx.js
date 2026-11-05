@@ -86,8 +86,8 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
   composer.addPass(new RenderPass(scene, camera));
 
   // Bloom at half resolution. Threshold is in linear HDR: flames, embers and the torch-head
-  // cracks are well above it, firelit linen is not.
-  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.55, 0.55, 1.4);
+  // cracks are well above it; firelit linen and metal highlights mostly are not.
+  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.6, 0.55, 2.0);
   composer.addPass(bloom);
 
   const grade = new ShaderPass(GradeShader);
