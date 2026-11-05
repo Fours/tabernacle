@@ -144,6 +144,11 @@ export const PLAYER = {
   radius: 0.3,
   walkSpeed: 1.4,
   runSpeed: 3.5,
+  // Mouse look: PointerLockControls pointerSpeed (1 = three.js default, a bit fast).
+  lookSpeed: 0.7,
+  // Subtle head bob while walking: vertical amplitude (m) and steps per metre.
+  bobAmplitude: 0.025,
+  bobStride: 0.8,
 };
 
 // Torches (artistic license, not in the text): wooden posts with pitch-soaked wrapped heads.

@@ -66,7 +66,7 @@ updaters.push(() => {
 // Camera mode
 let rig;
 if (params.cam === 'fp') {
-  rig = createFirstPerson(camera, canvas, colliders, PRESETS.walk);
+  rig = createFirstPerson(camera, canvas, colliders, PRESETS.walk, { bob: params.bob });
 } else {
   rig = createDevCamera(camera, canvas, params.view || 'iso');
 }

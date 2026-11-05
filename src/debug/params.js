@@ -3,11 +3,15 @@ export function getParams() {
   const p = new URLSearchParams(window.location.search);
   const view = p.get('view') || null;
   let cam = p.get('cam');
-  // `walk` is the first-person spawn point: it implies fp unless cam=free is explicit.
-  if (!cam) cam = view === 'walk' ? 'fp' : 'free';
+  // First-person is the default. Other `?view=` presets imply the free camera; `walk` is the
+  // first-person spawn point. `?cam=free` / `?cam=fp` always win.
+  if (!cam) cam = view && view !== 'walk' ? 'free' : 'fp';
+  // `?bob=0` disables the walking head bob.
+
   return {
     cam,
     view,
+    bob: p.get('bob') !== '0',
     light: p.get('light') || 'night',
     debug: p.get('debug') === '1',
     // Post-processing chain (bloom, grade, shimmer); `?fx=0` renders the plain scene.

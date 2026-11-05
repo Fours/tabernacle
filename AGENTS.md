@@ -156,10 +156,11 @@ Agents can't judge a 3D scene without seeing it, so **every visual task is verif
 screenshots**.
 
 - URL parameters control the camera:
-  - `?cam=fp`: first-person walk mode. This is the **default** in the finished product.
+  - `?cam=fp`: first-person walk mode. This is the **default** (no params = first-person at
+    the `walk` spawn). `?bob=0` disables the head bob.
   - `?cam=free`: free orbit/fly dev camera.
   - `?view=<preset>`: jump to a named preset view (this implies the free camera unless
-    `cam=fp`). Presets must include at least: `top` (straight down over the whole courtyard),
+    `cam=fp`; `walk` implies first-person). Presets must include at least: `top` (straight down over the whole courtyard),
     `iso` (high 3/4 view from the southeast), `gate` (outside the east gate at eye height),
     `altar` (close-up of the altar), `tent` (the Tabernacle front from the courtyard at eye
     height), `corner` (outside the SE courtyard corner, close to the pillar details), and

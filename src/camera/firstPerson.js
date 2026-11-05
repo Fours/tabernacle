@@ -15,21 +15,29 @@ const KEYMAP = {
  * Pointer-lock first-person walker with XZ circle-vs-collider collision.
  * spawn: { pos: [x,y,z], target: [x,y,z] } in meters.
  */
-export function createFirstPerson(camera, domElement, colliders, spawn) {
+export function createFirstPerson(camera, domElement, colliders, spawn, { bob = true } = {}) {
   const controls = new PointerLockControls(camera, domElement);
+  controls.pointerSpeed = PLAYER.lookSpeed;
+  let bobPhase = 0;
+  let bobAmt = 0; // 0..1, eased in/out so starting and stopping is smooth
   const keys = { f: false, b: false, l: false, r: false, run: false };
   const pos = { x: 0, z: 0 };
 
   const hint = document.createElement('div');
   hint.className = 'fp-hint';
-  hint.textContent = 'Click to look around · WASD / arrows to walk · Shift to run · Esc to release';
+  const HINT_HTML =
+    '<strong>Click to look around</strong>' +
+    '<span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows walk</span>' +
+    '<span><kbd>Shift</kbd> run</span>' +
+    '<span><kbd>Esc</kbd> release mouse</span>';
+  hint.innerHTML = HINT_HTML;
   document.body.appendChild(hint);
   // Request pointer lock ourselves so failures (e.g. embedded/iframe browsers) are handled
   // gracefully instead of logging errors; keyboard walking still works without lock.
   const doc = domElement.ownerDocument;
   if (controls._onPointerlockError) doc.removeEventListener('pointerlockerror', controls._onPointerlockError);
   const onLockError = () => {
-    hint.textContent = 'Mouse look unavailable here (pointer lock blocked) · WASD / arrows still walk';
+    hint.innerHTML = '<strong>Mouse look unavailable here</strong><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows still walk</span>';
   };
   doc.addEventListener('pointerlockerror', onLockError);
   const requestLock = () => {
@@ -43,7 +51,10 @@ export function createFirstPerson(camera, domElement, colliders, spawn) {
   hint.addEventListener('click', requestLock);
   domElement.addEventListener('click', requestLock);
   controls.addEventListener('lock', () => hint.classList.add('hidden'));
-  controls.addEventListener('unlock', () => hint.classList.remove('hidden'));
+  controls.addEventListener('unlock', () => {
+    hint.innerHTML = HINT_HTML;
+    hint.classList.remove('hidden');
+  });
 
   const onKey = (down) => (e) => {
     const k = KEYMAP[e.code];
@@ -79,7 +90,7 @@ export function createFirstPerson(camera, domElement, colliders, spawn) {
   function step(dt, k) {
     const mf = (k.f ? 1 : 0) - (k.b ? 1 : 0);
     const mr = (k.r ? 1 : 0) - (k.l ? 1 : 0);
-    if (mf === 0 && mr === 0) return;
+    if (mf === 0 && mr === 0) return 0;
     camera.getWorldDirection(fwd);
     fwd.y = 0;
     fwd.normalize();
@@ -99,6 +110,7 @@ export function createFirstPerson(camera, domElement, colliders, spawn) {
       resolveCircle(pos, PLAYER.radius, colliders);
     }
     camera.position.set(pos.x, PLAYER.eyeHeight, pos.z);
+    return speed;
   }
 
   return {
@@ -119,7 +131,15 @@ export function createFirstPerson(camera, domElement, colliders, spawn) {
     },
     update(dt) {
       // Keyboard walking works with or without pointer lock; lock is only needed for mouse look.
-      step(Math.min(dt, 0.1), keys);
+      dt = Math.min(dt, 0.1);
+      const speed = step(dt, keys);
+      if (!bob) return;
+      // Head bob: two vertical cycles per stride pair, eased by walking state. Purely visual
+      // (camera y only); collision uses the XZ position.
+      bobAmt += ((speed > 0 ? 1 : 0) - bobAmt) * Math.min(1, dt * 8);
+      bobPhase += speed * dt * PLAYER.bobStride * Math.PI * 2;
+      const amp = PLAYER.bobAmplitude * (speed > PLAYER.walkSpeed ? 1.5 : 1);
+      camera.position.y = PLAYER.eyeHeight + Math.sin(bobPhase) * amp * bobAmt;
     },
     dispose() {
       window.removeEventListener('keydown', onDown);
