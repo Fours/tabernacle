@@ -117,13 +117,15 @@ function barParts() {
   return parts;
 }
 
-// ---- East door (Ex 26:36): beam, and the screen split and tied back -------------------------
-// Departure from Ex 26:37 at the user's direction: no entrance pillars, so the door stands open.
+// ---- East door (Ex 26:36): beam, and the screen split, one half drawn, one tied back ---------
+// Departure from Ex 26:37 at the user's direction: no entrance pillars. The south half (the
+// left, seen from the courtyard) hangs drawn across to the middle; the north half is tied back.
 // The cloth line runs N-S under the beam's centre; `off` is measured westward (into the tent).
 const DOOR = {
   wall: { c: [m(T.doorBeam.x), 0], a: [0, 1], n: [-1, 0] },
   hangTop: m(T.screenTop) - 0.02, // cloth top, just under the hooks
   half: m(HW), // each half hangs from the centre to a side wall
+  closedSide: 1, // +z (south): hangs straight across to the middle, no tie, walk-through
 };
 DOOR.hangH = DOOR.hangTop - m(T.screenHem);
 // The cloth's v coordinate of the door texture's top blue band (canvas rows 14-20 of 965): the
@@ -159,7 +161,14 @@ function doorGoldParts() {
     pos: [m(B.x), m(T.screenTop + B.height / 2), 0],
   }));
   const x = DOOR.wall.c[0];
+  // Hooks across the drawn half, one every ~0.32 m from the wall to the middle.
+  const nHooks = Math.round(DOOR.half / 0.32);
+  for (let k = 0; k <= nHooks; k++) {
+    const z = DOOR.closedSide * (DOOR.half - 0.04 - (k / nHooks) * (DOOR.half - 0.08));
+    parts.push(part(new THREE.TorusGeometry(0.022, 0.006, 4, 10), { pos: [x, m(T.screenTop) - 0.02, z], rot: [0, Math.PI / 2, 0] }));
+  }
   for (const side of [-1, 1]) {
+    if (side === DOOR.closedSide) continue;
     // Hooks under the beam over the gathered top of the cloth.
     for (let k = 0; k < 6; k++) {
       const z = side * (DOOR.half - (0.04 + (k / 5) * (DOOR_SHAPE.wTop - 0.08)));
@@ -173,7 +182,43 @@ function doorGoldParts() {
   return parts;
 }
 
-/** The embroidered door screen, split in the middle and both halves tied back. */
+/**
+ * Append the drawn half of the door screen to `buf`: flat cloth hung from the hooks from the
+ * side wall (along `sp`) to the middle, with soft vertical folds, slight scallops between the
+ * hooks and a gently uneven hem. UVs as the tied halves (uvFn), so the embroidery lines up.
+ */
+function addHangingHalf(buf, sp, uvFn) {
+  const { hangTop, hangH } = DOOR;
+  const [cx] = DOOR.wall.c;
+  const cols = 120, rows = 40, hookGap = 0.32;
+  const base = buf.pos.length / 3;
+  const zWall = sp - Math.sign(sp) * 0.02, zMid = 0; // leading edge at the doorway's middle
+  for (let j = 0; j <= rows; j++) {
+    const t = j / rows; // 0 top .. 1 hem
+    for (let i = 0; i <= cols; i++) {
+      const u = i / cols; // 0 at the wall .. 1 leading edge
+      const z = zWall + (zMid - zWall) * u;
+      const d = Math.abs(sp - z);
+      const scallop = Math.abs(Math.sin((Math.PI * d) / hookGap));
+      // Folds: deeper toward the hem, damped at the wall; the free edge curls in a little.
+      const amp = 0.055 * (0.45 + 0.55 * t) * Math.min(1, d / 0.25);
+      const fold = amp * (0.6 * Math.sin((2 * Math.PI * d) / 0.62 + 0.4 + 0.3 * t)
+        + 0.4 * Math.sin((2 * Math.PI * d) / 1.45 + 1.7)) + 0.03 * Math.pow(u, 6) * t;
+      const y = hangTop - t * hangH - 0.02 * scallop * (1 - t) - 0.012 * Math.sin(9 * d + 1.3) * Math.pow(t, 4);
+      buf.pos.push(cx - fold, y, z);
+      const [uu, vv] = uvFn(z, 1 - t);
+      buf.uv.push(uu, vv);
+    }
+  }
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const a = base + j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+      buf.idx.push(a, c, b, b, c, d);
+    }
+  }
+}
+
+/** The embroidered door screen, split in the middle: one half drawn across, one tied back. */
 function doorScreen() {
   const buf = { pos: [], uv: [], idx: [] };
   const W = 2 * DOOR.half;
@@ -184,7 +229,8 @@ function doorScreen() {
     hangTop: DOOR.hangTop, hangH: DOOR.hangH, tieY: m(T.doorTieHeight),
     clothOffset: 0, clothW: DOOR.half, tieTexV: DOOR_TIE_TEX_V,
   };
-  const ties = [-1, 1].map((side) => {
+  addHangingHalf(buf, DOOR.closedSide * DOOR.half, uvFn);
+  const ties = [-DOOR.closedSide].map((side) => {
     const sp = side * DOOR.half;
     const [al, off] = addGatheredDrape(buf, DOOR.wall, sp, uvFn, opts);
     return [DOOR.wall.c[0] - off, sp - side * al];
@@ -233,7 +279,8 @@ export function createTabernacle() {
   group.add(ropeMesh);
 
   // Colliders: the side and west walls with their hanging coverings, the tied-back door cloth
-  // at each side of the opening, and the veil. Pins and cords don't collide (as in the
+  // at the north side of the opening, and the veil. The drawn south half has none: the player
+  // can walk through it. Pins and cords don't collide (as in the
   // courtyard).
   const { xW, xE, zN, zS } = cov.rect;
   const so = cov.standOut;

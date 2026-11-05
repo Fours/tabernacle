@@ -26,6 +26,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
   left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
   0.5 × 0.5 cubit; not in the text) carries the screen.
+- 2026-11-05: At the user's direction the door is now half closed: the south half (the
+  player's left, seen from the courtyard) hangs drawn across to the middle of the doorway
+  from hooks every ~0.32 m, with soft folds (`addHangingHalf` in `tabernacle.js`). The north
+  half stays gathered and tied back. The drawn half has no collider, so the player can walk
+  through it as well as through the open half.
 
 ## Courtyard
 
@@ -82,7 +87,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: All 5 bars per wall are on the outside of the boards, held by gold rings. The
   top and bottom rows are two half-length bars each; the middle bar runs the full length.
 - 2026-11-05: The door screen hangs from 6 gold hooks per side under the beam, split in the
-  middle. Each half is gathered at the beam, cinched at 4 cubits (`doorTieHeight`) by a
+  middle. (Superseded for the south half, see above.) Each half is gathered at the beam, cinched at 4 cubits (`doorTieHeight`) by a
   tasselled cord through a gold staple on the front board's inner face, and flares to the
   hem. `scene/drape.js` (`addGatheredDrape`) builds both these and the gate drapes. The beam
   uses plain GOLD so it merges into the tent's gold mesh.
@@ -259,8 +264,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   pointer lock; mouse look still needs it.
 - 2026-11-05: `PLAYER.lookSpeed` is 0.7. Head bob is vertical only and on by default.
 - 2026-11-04: Gate screens and hangings people walk through don't collide; the gate pillars
-  and the gathered middle drapes do. The tent door's tied-back cloth has two 0.2 m circle colliders
-  (z = ±2.11 m); side and west walls, furnishings and the veil collide. Walking west on z = 0
+  and the gathered middle drapes do. The tent door's tied-back north half has one 0.2 m circle collider
+  (z = −2.11 m); the drawn south half doesn't collide; side and west walls, furnishings and the veil collide. Walking west on z = 0
   through the door stops at the incense altar's poles (x ≈ −7.64 m).
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.

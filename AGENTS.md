@@ -12,7 +12,7 @@ Three.js.
 - **What's built:** the whole site. The courtyard (59 pillars, linen hangings, an open
   gate with embroidered drapes tied back), the bronze altar with its perpetual fire, the laver, and the tent with its layered
   coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
-  with its mercy seat and cherubim in the Holy of Holies. The tent door stands open. There are
+  with its mercy seat and cherubim in the Holy of Holies. The tent door is half open: its south half is drawn across, the north half tied back. There are
   also 6 torches, the pillar of fire over the Holy of Holies, post-processing and a starry sky.
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
@@ -75,7 +75,7 @@ src/
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)
     torches.js          torch posts, wrapped heads, small fires and lights
     pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
-    tabernacle.js       boards, sockets, bars, door beam + tied-back screen
+    tabernacle.js       boards, sockets, bars, door beam + screen (south half drawn across, north tied back)
     tentCoverings.js    goat hair drape, ram skins, tachash, clasps
     laver.js            bronze basin on a stand
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
