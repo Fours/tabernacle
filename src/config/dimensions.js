@@ -64,14 +64,18 @@ export const TABERNACLE = {
   barRadius: 0.12, // not in text
   barOffset: 0.3, // bar center distance out from the board face (not in text)
   ringTube: 0.035, // not in text
-  // East entrance (Ex 26:36-37): 5 gold-overlaid acacia pillars on bronze sockets.
-  entrancePillars: 5,
-  entrancePillarX: 0.4, // pillar centers stand just east of the board ends (not in text)
-  entrancePillarRadius: 0.28, // not in text
-  entranceCapitalHeight: 0.6, // gold capital (Ex 36:38), not in text
-  entranceSocket: 0.9, // bronze socket footprint, 1 cubit high like the silver ones (not in text)
-  screenTop: 9.5, // screen hung from gold hooks on the pillars' inner side (not in text)
+  // East entrance (Ex 26:36-37). Departure from the text at the user's direction: the 5
+  // pillars are left out so the door stands open. A gold-overlaid acacia beam spans the top of
+  // the opening between the side walls' front boards; the embroidered screen hangs from it,
+  // split in the middle, each half gathered and tied back to the boards (not in text).
+  doorBeam: {
+    x: -0.25, // beam centre line, just inside the board ends (x = 0); the cloth hangs on it
+    depth: 0.5, // E-W
+    height: 0.5, // its underside is the screen's hook line
+  },
+  screenTop: 9.5, // hook line under the beam (not in text)
   screenHem: 0.08,
+  doorTieHeight: 4, // tie-back height above the ground (not in text)
   // Inner linen covering (Ex 26:1-6): 10 curtains of 28x4 cubits running N-S across the roof,
   // joined into two sets of 5 by 50 gold clasps. Only the ceiling seen from inside is modeled;
   // its sides hang down the outside of the boards under the goat hair (Decisions log).

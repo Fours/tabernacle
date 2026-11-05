@@ -76,25 +76,30 @@ updaters.push(() => {
   altar.userData.bounce.value = 1 + 0.25 * altarFire.userData.fire.level;
 });
 
-// The furnishings and the veil can't be seen from outside the tent (its walls, roof and
-// entrance screen are opaque), so hide their meshes while the camera is outside. Only meshes
-// are toggled: the menorah's light stays on (toggling a light recompiles every shader).
-const interiorMeshes = [
-  ...tabernacle.userData.interior,
-  ...furnishings.flatMap((g) => g.children.filter((o) => !o.isLight)),
-];
+// The furnishings and the veil can only be seen from inside the tent or through its open door
+// (the walls and roof are opaque), so their meshes are hidden while the camera is behind or
+// beside the tent. East of the tent front the Holy Place can be seen through the door, so its
+// furnishings and the veil are shown; the ark, behind the veil, only inside. Only meshes are
+// toggled: the menorah's light stays on (toggling a light recompiles every shader).
+const meshesOf = (g) => g.children.filter((o) => !o.isLight);
+const holyPlaceMeshes = [...tabernacle.userData.interior, ...furnishings.slice(0, 3).flatMap(meshesOf)];
+const holiestMeshes = meshesOf(furnishings[3]);
+const interiorMeshes = [...holyPlaceMeshes, ...holiestMeshes];
 const INSIDE = {
-  x0: m(T.interiorMinX) - 0.3, x1: m(T.interiorMaxX) + 0.6, // a little past the entrance screen
+  x0: m(T.interiorMinX) - 0.3, x1: m(T.interiorMaxX) + 0.6, // a little past the door's cloth line
   z: m(T.interiorWidth / 2) + 0.3,
   y: m(T.interiorHeight) + 0.3,
 };
+const FRONT_X = m(T.interiorMaxX); // east of this the door looks into the Holy Place
 let interiorShown = null;
 function updateInteriorVisibility() {
   const p = camera.position;
   const inside = p.x > INSIDE.x0 && p.x < INSIDE.x1 && Math.abs(p.z) < INSIDE.z && p.y < INSIDE.y;
-  if (inside === interiorShown) return;
-  interiorShown = inside;
-  for (const o of interiorMeshes) o.visible = inside;
+  const state = inside ? 2 : p.x > FRONT_X ? 1 : 0;
+  if (state === interiorShown) return;
+  interiorShown = state;
+  for (const o of holyPlaceMeshes) o.visible = state > 0;
+  for (const o of holiestMeshes) o.visible = state === 2;
 }
 
 // Static reflection probe for the gold inside the tent (interiorLight.js): one HDR cube

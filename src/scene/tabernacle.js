@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
-import { box } from './colliders.js';
+import { box, circle } from './colliders.js';
 import { GOLD, GOLD_OVERLAY, SILVER, BRONZE, ROPE } from './materials.js';
 import { part, merge } from './bronzeParts.js';
 import { createEmbroideredScreenTextures } from './textiles.js';
 import { createCoverings, createLinenCeiling } from './tentCoverings.js';
 import { createVeil } from './veil.js';
+import { addGatheredDrape, clothGeometry } from './drape.js';
 
 // Tabernacle tent (Ex 26; 36:8-38): boards, bars, entrance, plus the interior shell (linen
-// ceiling, veil). Dimensions in cubits from dimensions.js.
+// ceiling, veil). The door stands open: no entrance pillars (see DOOR below). Dimensions in cubits from dimensions.js.
 // Interior spans x = interiorMinX..interiorMaxX, z = centerZ ± interiorWidth/2; the boards
 // stand outside that box (1 cubit thick). East (+X) is the entrance.
 
@@ -116,68 +117,79 @@ function barParts() {
   return parts;
 }
 
-/** Entrance pillar z positions (cubits): evenly across the opening, ends at the side walls. */
-const pillarZs = () =>
-  Array.from({ length: T.entrancePillars }, (_, i) => T.centerZ - HW + (i * T.interiorWidth) / (T.entrancePillars - 1));
+// ---- East door (Ex 26:36): beam, and the screen split and tied back -------------------------
+// Departure from Ex 26:37 at the user's direction: no entrance pillars, so the door stands open.
+// The cloth line runs N-S under the beam's centre; `off` is measured westward (into the tent).
+const DOOR = {
+  wall: { c: [m(T.doorBeam.x), 0], a: [0, 1], n: [-1, 0] },
+  hangTop: m(T.screenTop) - 0.02, // cloth top, just under the hooks
+  half: m(HW), // each half hangs from the centre to a side wall
+};
+DOOR.hangH = DOOR.hangTop - m(T.screenHem);
+// The cloth's v coordinate of the door texture's top blue band (canvas rows 14-20 of 965): the
+// tie-back cords sample it so they share the screen material.
+const DOOR_TEX_H = Math.round((1024 * (T.screenTop - T.screenHem)) / T.interiorWidth);
+const DOOR_TIE_TEX_V = 1 - 17 / DOOR_TEX_H;
+// Each half: 5 cubits of cloth gathered into ~0.55 m at the beam, cinched at the tie, flaring
+// below it. Taller than the gate's panels, so more pleats and a deeper swag (drape.js).
+const DOOR_SHAPE = {
+  pleats: 9,
+  cols: 150,
+  rows: 90,
+  wTop: 0.55, wTie: 0.2, swag: 0.42, flare: 0.75,
+  aTop: 0.1, aTie: 0.05, aHem: 0.12,
+  lift: 0.16, droop: 0.06, pinch: 0, outDrift: 0.012,
+  // Cord round the bundle, through a gold staple on the board's inner face (along 0); knotted on
+  // the east (courtyard) side, so the tassels show to someone approaching.
+  loop: Array.from({ length: 12 }, (_, k) => {
+    const a = (k / 12) * 2 * Math.PI;
+    return [0.125 + 0.13 * Math.cos(a), 0.085 * Math.sin(a)];
+  }),
+  knot: [0.15, -0.095],
+  cordR: 0.013,
+  tasselLen: 0.36,
+  collider: [0.14, 0],
+};
 
-/** Entrance pillars: gold parts (shaft, capital, band, hooks, fillets) and bronze sockets. */
-function entranceParts() {
-  const gold = [], bronze = [];
-  const x = T.entrancePillarX, r = T.entrancePillarRadius, s = T.entranceSocket;
-  const capH = T.entranceCapitalHeight, capY = H - capH;
-  const zs = pillarZs();
-  for (const z of zs) {
-    bronze.push(part(new THREE.BoxGeometry(m(s), m(T.socketHeight), m(s)), { pos: [m(x), m(T.socketHeight / 2), m(z)] }));
-    const shaftH = capY - T.socketHeight;
-    gold.push(part(new THREE.CylinderGeometry(m(r), m(r), m(shaftH), 14, 1, true), { pos: [m(x), m(T.socketHeight + shaftH / 2), m(z)] }));
-    gold.push(part(new THREE.CylinderGeometry(m(r + 0.1), m(r), m(capH), 14), { pos: [m(x), m(capY + capH / 2), m(z)] }));
-    gold.push(part(new THREE.TorusGeometry(m(r + 0.02), m(0.04), 5, 14), { pos: [m(x), m(capY), m(z)], rot: [Math.PI / 2, 0, 0] }));
-    gold.push(part(new THREE.TorusGeometry(m(r + 0.02), m(0.04), 5, 14), { pos: [m(x), m(T.socketHeight + 0.15), m(z)], rot: [Math.PI / 2, 0, 0] }));
-    // Hook on the inner (west) side holding the screen.
-    gold.push(part(new THREE.TorusGeometry(m(0.07), m(0.022), 4, 8, Math.PI), { pos: [m(x - r - 0.04), m(T.screenTop), m(z)], rot: [0, Math.PI / 2, Math.PI] }));
+/** Gold parts for the door: the beam, hooks under it holding the gathered cloth, tie staples. */
+function doorGoldParts() {
+  const B = T.doorBeam, parts = [];
+  // Beam between the side walls' front boards, its ends let into them a little.
+  parts.push(part(new THREE.BoxGeometry(m(B.depth), m(B.height), m(T.interiorWidth + 0.4)), {
+    pos: [m(B.x), m(T.screenTop + B.height / 2), 0],
+  }));
+  const x = DOOR.wall.c[0];
+  for (const side of [-1, 1]) {
+    // Hooks under the beam over the gathered top of the cloth.
+    for (let k = 0; k < 6; k++) {
+      const z = side * (DOOR.half - (0.04 + (k / 5) * (DOOR_SHAPE.wTop - 0.08)));
+      parts.push(part(new THREE.TorusGeometry(0.022, 0.006, 4, 10), { pos: [x, m(T.screenTop) - 0.02, z], rot: [0, Math.PI / 2, 0] }));
+    }
+    // Staple on the board face that the tie-back cord runs through.
+    // (A half ring bulging out of the face toward the opening.)
+    const staple = new THREE.TorusGeometry(0.03, 0.007, 5, 10, Math.PI).rotateZ(Math.PI / 2).rotateY(-side * Math.PI / 2);
+    parts.push(part(staple, { pos: [x, m(T.doorTieHeight), side * DOOR.half] }));
   }
-  // Gold fillets (Ex 36:38) joining the capitals.
-  for (let i = 0; i < zs.length - 1; i++) {
-    const L = zs[i + 1] - zs[i];
-    gold.push(part(new THREE.CylinderGeometry(m(0.05), m(0.05), m(L), 6), { pos: [m(x), m(H - 0.12), m((zs[i] + zs[i + 1]) / 2)], rot: [Math.PI / 2, 0, 0] }));
-  }
-  return { gold, bronze };
+  return parts;
 }
 
-/** Embroidered entrance screen hung from the pillars' hooks, sagging slightly between them. */
-function screenMesh() {
-  const zs = pillarZs();
-  const x0 = T.entrancePillarX - T.entrancePillarRadius - 0.08;
-  const top = T.screenTop, hem = T.screenHem, Hh = top - hem;
-  const z0 = zs[0], z1 = zs[zs.length - 1], W = z1 - z0;
-  const cols = 160, rows = 12, sag = 0.07;
-  const pos = [], uv = [], idx = [];
-  for (let j = 0; j <= rows; j++) {
-    const t = j / rows;
-    for (let i = 0; i <= cols; i++) {
-      const z = z0 + (W * i) / cols;
-      let k = 0;
-      while (k < zs.length - 2 && z > zs[k + 1]) k++;
-      const bell = Math.sin((Math.PI * (z - zs[k])) / (zs[k + 1] - zs[k]));
-      const amp = 0.035 * (0.3 + 0.7 * bell) * (0.85 + 0.3 * t);
-      const fold = amp * (0.65 * Math.sin((2 * Math.PI * z) / 0.6 + 0.7) + 0.35 * Math.sin((2 * Math.PI * z) / 1.4 + 2.1));
-      const y = top - t * Hh - sag * bell * (1 - 0.6 * t);
-      pos.push(m(x0 - 0.04 - fold), m(y), m(z));
-      uv.push((z1 - z) / W, 1 - t);
-    }
-  }
-  for (let j = 0; j < rows; j++) {
-    for (let i = 0; i < cols; i++) {
-      const a = j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
-      idx.push(a, c, b, b, c, d);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  const tex = createEmbroideredScreenTextures({ design: 'door', width: 1024, height: Math.round((1024 * Hh) / W) });
+/** The embroidered door screen, split in the middle and both halves tied back. */
+function doorScreen() {
+  const buf = { pos: [], uv: [], idx: [] };
+  const W = 2 * DOOR.half;
+  // u runs left to right as seen from outside (east): +z -> -z, as before the split.
+  const uvFn = (s, vv) => [(DOOR.half - s) / W, vv];
+  const opts = {
+    ...DOOR_SHAPE,
+    hangTop: DOOR.hangTop, hangH: DOOR.hangH, tieY: m(T.doorTieHeight),
+    clothOffset: 0, clothW: DOOR.half, tieTexV: DOOR_TIE_TEX_V,
+  };
+  const ties = [-1, 1].map((side) => {
+    const sp = side * DOOR.half;
+    const [al, off] = addGatheredDrape(buf, DOOR.wall, sp, uvFn, opts);
+    return [DOOR.wall.c[0] - off, sp - side * al];
+  });
+  const tex = createEmbroideredScreenTextures({ design: 'door', width: 1024, height: DOOR_TEX_H });
   const mat = new THREE.MeshStandardMaterial({
     name: 'tent-screen',
     map: tex.map,
@@ -186,11 +198,10 @@ function screenMesh() {
     roughness: 0.9,
     side: THREE.DoubleSide,
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.name = 'entrance-screen';
-  // Casts so the altar fire doesn't shine through the screen into the Holy Place.
+  const mesh = new THREE.Mesh(clothGeometry(buf), mat);
+  mesh.name = 'door-screen';
   mesh.castShadow = mesh.receiveShadow = true;
-  return mesh;
+  return { mesh, ties };
 }
 
 export function createTabernacle() {
@@ -203,37 +214,36 @@ export function createTabernacle() {
   const ceiling = createLinenCeiling();
   group.add(ceiling.mesh, veil.mesh);
 
-  const ent = entranceParts();
-  const goldMesh = new THREE.Mesh(merge([...barParts(), ...ent.gold, ...veil.goldParts, ...ceiling.goldParts]), GOLD);
-  goldMesh.name = 'gold-bars-rings-pillars-veil-clasps';
+  const goldMesh = new THREE.Mesh(merge([...barParts(), ...doorGoldParts(), ...veil.goldParts, ...ceiling.goldParts]), GOLD);
+  goldMesh.name = 'gold-bars-rings-door-beam-veil-clasps';
   goldMesh.castShadow = goldMesh.receiveShadow = true;
   group.add(goldMesh);
 
-  group.add(screenMesh());
+  const door = doorScreen();
+  group.add(door.mesh);
 
   const cov = createCoverings();
   group.add(cov.group);
 
-  const bronzeMesh = new THREE.Mesh(merge([...ent.bronze, ...cov.bronzeParts]), BRONZE);
+  const bronzeMesh = new THREE.Mesh(merge(cov.bronzeParts), BRONZE);
   bronzeMesh.name = 'bronze-sockets-clasps-pins';
   group.add(bronzeMesh);
   const ropeMesh = new THREE.Mesh(merge(cov.ropeParts), ROPE);
   ropeMesh.name = 'tent-cords';
   group.add(ropeMesh);
 
-  // Colliders: the side and west walls with their hanging coverings, the entrance pillars'
-  // sockets and the veil. The entrance screen is walk-through (like the gate screens); pins
-  // and cords don't collide (as in the courtyard).
+  // Colliders: the side and west walls with their hanging coverings, the tied-back door cloth
+  // at each side of the opening, and the veil. Pins and cords don't collide (as in the
+  // courtyard).
   const { xW, xE, zN, zS } = cov.rect;
   const so = cov.standOut;
   const x0 = xW - so, x1 = xE + so;
   const zIn = T.centerZ - HW, zIs = T.centerZ + HW; // interior faces of the side walls
-  const s = T.entranceSocket;
   const colliders = [
     box(m((x0 + x1) / 2), m((zN - so + zIn) / 2), m(x1 - x0), m(zIn - (zN - so))),
     box(m((x0 + x1) / 2), m((zIs + zS + so) / 2), m(x1 - x0), m(zS + so - zIs)),
     box(m((x0 + T.interiorMinX) / 2), m(T.centerZ), m(T.interiorMinX - x0), m(zS - zN + 2 * so)),
-    ...pillarZs().map((z) => box(m(T.entrancePillarX), m(z), m(s), m(s))),
+    ...door.ties.map(([x, z]) => circle(x, z, 0.2)),
     ...veil.colliders,
   ];
   group.userData.colliders = colliders;

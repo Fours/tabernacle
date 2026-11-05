@@ -10,25 +10,29 @@ import { COLORS } from './materials.js';
 // reach surfaces on their own side:
 // - The test point is the fragment pushed `NORMAL_PUSH` along its (camera-facing) normal, so a
 //   wall's inner face counts as inside and its outer face as outside, the roof coverings' top as
-//   outside and the linen ceiling's underside as inside, and the entrance screen splits the same
-//   way.
+//   outside and the linen ceiling's underside as inside, and the door's tied-back cloth splits
+//   the same way.
 // - Inside, the night environment (cool sky) is replaced by a warm "room" ambient that stands in
 //   for the menorah's light bouncing off the gold walls and linen; it flickers with the lamps and
 //   falls off with distance from the menorah.
 // - The Holy of Holies (west of the veil) gets only a small leak of the menorah's light and room
 //   ambient (light over and around the veil), so it stays very dark.
-// - A little cool sky/moon light spills in just inside the entrance.
+// - A little cool sky/moon light and exterior firelight spills in just inside the open door.
 // Lights are never toggled; this is all per-fragment weighting.
 
 const NORMAL_PUSH = 0.3; // m
 const BOX = {
   xW: m(T.interiorMinX),
-  xE: m(T.interiorMaxX), // the entrance screen hangs at x ≈ 0
+  xE: m(T.interiorMaxX), // the board ends; the open door's beam and cloth hang at x ≈ 0
   zH: m(T.interiorWidth / 2),
   yT: m(T.interiorHeight),
   veilX: m(T.veil.x),
 };
 const SPILL = 0.3; // cool sky/moon/env fraction at the entrance, fading out 1.5 m in
+// Exterior point lights (mostly the altar fire, whose shadow map already limits it to what the
+// open door lets through): this fraction at the threshold, fading out 2 m in, so the floor
+// doesn't change light in a hard line at the door.
+const EXT_SPILL = 0.5;
 
 /** Shared uniforms; menorah.js drives them each frame. */
 export const INTERIOR = {
@@ -124,8 +128,8 @@ float ilIn = ilInside(ilP);
 // Interior lights: full in the Holy Place, a small leak behind the veil.
 float ilEastOfVeil = smoothstep(${f(BOX.veilX - 0.05)}, ${f(BOX.veilX + 0.05)}, ilP.x);
 float ilInterior = ilIn * mix(uIlHoh, 1.0, ilEastOfVeil);
-// Exterior point lights (altar, torches): none inside.
-float ilExterior = 1.0 - ilIn;
+// Exterior point lights (altar, torches): none inside, except a faint spill through the door.
+float ilExterior = 1.0 - ilIn * (1.0 - ${f(EXT_SPILL)} * smoothstep(${f(BOX.xE - 2.0)}, ${f(BOX.xE)}, ilP.x));
 // Cool sky (moon, hemisphere, environment): a faint spill just inside the entrance.
 float ilSky = 1.0 - ilIn * (1.0 - ${f(SPILL)} * smoothstep(${f(BOX.xE - 1.5)}, ${f(BOX.xE)}, ilP.x));
 // Inside, metals (the gold boards, furniture) are treated as burnished rather than polished:
@@ -235,7 +239,7 @@ export function addInteriorMask(mat) {
   // which is now this wrapper for every material).
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v3`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v4`;
   mat.needsUpdate = true;
   return mat;
 }

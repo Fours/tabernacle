@@ -4,6 +4,7 @@ import { COURTYARD as C, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
 import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './materials.js';
 import { createLinenTexture, createEmbroideredScreenTextures } from './textiles.js';
+import { addGatheredDrape, clothGeometry } from './drape.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
 // hooks and fillets; fine linen hangings hung on the inner side of the pillar line; the
@@ -139,107 +140,6 @@ function addClothSpan(buf, wall, s0, s1, uvFn) {
   }
 }
 
-const smooth = (e0, e1, x) => {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * One middle gate panel drawn aside: the cloth that hung from the post at along-coordinate
- * `sp` to the gate centre is gathered against that post in vertical pleats, cinched by a cord
- * at TIE_Y and flaring out below it, the leading edge swagging between hook line and tie.
- * UVs follow the flat cloth (material coordinate), so the embroidery runs along the folds.
- * Returns the tie collider centre (along, inward offset) in meters.
- */
-function addGatheredDrape(buf, wall, sp, uvFn) {
-  const dir = -Math.sign(sp); // from the post toward the gate centre
-  const clothW = Math.abs(sp); // flat panel width
-  const [cx, cz] = wall.c, [ax, az] = wall.a, [nx, nz] = wall.n;
-  const cols = 132, rows = 64;
-  const vt = (HANG_TOP - TIE_Y) / HANG_H; // tie in v (0 top .. 1 hem)
-  const N = 6; // pleats across the panel
-  const base = buf.pos.length / 3;
-  for (let j = 0; j <= rows; j++) {
-    // Rows bunched toward the tie so the cinch reads crisply.
-    const t = j / rows;
-    const v = t < 0.5 ? vt * (1 - Math.pow(1 - 2 * t, 1.6)) : vt + (1 - vt) * Math.pow(2 * t - 1, 1.6);
-    let W, A, lift = 0;
-    if (v <= vt) {
-      const k = v / vt;
-      // Gathered at the hook line, swagging toward the opening, pinched at the tie.
-      W = 0.5 + (0.17 - 0.5) * k + 0.32 * Math.sin(Math.PI * Math.pow(k, 0.75)) * (1 - 0.3 * k);
-      A = 0.085 + (0.045 - 0.085) * smooth(0, 1, k);
-    } else {
-      const k = (v - vt) / (1 - vt);
-      W = 0.17 + 0.7 * Math.pow(k, 0.7);
-      A = 0.045 + (0.1 - 0.045) * Math.pow(k, 0.6);
-      lift = 0.12 * smooth(0, 1, k); // leading edge pulled up by the diagonal pull
-    }
-    const pinch = Math.exp(-Math.pow((v - vt) / 0.05, 2)); // bundle pressed to the post at the tie
-    const ctr = CLOTH_OFFSET - 0.03 * pinch;
-    for (let i = 0; i <= cols; i++) {
-      const u = i / cols; // 0 at the post .. 1 leading edge
-      const ramp = smooth(0, 0.08, u);
-      // Uneven pleat widths that wander a little with height.
-      const uw = u + 0.025 * Math.sin(2 * Math.PI * 2.3 * u + 0.8) + 0.012 * Math.sin(2 * Math.PI * 5.1 * u + 2.0 * v);
-      const ph = 2 * Math.PI * N * uw + 0.5 * Math.sin(3.1 * v + 2.3 * u) + 0.4 * v;
-      const amp = A * (0.7 + 0.35 * Math.sin(2 * Math.PI * 1.7 * u + 1.3) + 0.12 * Math.sin(9 * v + 4 * u)) * ramp;
-      const off = ctr + amp * Math.sin(ph) + 0.015 * u * (1 - pinch);
-      const along = u * W + amp * 0.3 * Math.cos(ph) * ramp;
-      const s = sp + dir * along;
-      const droop = v < vt ? 0.04 * u * (1 - v / vt) : 0;
-      const y = HANG_TOP - v * HANG_H - droop + lift * u;
-      buf.pos.push(cx + ax * s + nx * off, y, cz + az * s + nz * off);
-      const [uu, vv] = uvFn(sp + dir * u * clothW, 1 - v);
-      buf.uv.push(uu, vv);
-    }
-  }
-  for (let j = 0; j < rows; j++) {
-    for (let i = 0; i < cols; i++) {
-      const a = base + j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
-      buf.idx.push(a, c, b, b, c, d);
-    }
-  }
-
-  // Tie-back cord: around the bundle and the post, knotted on the courtyard side with two
-  // short tasselled ends. Points are (along from the post toward the opening, inward offset).
-  const world = (al, off, y) => new THREE.Vector3(
-    cx + ax * (sp + dir * al) + nx * off, y, cz + az * (sp + dir * al) + nz * off);
-  const loop = [
-    [0.0, 0.272], [0.1, 0.268], [0.19, 0.25], [0.225, 0.19], [0.2, 0.13], [0.1, 0.1],
-    [0.03, 0.02], [-0.02, -0.105], [-0.1, -0.1], [-0.13, -0.02], [-0.1, 0.1], [-0.05, 0.2],
-  ].map(([al, off], k) => world(al, off, TIE_Y + 0.006 * Math.sin(k * 1.9)));
-  const parts = [new THREE.TubeGeometry(new THREE.CatmullRomCurve3(loop, true), 72, 0.011, 6, true)];
-  for (const [da, dd, len] of [[0.0, 0.0, 0.3], [0.03, 0.012, 0.24]]) {
-    const top = [0.05 + da, 0.28 + dd];
-    const pts = [0, 0.35, 0.7, 1].map((f) =>
-      world(top[0] + 0.02 * f * f, top[1] + 0.015 * Math.sin(f * 3), TIE_Y - f * len));
-    parts.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.008, 5, false));
-    const end = pts[3];
-    parts.push(new THREE.CylinderGeometry(0.012, 0.02, 0.07, 6).translate(end.x, end.y - 0.03, end.z));
-  }
-  for (const g of parts) {
-    const o = buf.pos.length / 3;
-    const p = g.attributes.position;
-    for (let k = 0; k < p.count; k++) {
-      buf.pos.push(p.getX(k), p.getY(k), p.getZ(k));
-      buf.uv.push(0.3 + 0.4 * (k / p.count), TIE_TEX_V);
-    }
-    for (const ix of g.index.array) buf.idx.push(o + ix);
-    g.dispose();
-  }
-  return [0.09, CLOTH_OFFSET - 0.01];
-}
-
-function clothGeometry(buf) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(buf.pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(buf.uv, 2));
-  g.setIndex(buf.idx);
-  g.computeVertexNormals();
-  return g;
-}
-
 /** Add cloth spans for along-range [r0, r1] of a wall, splitting at pillars (hook points). */
 function addClothRange(buf, wall, r0, r1, uvFn) {
   const stops = [r0, ...wall.pillars.filter((p) => p > r0 + 1e-6 && p < r1 - 1e-6), r1];
@@ -306,7 +206,10 @@ export function createCourtyard() {
       addClothRange(gateBuf, w, g0, -GATE_OPEN, gateUV);
       addClothRange(gateBuf, w, GATE_OPEN, g1, gateUV);
       for (const sp of [-GATE_OPEN, GATE_OPEN]) {
-        const [al, off] = addGatheredDrape(gateBuf, w, sp, gateUV);
+        // One middle panel drawn aside: gathered against the post at sp, tied back (drape.js).
+        const [al, off] = addGatheredDrape(gateBuf, w, sp, gateUV, {
+          hangTop: HANG_TOP, hangH: HANG_H, tieY: TIE_Y, clothOffset: CLOTH_OFFSET, tieTexV: TIE_TEX_V,
+        });
         const [px, pz] = at(sp - Math.sign(sp) * al);
         colliders.push(circle(px + nx * off, pz + nz * off, 0.17)); // gathered cloth
       }
