@@ -275,7 +275,7 @@ has checked and committed it.
   *Accept when:* the `tent` and `iso` views show a convincing layered covering with the
   gold boards visible below the hem, and the embroidered entrance screen.
 
-- [ ] **Step 5: Altar fire.**
+- [x] **Step 5: Altar fire.**
   An animated wood fire on top of the altar (flames, embers and smoke) with a flickering warm
   light that is the main light source in the courtyard. Build it as a reusable `fire.js` that
   torches can use too.
@@ -357,3 +357,14 @@ Record interpretive or technical choices here (date, decision, reason).
   edges, tachash inset 0.6 cubit. 18 bronze tent pins with cords (Ex 35:18), non-colliding.
 - 2026-11-05: Step 7 notes: tachash roof reads like grey cobblestones; goat-hair weave and skins
   tile too regularly up close.
+- 2026-11-05: Altar fire = 3-layer log-cabin stack of charred logs on a coal bed (the
+  *ma'arakhah*) with leaning logs. Acacia texture; the Mishnah's wood types (Tamid 2) not modelled.
+- 2026-11-05: Altar fire PointLight (0xff8a3a, 240 cd, decay 2, 1.15 m above hearth) is the only
+  shadow caster (1024 cube map, PCFShadowMap — r187 removed PCFSoft). Night fill reduced to
+  hemisphere 0.22 / moon 0.16.
+- 2026-11-05: `fire.js` fires are GPU-animated, 3 draws each (flames, embers, smoke); smooth
+  value-noise flicker. Animated elements expose `group.userData.update(dt, time)`, called by
+  main.js each frame.
+- 2026-11-05: Step 7 notes: add tone mapping/exposure (surfaces near the fire clip; retune the
+  240 cd after); add fog support to the fire ShaderMaterials; fix the thin bright light leak
+  along the altar's base edge and soften the hard dark self-shadow square around the altar.
