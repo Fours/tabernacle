@@ -18,8 +18,14 @@ export const PRESETS = {
     target: [m(TABERNACLE.interiorMaxX), m(4), 0],
   },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
-  // Same spot as the first-person spawn (outside the gate, facing west).
-  walk: { pos: [m(hx + 15), eye, 0], target: [m(hx), eye, 0] },
+  // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
+  pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },
+  // Same spot as the first-person spawn: outside the gate, facing west, lined up with the
+  // gap between the middle gate pillar (z = 0) and the next one (z = +5 cubits).
+  walk: {
+    pos: [m(hx + 15), eye, m(COURTYARD.pillarSpacing / 2)],
+    target: [m(hx), eye, m(COURTYARD.pillarSpacing / 2)],
+  },
 };
 
 export function createDevCamera(camera, domElement, viewName = 'iso') {
