@@ -301,8 +301,9 @@ export const WATER = new THREE.MeshStandardMaterial({
 
 /**
  * Gold overlay on a board face (procedural): the texture spans one whole board face
- * (u across its width, v up its height) with darker seams at the board edges, faint
- * hammer marks and vertical burnish streaks. Used with BoxGeometry's per-face UVs.
+ * (u across its width, v up its height). Beaten gold sheet: broad soft mottling of the burnish,
+ * fine hammer dimples, and a thin seam at the board edges. No long vertical strokes: under the
+ * menorah those read as wood grain.
  */
 function goldOverlayTexture() {
   const w = 128, h = 512;
@@ -314,28 +315,30 @@ function goldOverlayTexture() {
   g.fillRect(0, 0, w, h);
   let seed = 41;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  // Vertical burnish streaks, faint (stronger ones read as wood grain under the menorah).
-  for (let i = 0; i < 70; i++) {
-    const x = rnd() * w;
-    g.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.025 + rnd() * 0.06})` : `rgba(90,70,40,${0.015 + rnd() * 0.03})`;
-    g.fillRect(x, 0, 1 + rnd() * 4, h);
+  // Broad, round mottling (uneven burnish), low contrast.
+  for (let i = 0; i < 60; i++) {
+    const x = rnd() * w, y = rnd() * h, r = 15 + rnd() * 40;
+    const a = 0.03 + rnd() * 0.05;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, rnd() < 0.5 ? `rgba(255,252,240,${a})` : `rgba(90,70,40,${a})`);
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.fillRect(x - r, y - r, 2 * r, 2 * r);
   }
-  // Hammer marks.
-  for (let i = 0; i < 500; i++) {
-    const x = rnd() * w, y = rnd() * h, r = 1.5 + rnd() * 3;
-    g.fillStyle = rnd() < 0.5 ? `rgba(255,250,235,${0.08 + rnd() * 0.1})` : `rgba(80,60,30,${0.06 + rnd() * 0.08})`;
-    g.beginPath();
-    g.ellipse(x, y, r, r * 1.6, 0, 0, 7);
-    g.fill();
+  // Hammer dimples: light rim above, dark below, small and round.
+  for (let i = 0; i < 900; i++) {
+    const x = rnd() * w, y = rnd() * h, r = 1 + rnd() * 2.2;
+    g.fillStyle = `rgba(255,250,235,${0.04 + rnd() * 0.05})`;
+    g.beginPath(); g.ellipse(x, y - 0.5, r, r * 0.85, 0, 0, 7); g.fill();
+    g.fillStyle = `rgba(80,60,30,${0.04 + rnd() * 0.05})`;
+    g.beginPath(); g.ellipse(x, y + 0.5, r * 0.8, r * 0.65, 0, 0, 7); g.fill();
   }
-  // Board edges: dark seam with a bright bevel just inside.
-  g.fillStyle = 'rgba(45,30,10,0.85)';
-  g.fillRect(0, 0, 3, h);
-  g.fillRect(w - 3, 0, 3, h);
-  g.fillStyle = 'rgba(255,245,215,0.5)';
-  g.fillRect(3, 0, 2, h);
-  g.fillStyle = 'rgba(70,50,20,0.35)';
-  g.fillRect(w - 6, 0, 3, h);
+  // Board edges: a thin dark joint with a faint bright bevel just inside.
+  g.fillStyle = 'rgba(45,30,10,0.6)';
+  g.fillRect(0, 0, 2, h);
+  g.fillRect(w - 2, 0, 2, h);
+  g.fillStyle = 'rgba(255,245,215,0.25)';
+  g.fillRect(2, 0, 1, h);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;

@@ -252,11 +252,16 @@ const WING = [
 ];
 // Feather rows from the flight feathers (longest, innermost layer) to the small coverts over
 // the bone. len: feather length (m) along the wing; fan: how far the feathers sweep from
-// trailing straight back to pointing along the wing toward the tip.
+// trailing straight back to pointing along the wing toward the tip (or th: a fixed sweep).
 const ROWS = [
   { n: 20, u0: 0.02, u1: 1, len: (u) => 0.15 + 0.07 * sstep(0.3, 0.9, u) - 0.03 * sstep(0.1, 0.0, u), w: 0.04, out: 0, fan: 1.15 },
   { n: 16, u0: 0.0, u1: 0.96, len: (u) => 0.085 + 0.04 * sstep(0.3, 0.85, u), w: 0.038, out: 0.0045, fan: 1.05 },
   { n: 13, u0: 0.0, u1: 0.92, len: (u) => 0.045 + 0.015 * u, w: 0.032, out: 0.009, fan: 0.95 },
+  // Marginal coverts sheathing the bone from the shoulder to near the tip, on both faces of
+  // the wing: short blades lying along the bone toward the tip (th: fixed sweep, rad), so the
+  // root reads as feathered rather than as a bare arc.
+  { n: 24, u0: 0.0, u1: 0.88, len: (u) => 0.065 - 0.03 * u, w: 0.04, out: 0.011, th: 1.25 },
+  { n: 24, u0: 0.02, u1: 0.9, len: (u) => 0.06 - 0.03 * u, w: 0.038, out: -0.011, th: 1.3 },
 ];
 
 function wingParts(side) {
@@ -287,7 +292,7 @@ function wingParts(side) {
       curve.getPointAt(u, P);
       curve.getTangentAt(u, T);
       D0.copy(base).addScaledVector(T, -base.dot(T)).normalize();
-      const th = row.fan * Math.pow(u, 1.8) + 0.08;
+      const th = row.th ?? row.fan * Math.pow(u, 1.8) + 0.08;
       D.copy(D0).multiplyScalar(Math.cos(th)).addScaledVector(T, Math.sin(th)).normalize();
       N.crossVectors(T, D0).multiplyScalar(side).normalize();
       // Shingle: each blade tips slightly about its own axis so its tip-ward edge rides over

@@ -62,7 +62,7 @@ function buildBoardsAndSockets(group, veilSockets = []) {
   boards.forEach((b, i) => {
     const M = mat4(b.x, 0, b.z, b.rot);
     boardMesh.setMatrixAt(i, M);
-    boardMesh.setColorAt(i, c.setScalar(0.9 + rnd() * 0.16));
+    boardMesh.setColorAt(i, c.setScalar(0.96 + rnd() * 0.06));
     for (const k of [0, 1]) {
       const off = new THREE.Matrix4().makeTranslation(m((k - 0.5) * (BW / 2)), 0, 0);
       sockMesh.setMatrixAt(i * 2 + k, M.clone().multiply(off));

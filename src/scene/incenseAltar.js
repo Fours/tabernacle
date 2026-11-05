@@ -96,8 +96,8 @@ const COALS = new THREE.MeshStandardMaterial({
   roughness: 0.95,
   metalness: 0,
   vertexColors: true,
-  emissive: 0xff3a08,
-  emissiveIntensity: 2.8,
+  emissive: 0xff5a14,
+  emissiveIntensity: 10.0,
 });
 // The vertex colour doubles as a per-vertex glow factor, so each coal is hot in patches
 // (cracks) and dark ash in others. Past 2.0 the bloom picks it up.
@@ -152,14 +152,14 @@ export function createIncenseAltar() {
   group.add(coalMesh);
 
   // Thin incense smoke rising from the coals.
-  const smoke = createIncenseSmoke({ count: 40, height: 1.6, size: 0.032, opacity: 0.3, color: 0x8c8780 });
+  const smoke = createIncenseSmoke({ count: 120, height: 1.6, size: 0.045, opacity: 0.22, color: 0xb4ab9e });
   smoke.mesh.position.set(0, H + m(0.14), 0);
   group.add(smoke.mesh);
 
   group.userData.update = (dt, time) => {
     smoke.update(time);
     // The coals breathe slowly (a gentle pulse, never a flicker).
-    COALS.emissiveIntensity = 2.8 + 0.5 * Math.sin(time * 1.3) * Math.sin(time * 0.37 + 1.1) + 0.2 * Math.sin(time * 3.1);
+    COALS.emissiveIntensity = 10.0 + 1.6 * Math.sin(time * 1.3) * Math.sin(time * 0.37 + 1.1) + 0.4 * Math.sin(time * 3.1);
   };
   group.userData.update(0, 0);
 

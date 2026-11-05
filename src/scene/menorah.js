@@ -162,7 +162,7 @@ export function createMenorah() {
   // No shadows: the only shadow caster (the altar fire) is masked out of the tent anyway.
   group.add(mesh);
 
-  const flames = createLampFlames(wicks, { width: 0.026, height: 0.068, brightness: 1.6 });
+  const flames = createLampFlames(wicks, { width: 0.026, height: 0.068, brightness: 1.6, halo: 0.5 });
   group.add(flames.mesh);
 
   // The Holy Place's only light: warm, unshadowed, a little in front of (north of) and above

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
+import { COLORS } from './materials.js';
 
 // Interior light mask. Point lights have no occlusion (only the altar fire casts shadows), so
 // the altar, torches, moon, hemisphere fill and night environment would otherwise all light the
@@ -34,18 +35,32 @@ export const INTERIOR = {
   uIlSource: { value: new THREE.Vector3() }, // world position the room ambient falls off from (m)
   uIlAmbient: { value: new THREE.Color(0, 0, 0) }, // warm room ambient (already flicker-scaled)
   uIlFalloff: { value: 0.28 }, // 1 / (1 + (d * falloff)^2) shaping, 1/m
-  uIlSpec: { value: 14.0 }, // room ambient seen in reflections (metals), relative to diffuse
-  uIlLobe: { value: 3.0 }, // extra reflected glow toward the menorah
+  uIlSpec: { value: 5.0 }, // room ambient seen in reflections (metals), relative to diffuse
+  uIlLobe: { value: 4.0 }, // extra reflected glow toward the menorah
   uIlUp: { value: 2.5 }, // extra reflected glow from the lit linen ceiling
   uIlMetalRough: { value: 0.45 }, // minimum roughness of metals inside
-  uIlMetalDiffuse: { value: 0.65 }, // diffuse fraction given to metals inside
-  uIlTint: { value: 1.0 }, // how much room reflections on metal take the metal's color
+  uIlMetalDiffuse: { value: 0.25 }, // Lambert diffuse given to metals inside (fraction of their colour)
+  // Interior gold (linear): polished gold's own reflectance (~ (1, 0.77, 0.34)), more saturated
+  // to survive ACES and the night grade. The shared GOLD colour is a dull, dark orange tuned for
+  // the exterior night; inside, gold-hued metal is re-coloured to this, keeping its texture's
+  // light/dark detail.
+  uIlGold: { value: new THREE.Color().setRGB(1.0, 0.7, 0.2) },
+  uIlDirect: { value: 0.7 }, // direct (menorah) highlight strength on metals inside
+  uIlTint: { value: 0.5 }, // how much room reflections on metal take the metal's color
   // Fraction of the menorah's light and room ambient west of the veil: just enough for the ark
   // to show as a faint gold glint. `?light=work` sets it to 1 so the ark can be inspected.
   uIlHoh: { value: 0.08 },
+  // Room reflections on metal west of the veil, relative to uIlHoh: the dim light there shows as
+  // gold glints rather than as an evenly dim, brown ark.
+  uIlHohGlint: { value: 5.0 },
 };
 
 const f = (v) => v.toFixed(4);
+// Linear luminance of the shared GOLD colour: the reference for the gold re-colouring's detail.
+const GOLD_LUM = (() => {
+  const c = new THREE.Color(COLORS.gold);
+  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+})();
 
 const PARS = /* glsl */ `
 uniform vec3 uIlSource;
@@ -56,8 +71,11 @@ uniform float uIlLobe;
 uniform float uIlUp;
 uniform float uIlMetalRough;
 uniform float uIlMetalDiffuse;
+uniform vec3 uIlGold;
+uniform float uIlDirect;
 uniform float uIlTint;
 uniform float uIlHoh;
+uniform float uIlHohGlint;
 vec3 ilToWorld(vec3 viewPos) { return ((vec4(viewPos, 1.0) - viewMatrix[3]) * viewMatrix).xyz; }
 // Soft inside-ness of a world point (1 inside the tent's interior box, 0 outside).
 float ilInside(vec3 p) {
@@ -78,24 +96,34 @@ vec3 ilW = ilToWorld(geometryPosition);
 vec3 ilP = ilW + inverseTransformDirection(geometryNormal, viewMatrix) * ${f(NORMAL_PUSH)};
 float ilIn = ilInside(ilP);
 // Interior lights: full in the Holy Place, a small leak behind the veil.
-float ilInterior = ilIn * mix(uIlHoh, 1.0, smoothstep(${f(BOX.veilX - 0.05)}, ${f(BOX.veilX + 0.05)}, ilP.x));
+float ilEastOfVeil = smoothstep(${f(BOX.veilX - 0.05)}, ${f(BOX.veilX + 0.05)}, ilP.x);
+float ilInterior = ilIn * mix(uIlHoh, 1.0, ilEastOfVeil);
 // Exterior point lights (altar, torches): none inside.
 float ilExterior = 1.0 - ilIn;
 // Cool sky (moon, hemisphere, environment): a faint spill just inside the entrance.
 float ilSky = 1.0 - ilIn * (1.0 - ${f(SPILL)} * smoothstep(${f(BOX.xE - 1.5)}, ${f(BOX.xE)}, ilP.x));
 // Inside, metals (the gold boards, furniture) are treated as burnished rather than polished:
-// rougher, with some diffuse, so a single small light spreads over them instead of showing only
-// as a narrow glint on otherwise black-looking metal.
+// rougher, with some real diffuse, so a single small light spreads over them instead of showing
+// only as a narrow glint on otherwise black-looking metal. Gold-hued metal (gold, not the silver
+// sockets) is re-coloured to uIlGold, keeping its texture's light/dark detail. In three r187 the
+// metal's reflectance (F0) is material.diffuseColor (indirect) and specularColorBlended (direct);
+// the Lambert term is material.diffuseContribution.
 float ilMetal = 0.0;
 vec3 ilTint = vec3(1.0);
 #ifdef STANDARD
 {
   ilMetal = ilIn * smoothstep(0.5, 0.7, metalnessFactor);
+  vec3 ilC = diffuseColor.rgb;
+  float ilMax = max(max(ilC.r, ilC.g), max(ilC.b, 1e-3));
+  float ilGoldness = ilMetal * smoothstep(0.55, 0.8, 1.0 - ilC.b / ilMax);
+  vec3 ilG = mix(ilC, uIlGold * (dot(ilC, vec3(0.2126, 0.7152, 0.0722)) / ${f(GOLD_LUM)}), ilGoldness);
   // Room reflections take on the metal's own color even at grazing angles (where Fresnel
   // would otherwise turn gold walls grey-white): light inside a gold room is gold.
-  ilTint = mix(vec3(1.0), diffuseColor.rgb / max(max(diffuseColor.r, diffuseColor.g), max(diffuseColor.b, 1e-3)), ilMetal * uIlTint);
+  ilTint = mix(vec3(1.0), ilG / max(max(ilG.r, ilG.g), max(ilG.b, 1e-3)), ilMetal * uIlTint);
   material.roughness = mix(material.roughness, max(material.roughness, uIlMetalRough), ilMetal);
-  material.diffuseColor = mix(material.diffuseColor, diffuseColor.rgb * uIlMetalDiffuse, ilMetal);
+  material.diffuseColor = mix(material.diffuseColor, ilG, ilMetal);
+  material.specularColorBlended = mix(material.specularColorBlended, mix(material.specularColor, ilG, metalnessFactor) * uIlDirect, ilMetal);
+  material.diffuseContribution = mix(material.diffuseContribution, ilG * uIlMetalDiffuse, ilMetal);
 }
 #endif
 `;
@@ -139,7 +167,7 @@ const MAPS_AFTER = /* glsl */ `
   vec3 ilR = inverseTransformDirection(reflect(-geometryViewDir, geometryNormal), viewMatrix);
   vec3 ilToSrc = normalize(uIlSource - ilW);
   float ilLobe = pow(max(dot(ilR, ilToSrc), 0.0), mix(10.0, 2.0, material.roughness));
-  radiance = radiance * ilSky + ilAmb * ilTint * uIlSpec * (0.2 + uIlLobe * ilLobe + uIlUp * smoothstep(-0.1, 0.8, ilR.y));
+  radiance = radiance * ilSky + ilAmb * ilTint * uIlSpec * mix(uIlHohGlint, 1.0, ilEastOfVeil) * (0.2 + uIlLobe * ilLobe + uIlUp * smoothstep(-0.1, 0.8, ilR.y));
   #endif
 }
 `;
@@ -165,7 +193,7 @@ export function addInteriorMask(mat) {
   // which is now this wrapper for every material).
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v1`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v2`;
   mat.needsUpdate = true;
   return mat;
 }
