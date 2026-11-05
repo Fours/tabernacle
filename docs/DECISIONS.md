@@ -215,10 +215,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - Stars are drawn in anti-aliased hashed cells, 5 layers.
   - Milky Way with dust lanes.
   - Slow twinkle.
-  - A small dim moon along the moon-light direction: ~0.33° angular radius with a tight halo
-    (falloff 2500).
+  - No moon (removed at the user's request). The cool "moon" directional light in
+    lighting.js stays as night fill.
   - Star sizes are capped so none reads as oversized: largest layer rBase 0.034, gain 2.4; mid
-    layer 0.040, 1.8 (the earlier 0.060/3.2 stars and the 0.8° moon looked too big).
+    layer 0.040, 1.8 (the earlier 0.060/3.2 stars looked too big).
   - The horizon and everything below it use the fog color.
 - 2026-11-05: The embroidered screens (`createEmbroideredScreenTextures` in textiles.js,
   design `gate`/`door`) are procedural canvas pairs: a colour map with satin, fishbone,

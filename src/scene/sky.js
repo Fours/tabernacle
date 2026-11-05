@@ -1,11 +1,8 @@
 import * as THREE from 'three';
 
 // Night sky dome: gradient, procedural star field (anti-aliased hashed-cell discs), a faint
-// Milky Way band with dust lanes, slow twinkle and a small dim moon. One mesh, one draw call.
+// Milky Way band with dust lanes, slow twinkle; no moon. One mesh, one draw call.
 // The dome follows the camera, ignores depth/fog, and is drawn first so everything covers it.
-
-// Moon direction matches the cool DirectionalLight in lighting.js (position -40, 80, 30).
-export const MOON_DIR = new THREE.Vector3(-40, 80, 30).normalize();
 
 const vertexShader = /* glsl */ `
 varying vec3 vDir;
@@ -18,7 +15,6 @@ void main() {
 
 const fragmentShader = /* glsl */ `
 uniform float uTime;
-uniform vec3 uMoonDir;
 uniform vec3 uHorizon;
 uniform vec3 uZenith;
 varying vec3 vDir;
@@ -116,12 +112,6 @@ void main() {
   stars *= 1.0 - 0.5 * lane;
   col += stars * horizonFade;
 
-  // Small dim moon, with a faint halo.
-  float md = dot(d, uMoonDir);
-  float disc = smoothstep(0.999984, 0.999988, md);
-  float halo = exp(-(1.0 - md) * 2500.0);
-  col += vec3(0.55, 0.62, 0.8) * disc * 0.9 + vec3(0.06, 0.08, 0.13) * halo * 0.5;
-
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -138,7 +128,6 @@ export function createSky({ fogColor = 0x0b0f1c } = {}) {
     fragmentShader,
     uniforms: {
       uTime: { value: 0 },
-      uMoonDir: { value: MOON_DIR.clone() },
       uHorizon: { value: new THREE.Vector3(horizon.r, horizon.g, horizon.b) },
       uZenith: { value: new THREE.Vector3(zenith.r, zenith.g, zenith.b) },
     },
