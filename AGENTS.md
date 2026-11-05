@@ -67,6 +67,7 @@ src/
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES
   scene/
     ground.js           procedural sand
+    groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
     drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
     altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
@@ -133,7 +134,7 @@ src/
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
 
 - **Overview:** `top` (near-orthographic plan), `iso`
-- **Courtyard:** `gate`, `corner`, `pillar`
+- **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub)
 - **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `ark`,
