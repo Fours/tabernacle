@@ -169,6 +169,10 @@ export function createAltar() {
   const bronzeMesh = new THREE.Mesh(merge(bronze), BRONZE_PLATED);
   bronzeMesh.name = 'altar-bronze';
   bronzeMesh.castShadow = bronzeMesh.receiveShadow = true;
+  // The fire light sits inside the walls' outline: render the walls' light-facing (inner)
+  // faces into the shadow map too, so the depth at the wall foot isn't equal to the sand's
+  // (that coincidence leaked a thin bright line along the base).
+  BRONZE_PLATED.shadowSide = THREE.DoubleSide;
   group.add(bronzeMesh);
 
   const acaciaMesh = new THREE.Mesh(merge(acacia), ACACIA);

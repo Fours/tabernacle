@@ -275,6 +275,7 @@ function noise1(x) {
  * @param {number} [o.jitter]          Light position jitter (m); default 0.08 × radius.
  * @param {boolean} [o.castShadow=false]
  * @param {number} [o.shadowMapSize=1024]
+ * @param {number} [o.shadowRadius=3]  PCF filter radius (soft penumbra).
  * @param {number[]} [o.wind=[0,0]]    Horizontal drift (x, z) per meter of rise.
  * @param {number} [o.seed=1]
  * @returns {{ group: THREE.Group, light: THREE.PointLight|null, update(dt:number, time:number):void,
@@ -301,6 +302,7 @@ export function createFire(o = {}) {
     jitter = radius * 0.08,
     castShadow = false,
     shadowMapSize = 1024,
+    shadowRadius = 3,
     wind = [0, 0],
     seed = 1,
   } = o;
@@ -403,7 +405,7 @@ export function createFire(o = {}) {
       light.shadow.camera.far = 60;
       light.shadow.bias = -0.002;
       light.shadow.normalBias = 0.03;
-      light.shadow.radius = 3;
+      light.shadow.radius = shadowRadius;
     }
     group.add(light);
   }

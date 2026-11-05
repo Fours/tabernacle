@@ -23,9 +23,14 @@ export function createAltarFire(hearth) {
     embers: 140,
     smoke: 22,
     smokeHeight: 5,
-    intensity: 240,
-    // Well above the rim (and the horns' bases) so the walls don't shadow the courtyard.
-    lightOffset: [0, 1.15, 0],
+    // Decay 1.6 (not the physical 2) with a lower intensity: a big fire is a large source, so
+    // the near rim/horns shouldn't blow out while the far courtyard stays lit.
+    intensity: 95,
+    decay: 1.6,
+    // Well above the rim (and the horns' bases) so the walls don't shadow the courtyard; high
+    // enough that the walls' shadow square on the sand stays small.
+    lightOffset: [0, 1.45, 0],
+    shadowRadius: 7,
     flicker: 0.22,
     castShadow: true,
     wind: [0.06, 0.02],

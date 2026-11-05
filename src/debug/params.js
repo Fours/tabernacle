@@ -10,5 +10,11 @@ export function getParams() {
     view,
     light: p.get('light') || 'night',
     debug: p.get('debug') === '1',
+    // Post-processing chain (bloom, grade, shimmer); `?fx=0` renders the plain scene.
+    fx: p.get('fx') !== '0',
+    // Tone mapping override for comparison: aces | agx | neutral | none.
+    tm: p.get('tm') || null,
+    // Exposure override (number).
+    exposure: p.get('exposure') ? parseFloat(p.get('exposure')) : null,
   };
 }

@@ -11,6 +11,8 @@ import { createLighting } from './scene/lighting.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
 import { createDebug } from './debug/overlay.js';
+import { createPostFX } from './render/postfx.js';
+import { createNightEnvironment } from './render/environment.js';
 
 const params = getParams();
 const canvas = document.querySelector('#scene');
@@ -21,9 +23,18 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 // One shadow-casting light: the altar fire (PCFSoftShadowMap was removed in three r18x).
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+// Filmic tone mapping so the fire's HDR highlights roll off instead of clipping.
+const TONE = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping, neutral: THREE.NeutralToneMapping, none: THREE.NoToneMapping };
+renderer.toneMapping = TONE[params.tm] ?? THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = params.exposure ?? 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+// Several passes per frame: count draw calls for the whole frame (reset in the loop).
+renderer.info.autoReset = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070f);
+scene.environment = createNightEnvironment(renderer);
+scene.environmentIntensity = 0.35;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -53,14 +64,22 @@ if (params.cam === 'fp') {
 const debug = params.debug ? createDebug() : null;
 if (debug) scene.add(debug.group);
 
+// Heat shimmer rises from just above the altar's flames.
+const shimmerSource = new THREE.Vector3(altar.userData.hearth.x, altar.userData.hearth.y + 1.3, altar.userData.hearth.z);
+const fx = createPostFX(renderer, scene, camera, { enabled: params.fx, shimmerSource });
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  fx.setSize(window.innerWidth, window.innerHeight);
 });
 
 // Small debug handle for automated verification.
-window.__tabernacle = { THREE, scene, camera, renderer, colliders, params, rig, fires: [altarFire.userData.fire, ...torches.userData.fires] };
+window.__tabernacle = {
+  THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer,
+  fires: [altarFire.userData.fire, ...torches.userData.fires],
+};
 
 const timer = new THREE.Timer();
 timer.connect(document);
@@ -70,6 +89,7 @@ renderer.setAnimationLoop((time) => {
   const t = timer.getElapsed();
   rig.update(dt);
   for (const update of updaters) update(dt, t);
-  renderer.render(scene, camera);
+  renderer.info.reset();
+  fx.render(t);
   if (debug) debug.update(renderer);
 });
