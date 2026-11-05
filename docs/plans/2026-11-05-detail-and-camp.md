@@ -137,7 +137,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   extra draws; frame time within budget; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 4: Menorah ornament** — model: Opus / effort: medium
+- [x] **Step 4: Menorah ornament** — model: Opus / effort: medium
   **Goal:** Richer menorah: almond leaves curling under each knop and calyx, petalled flowers,
   sharper almond-shaped cups with ribbing, beading and fillets at joints, a more sculpted
   tripod base with leaf feet, smoother arm curves. Keep the Menachot 28b layout and lamp

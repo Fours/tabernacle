@@ -137,6 +137,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   handbreadths. Cups are flared almond calyxes opening upward. Outer lamps face the centre; the
   middle lamp faces west, toward the veil (Menachot 98b). At x = −8, z = +2.5 cubits, branches
   E–W. One merged mesh, no shadow. Tongs and snuff dishes aren't modelled.
+- 2026-11-05: Menorah ornament (reconstruction; the text gives cups, knobs and flowers,
+  Ex 25:33–34; leaves at the user's direction): fluted almond cups whose calyx rises into
+  5 pointed lobes; lobed knobs with neck fillets and bead rings; open 5-petal blossoms with
+  stamen beads; small curled almond leaves, 6 under each knob (turned 30° on branch knobs to
+  clear the arms) and 5 under each cup's calyx; beaded collars at the arm joints and below the
+  top cups; a gadrooned, beaded base dome with a leaf ring on S-curved legs with paws on leaf
+  feet. Layout and flame positions unchanged; one gold mesh, ~134k triangles.
 - 2026-11-05: Table of showbread (`scene/showbread.js`): 2×1×1.5 cubits at x = −8, z = −2.5,
   long axis E–W. Frame 1 handbreadth wide, a crown on the top and a bead crown on the frame;
   rings on the legs of the long sides, poles E–W (closed gold cylinders, no acacia core).
