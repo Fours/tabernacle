@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
-import { box } from './colliders.js';
 import { part } from './bronzeParts.js';
 import { createCherubimTexture, createLinenTexture } from './textiles.js';
 import { roofSag } from './tentCoverings.js';
@@ -72,6 +71,8 @@ function clothMesh() {
 
 /**
  * Build the veil. Returns { mesh, goldParts, socketPositions (cubits, [x, z]), colliders }.
+ * colliders is empty: the player can walk through the veil and its pillars into the Holy of
+ * Holies (at the user's direction).
  * Gold parts merge into the tent's gold mesh; sockets join the boards' silver sockets.
  */
 export function createVeil() {
@@ -88,12 +89,10 @@ export function createVeil() {
       rot: [0, Math.PI / 2, Math.PI],
     }));
   }
-  // One collider from the sockets' west edge to just east of the cloth, wall to wall.
-  const x0 = px - V.socket / 2, x1 = V.x + 0.12;
   return {
     mesh: clothMesh(),
     goldParts,
     socketPositions: zs.map((z) => [px, z]),
-    colliders: [box(m((x0 + x1) / 2), m(T.centerZ), m(x1 - x0), m(T.interiorWidth))],
+    colliders: [],
   };
 }

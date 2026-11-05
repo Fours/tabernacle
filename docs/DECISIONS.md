@@ -265,7 +265,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: `PLAYER.lookSpeed` is 0.7. Head bob is vertical only and on by default.
 - 2026-11-04: Gate screens and hangings people walk through don't collide; the gate pillars
   and the gathered middle drapes do. The tent door's tied-back north half has one 0.2 m circle collider
-  (z = −2.11 m); the drawn south half doesn't collide; side and west walls, furnishings and the veil collide. Walking west on z = 0
+  (z = −2.11 m); the drawn south half doesn't collide; side and west walls and furnishings collide. The veil and its
+  pillars don't (at the user's direction the player may walk into the Holy of Holies). Walking west on z = 0
   through the door stops at the incense altar's poles (x ≈ −7.64 m).
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
