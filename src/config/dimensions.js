@@ -145,3 +145,26 @@ export const PLAYER = {
   walkSpeed: 1.4,
   runSpeed: 3.5,
 };
+
+// Torches (artistic license, not in the text): wooden posts with pitch-soaked wrapped heads.
+// Positions in cubits; `light: false` = flames and glow only (keeps point lights <= 10).
+export const TORCHES = {
+  postHeight: 2.4, // meters (not in text)
+  list: [
+    // Flanking the gate, outside the east hangings.
+    { x: 54, z: -12, light: true },
+    { x: 54, z: 12, light: true },
+    // Further out along the approach path.
+    { x: 59, z: -7, light: true },
+    { x: 59, z: 7, light: true },
+    // Outside the east corners.
+    { x: 54, z: -28, light: true },
+    { x: 54, z: 28, light: true },
+    // Inside, near the east corners (clear of the gate-altar-tent axis).
+    { x: 40, z: -21, light: true },
+    { x: 40, z: 21, light: true },
+    // Outside the west corners: glow only.
+    { x: -54, z: -28, light: false },
+    { x: -54, z: 28, light: false },
+  ],
+};

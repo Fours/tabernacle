@@ -19,6 +19,8 @@ export const PRESETS = {
   altarlow: { pos: [m(ALTAR.x + 7), m(2.4), m(9)], target: [m(ALTAR.x), m(1.8), m(1)] },
   // The altar fire close-up at eye level from the south-east (flames above the rim, hearth glow).
   fire: { pos: [m(ALTAR.x + 7), eye, m(6)], target: [m(ALTAR.x), m(3.2), 0], fov: 55 },
+  // Close-up of a gate-side torch from the approach: post, wrapped head, cairn, flame.
+  torch: { pos: [m(54 + 5), m(5.4), m(-12 + 4)], target: [m(54), m(5.2), m(-12)], fov: 50 },
   laver: { pos: [m(10 + 6), m(3.2), m(3 + 6)], target: [m(10), m(1.2), m(3)] },
   tent: {
     pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],

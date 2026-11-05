@@ -5,6 +5,7 @@ import { createCourtyard } from './scene/courtyard.js';
 import { createAltar } from './scene/altar.js';
 import { createTabernacle } from './scene/tabernacle.js';
 import { createLaver } from './scene/laver.js';
+import { createTorches } from './scene/torches.js';
 import { createAltarFire } from './scene/altarFire.js';
 import { createLighting } from './scene/lighting.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
@@ -29,7 +30,8 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 // Scene elements
 const altar = createAltar();
 const altarFire = createAltarFire(altar.userData.hearth);
-const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver()];
+const torches = createTorches();
+const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
@@ -58,7 +60,7 @@ window.addEventListener('resize', () => {
 });
 
 // Small debug handle for automated verification.
-window.__tabernacle = { THREE, scene, camera, renderer, colliders, params, rig, fires: [altarFire.userData.fire] };
+window.__tabernacle = { THREE, scene, camera, renderer, colliders, params, rig, fires: [altarFire.userData.fire, ...torches.userData.fires] };
 
 const timer = new THREE.Timer();
 timer.connect(document);
