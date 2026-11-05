@@ -89,6 +89,15 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
   with emissive coals (no light) and a faint smoke wisp (`createIncenseSmoke` in fire.js,
   40 instanced puffs).
+- 2026-11-05: Ark (`scene/ark.js`): 2.5 × 1.5 × 1.5 cubits including 0.14-cubit feet, at
+  x = −25, z = 0, long axis N–S. Crown molding rises 0.04 cubit above the mercy seat, which is
+  1 handbreadth thick (Sukkah 5a). Rings on the N and S faces at the feet; poles E–W from
+  −28.4 to −21.6 cubits, clear of the veil.
+- 2026-11-05: Cherubim: kneeling childlike figures (Sukkah 5b, Rashi on 25:18), about
+  10 handbreadths to the wing tips, heads bowed, hands joined, wings raised and forward with
+  tips nearly meeting over the center. The body is a signed-distance sculpture meshed at load
+  with marching cubes (~120 ms); wings are three rows of feather blades. Ark and cherubim are
+  one gold mesh (1 draw, ~105k triangles).
 
 ## Fire & lighting
 
@@ -116,9 +125,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   and only light fragments on their own side. Inside, the moon, hemisphere fill and env map
   are cut (30% cool spill in the first 1.5 m from the entrance) and replaced by a warm room
   ambient that flickers with the lamps and fades with distance from the menorah. West of the
-  veil, menorah light and ambient drop to 5%. Tuning uniforms: `__tabernacle.interior`
+  veil, menorah light and ambient drop to 8% (`uIlHoh`; `?light=work` sets it to 100%). Tuning uniforms: `__tabernacle.interior`
   (defaults `uIlFalloff` 0.28, `uIlSpec` 14, `uIlMetalDiffuse` 0.65, so furnishings far from
   the menorah stay readable).
+- 2026-11-05: Interior furnishing meshes and the veil cloth are hidden while the camera is
+  outside the tent (`updateInteriorVisibility` in main.js); lights are never toggled. The veil
+  pillars and hooks are part of the tent's gold mesh and stay drawn.
 - 2026-11-05: Inside the tent, metals are burnished: roughness ≥ 0.45, 40% diffuse, room
   reflections tinted by the metal colour. The board texture's burnish streaks are fainter.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
