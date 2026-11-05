@@ -209,6 +209,37 @@ context window) with a focused brief.
 - Finish with a short report: what was done, what screenshots were checked, any deviations
   or open questions, and any decisions to log.
 
+### Model & effort per step
+
+The orchestrator starts each sub-agent with these settings. Fix rounds for a step use the
+same settings as the step itself.
+
+| Role / step                | Model      | Effort |
+|----------------------------|------------|--------|
+| Orchestrator               | Opus 5.5   | medium |
+| 2 Courtyard walls          | Opus 5.5   | high   |
+| 3 Bronze altar             | Sonnet 5.5 | high   |
+| 4 Tabernacle tent          | Opus 5.5   | high   |
+| 5 Altar fire               | Opus 5.5   | high   |
+| 6 Torches                  | Sonnet 5.5 | medium |
+| 7 Shaders & postfx         | Opus 5.5   | high   |
+| 8 Starry sky (+ FP polish) | Sonnet 5.5 | medium |
+
+Opus goes where visual judgment and shader or geometry difficulty dominate. Sonnet goes to
+the smaller, clearly specified steps. Don't use max effort for builders: the screenshot loop
+catches mistakes better than extra reasoning does. If a Sonnet step fails to converge after
+2 rounds, retry it with Opus.
+
+### Keeping token use down
+
+- Take screenshots at **half scale** (`scale: 0.5`), and only of the presets named in the
+  step's acceptance criteria (plus at most 1–2 extra close-ups).
+- Briefs list the files to read and touch. Don't read the whole codebase.
+- Start a fresh sub-agent for each fix round, so earlier screenshots don't pile up in one
+  context.
+- Use the debug handle (`window.__tabernacle`) and `read_console_messages` to check behavior
+  instead of taking extra screenshots.
+
 ## Plan
 
 Each step can loop until its acceptance criteria are met. Tick the box when the orchestrator
