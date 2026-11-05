@@ -32,8 +32,14 @@ export const PRESETS = {
   tentback: { pos: [m(-46), m(7), m(-21)], target: [m(-24), m(4), m(-2)] },
   // High view over the tent roof from the south-east: tachash on top, red ram skins below.
   tentroof: { pos: [m(14), m(30), m(24)], target: [m(-14), m(8), 0] },
-  // Close-up of the tent's south-east corner at the hem: boards, sockets, bars, pins, flap.
-  tentcorner: { pos: [m(7), m(2.8), m(15)], target: [m(-6), m(2), m(6)], fov: 50 },
+  // The tent's south-east corner from just outside its stakes: the three stepped layers, the
+  // front flap, the diagonal corner cords, and the boards and sockets under the slant.
+  tentcorner: { pos: [m(9), m(4), m(19)], target: [m(-6), m(3), m(7)], fov: 50 },
+  // From the courtyard's north-east, low: the coverings stepping out along the north side
+  // (tachash, ram skins, goat hair) with their rows of stakes and cords.
+  coverings: { pos: [m(12), m(3.5), m(-22)], target: [m(-14), m(3), m(-9)], fov: 60 },
+  // From the south-west: the west and south slants, the corner fan and the stakes.
+  coveringsw: { pos: [m(-46), m(4.5), m(22)], target: [m(-22), m(3), m(5)], fov: 60 },
   // Inside the Holy Place: just in from the entrance looking west at eye height.
   holyplace: { pos: [m(TABERNACLE.interiorMaxX - 1.5), eye, 0], target: [m(-20), eye, 0], fov: 65 },
   // Looking up at the linen ceiling's cherubim toward the clasp line over the veil.

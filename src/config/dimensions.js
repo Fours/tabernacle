@@ -107,19 +107,26 @@ export const TABERNACLE = {
     curtainWidth: 4, // E-W
     clearance: 0.04, // sits this far above the board tops (over the linen)
     edgeRadius: 0.35, // rounding where the sheet turns down over the roof edge
-    // Ex 26:13 "about 1 cubit" above the ground on the sides; it stands off the boards over
-    // the bars, so the hem rides a little higher and the gold shows above the sockets.
-    hemSide: 1.55,
-    hemBack: 0.15, // the extra half curtain hangs down the back to near the ground (26:12)
     flap: 2, // the doubled sixth curtain folds over the front (26:9)
-    standOff: 0.2, // extra offset from the boards where it hangs over the bars
-    foldAmp: 0.32,
     claspAt: 24, // E-W material position (from the flap hem) of the clasp line: 6 curtains
     clasps: 50, // bronze clasps (26:11)
-    pegDistance: 2, // tent pins (35:18): cords run out this far from the hem
+    // The rest is not in the text. The coverings are pulled out at a slant to rows of bronze
+    // stakes (35:18) instead of hanging straight down: hem `reach` cubits out from the board
+    // faces at `hem` above the ground. 12 cubits of roof + 2 x ~9.5 of slant ~ the 30-cubit
+    // curtains; the side hem stays near "a cubit" above the ground (26:13).
+    side: { reach: 4.5, hem: 1.5 }, // north and south
+    back: { reach: 2.6, hem: 0.8 }, // west: steeper, the extra half curtain (26:12)
+    stakes: { side: 9.5, back: 6 }, // stake rows, cubits out from the board faces
+    stakePhase: 0, // N/S stakes at the curtain joins, every curtainWidth from the front
+    scallop: 0.6, // hem rises this far (along the cloth) midway between stakes
+    belly: 0.18, // the slant sags inward between the roof edge and the hem
+    cornerFold: 0.2, // soft folds where the back corners fan round
+    frontExtend: 0.65, // side slants reach past the front edge, over the flaps' corners
   },
-  ramSkins: { margin: 0.15, edgeRadius: 0.3, droop: 1, above: 0.06 }, // roof only
-  tachash: { inset: 0.6, edgeRadius: 0.035, droop: 0, above: 0.11 }, // roof only, top-most (rolled lip)
+  // Ram skins dyed red and tachash (26:14): the text gives no sizes. Each lies over the goat
+  // hair at `gap` (normal offset), reaches a fraction `reach` of its slant, and has its own stakes.
+  ramSkins: { gap: 0.12, reach: 0.64, scallop: 0.45, stakes: { side: 7.75, back: 4.8 }, stakePhase: -1.33, frontDroop: 0.7 },
+  tachash: { gap: 0.24, reach: 0.32, scallop: 0.35, stakes: { side: 6.5, back: 3.8 }, stakePhase: 1.33, frontDroop: 0.12 },
 };
 
 // Bronze altar (Ex 27:1-8; 38:1-7). Only length/width/height are in the text; the rest is

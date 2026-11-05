@@ -272,24 +272,32 @@ export function createTabernacle() {
   group.add(cov.group);
 
   const bronzeMesh = new THREE.Mesh(merge(cov.bronzeParts), BRONZE);
-  bronzeMesh.name = 'bronze-sockets-clasps-pins';
+  bronzeMesh.name = 'bronze-clasps-stakes';
   group.add(bronzeMesh);
   const ropeMesh = new THREE.Mesh(merge(cov.ropeParts), ROPE);
   ropeMesh.name = 'tent-cords';
   group.add(ropeMesh);
 
-  // Colliders: the side and west walls with their hanging coverings, the tied-back door cloth
-  // at the north side of the opening, and the veil. The drawn south half has none: the player
-  // can walk through it. Pins and cords don't collide (as in the
-  // courtyard).
-  const { xW, xE, zN, zS } = cov.rect;
-  const so = cov.standOut;
-  const x0 = xW - so, x1 = xE + so;
+  // Colliders: the side and west walls with the slanted coverings out to their furthest stakes,
+  // the front corners' diagonal stakes, the tied-back door cloth at the north side of the
+  // opening, and the veil. The drawn south half has none: the player can walk through it.
+  const { xE, zN, zS } = cov.rect;
+  const fp = cov.footprint;
+  const pad = 0.4;
+  const x0 = fp.minX - pad, x1 = xE + 0.8, xF = fp.maxX + pad;
+  const z0 = fp.minZ - pad, z1 = fp.maxZ + pad;
   const zIn = T.centerZ - HW, zIs = T.centerZ + HW; // interior faces of the side walls
+  const span = (a, b) => [m((a + b) / 2), m(b - a)];
+  const boxAB = (xa, xb, za, zb) => {
+    const [cx, sx] = span(xa, xb), [cz, sz] = span(za, zb);
+    return box(cx, cz, sx, sz);
+  };
   const colliders = [
-    box(m((x0 + x1) / 2), m((zN - so + zIn) / 2), m(x1 - x0), m(zIn - (zN - so))),
-    box(m((x0 + x1) / 2), m((zIs + zS + so) / 2), m(x1 - x0), m(zS + so - zIs)),
-    box(m((x0 + T.interiorMinX) / 2), m(T.centerZ), m(T.interiorMinX - x0), m(zS - zN + 2 * so)),
+    boxAB(x0, x1, z0, zIn),
+    boxAB(x0, x1, zIs, z1),
+    boxAB(x0, T.interiorMinX, z0, z1),
+    boxAB(x1, xF, z0, zN),
+    boxAB(x1, xF, zS, z1),
     ...door.ties.map(([x, z]) => circle(x, z, 0.2)),
     ...veil.colliders,
   ];

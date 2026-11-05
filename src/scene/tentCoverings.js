@@ -3,14 +3,18 @@ import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { createGoatHairTexture, createSkinTexture, createCherubimTexture, createLinenTexture } from './textiles.js';
 import { addMacroVariation } from './materials.js';
 import { part } from './bronzeParts.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// Tabernacle coverings (Ex 26:7-14) draped over a flat roof. Everything here is computed in
-// cubits and converted with m() when written to geometry.
+// Tabernacle coverings (Ex 26:1-14) over a flat roof. Everything here is computed in cubits and
+// converted with m() when written to geometry.
 //
-// A covering = a flat roof grid (with a slight sag between the walls) plus a "skirt": one
-// closed strip running around the roof perimeter that rounds over the roof edge and hangs
-// down to a hem. At the corners the skirt fans around the corner point, so the cloth drapes
-// as a rounded cone with extra folds instead of a sharp box corner.
+// Four layers, bottom to top: linen (only its ceiling, seen from inside), goat hair, ram skins
+// dyed red, tachash. The outer three each = a roof grid (sagging slightly between the walls), a
+// strip round the back of the roof (south side, SW corner, west, NW corner, north side) that
+// rounds over the roof edge and runs down at a slant to a hem pulled out by cords to bronze
+// stakes, and a short flap over the front edge. The goat hair reaches furthest; the skins above
+// it lie on it at a small normal offset and stop shorter, so the layers step out. The back
+// corners fan round the corner point (a cone with soft folds).
 
 const smooth = (a, b, x) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -27,144 +31,6 @@ export function roofSag(x, z) {
   const sz = Math.cos((Math.PI / 2) * (dz / HW));
   const sx = smooth(T.interiorMinX, T.interiorMinX + 4, x) * (1 - smooth(T.interiorMaxX - 4, T.interiorMaxX, x));
   return T.roofSag * sz * sx;
-}
-
-/**
- * Perimeter of rect {xW, xE, zN, zS} as segments, counter-clockwise seen from above starting
- * at the east end of the south side: S, SW corner, W, NW corner, N, NE corner, E, SE corner.
- * `at(s)` returns a sample {x, z, nx, nz, side, from, to, f, s}.
- */
-function makePerimeter(rect, cornerLen) {
-  const { xW, xE, zN, zS } = rect;
-  const segs = [
-    { line: [xE, zS, xW, zS], a: Math.PI / 2, side: 'S' },
-    { corner: [xW, zS], a0: Math.PI / 2, a1: Math.PI, from: 'S', to: 'W' },
-    { line: [xW, zS, xW, zN], a: Math.PI, side: 'W' },
-    { corner: [xW, zN], a0: Math.PI, a1: 1.5 * Math.PI, from: 'W', to: 'N' },
-    { line: [xW, zN, xE, zN], a: 1.5 * Math.PI, side: 'N' },
-    { corner: [xE, zN], a0: 1.5 * Math.PI, a1: 2 * Math.PI, from: 'N', to: 'E' },
-    { line: [xE, zN, xE, zS], a: 0, side: 'E' },
-    { corner: [xE, zS], a0: 0, a1: Math.PI / 2, from: 'E', to: 'S' },
-  ];
-  let s = 0;
-  for (const g of segs) {
-    g.s0 = s;
-    g.len = g.line ? Math.hypot(g.line[2] - g.line[0], g.line[3] - g.line[1]) : cornerLen;
-    s += g.len;
-  }
-  const total = s;
-  const at = (sIn) => {
-    const sv = ((sIn % total) + total) % total;
-    const g = segs.find((q) => sv < q.s0 + q.len) || segs[segs.length - 1];
-    const f = (sv - g.s0) / g.len;
-    if (g.line) {
-      const [x0, z0, x1, z1] = g.line;
-      return { x: x0 + (x1 - x0) * f, z: z0 + (z1 - z0) * f, nx: Math.cos(g.a), nz: Math.sin(g.a), side: g.side, f, s: sv };
-    }
-    const a = g.a0 + (g.a1 - g.a0) * f;
-    return { x: g.corner[0], z: g.corner[1], nx: Math.cos(a), nz: Math.sin(a), side: 'corner', from: g.from, to: g.to, f, s: sv };
-  };
-  // Sample positions: ~`step` apart on the sides, `cornerSteps` per corner.
-  const samples = (step, cornerSteps) => {
-    const out = [];
-    for (const g of segs) {
-      const n = g.line ? Math.max(1, Math.round(g.len / step)) : cornerSteps;
-      for (let i = 0; i < n; i++) out.push(at(g.s0 + (g.len * i) / n));
-    }
-    return out;
-  };
-  const cornerS = segs.filter((g) => g.corner).map((g) => g.s0 + g.len / 2);
-  // s at a given x on the south/north side.
-  const sideS = (side, x) => (side === 'S' ? xE - x : segs[4].s0 + (x - xW));
-  return { at, samples, total, cornerS, sideS };
-}
-
-/**
- * Build one covering. opts: rect, y (roof surface height), edgeR, hem(sample) -> hem y,
- * standOff(y, sample) -> extra outward offset, fold(sample, t) -> extra outward offset at
- * drop fraction t, uv(xu, zu) -> [u, v] from "unfolded" plan coordinates.
- */
-function buildCovering(opts) {
-  const { rect, y: Y, edgeR: R, uv } = opts;
-  const per = makePerimeter(rect, opts.cornerLen ?? 1.2);
-  const ARC = opts.arcRows ?? 4, DROP = opts.dropRows ?? 20;
-
-  // Profile from the roof edge to the hem for one sample: [{o, y, q}] (o = outward offset,
-  // q = distance along the cloth from the roof edge).
-  const profile = (smp) => {
-    const Yt = Y - roofSag(smp.x, smp.z);
-    const pts = [];
-    for (let k = 0; k <= ARC; k++) {
-      const a = (k / ARC) * (Math.PI / 2);
-      pts.push({ o: R * Math.sin(a), y: Yt - R * (1 - Math.cos(a)), q: R * a });
-    }
-    const y0 = Yt - R, q0 = (R * Math.PI) / 2;
-    const H = Math.min(opts.hem(smp), y0 - 1e-3);
-    for (let k = 1; k <= DROP; k++) {
-      const t = k / DROP;
-      const yy = y0 + (H - y0) * t;
-      pts.push({ o: R + opts.standOff(yy, smp) + opts.fold(smp, t), y: yy, q: q0 + (y0 - yy) });
-    }
-    return pts;
-  };
-  // World point (cubits) at distance q down the cloth from the roof edge.
-  const pointAt = (smp, q) => {
-    const pts = profile(smp);
-    let k = 1;
-    while (k < pts.length - 1 && pts[k].q < q) k++;
-    const a = pts[k - 1], b = pts[k];
-    const f = Math.min(1, Math.max(0, (q - a.q) / (b.q - a.q || 1)));
-    const o = a.o + (b.o - a.o) * f, yy = a.y + (b.y - a.y) * f;
-    return new THREE.Vector3(smp.x + smp.nx * o, yy, smp.z + smp.nz * o);
-  };
-  const hemPoint = (smp) => {
-    const p = profile(smp).at(-1);
-    return new THREE.Vector3(smp.x + smp.nx * p.o, p.y, smp.z + smp.nz * p.o);
-  };
-
-  const pos = [], uvs = [], idx = [];
-  // Roof grid.
-  const { xW, xE, zN, zS } = rect;
-  const nx = Math.max(2, Math.round((xE - xW) / (opts.roofStepX ?? 1)));
-  const nz = Math.max(2, Math.round((zS - zN) / (opts.roofStepZ ?? 0.5)));
-  for (let j = 0; j <= nz; j++) {
-    const z = zN + ((zS - zN) * j) / nz;
-    for (let i = 0; i <= nx; i++) {
-      const x = xW + ((xE - xW) * i) / nx;
-      pos.push(m(x), m(Y - roofSag(x, z)), m(z));
-      uvs.push(...uv(x, z));
-    }
-  }
-  for (let j = 0; j < nz; j++) {
-    for (let i = 0; i < nx; i++) {
-      const a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
-      idx.push(a, c, b, b, c, d);
-    }
-  }
-  // Skirt.
-  const samples = per.samples(opts.step ?? 0.25, opts.cornerSteps ?? 10);
-  const base = pos.length / 3;
-  const rows = ARC + DROP + 1;
-  for (const smp of samples) {
-    for (const p of profile(smp)) {
-      pos.push(m(smp.x + smp.nx * p.o), m(p.y), m(smp.z + smp.nz * p.o));
-      uvs.push(...uv(smp.x + smp.nx * p.q, smp.z + smp.nz * p.q));
-    }
-  }
-  const N = samples.length;
-  for (let i = 0; i < N; i++) {
-    const i2 = (i + 1) % N;
-    for (let j = 0; j < rows - 1; j++) {
-      const a = base + i * rows + j, b = base + i2 * rows + j;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  return { geo, per, pointAt, hemPoint };
 }
 
 // Ceiling texture tile (cubits): the full 10 across the tent (N-S) x one 4-cubit curtain (E-W),
@@ -231,6 +97,62 @@ export function createLinenCeiling() {
   return { mesh, goldParts };
 }
 
+// ---- Outer coverings ------------------------------------------------------------------------
+
+/**
+ * Open path round the back of roof rect {xW, xE, zN, zS}, counter-clockwise seen from above:
+ * the south side from its front end (`ext` past xE) westward, SW corner, west side, NW corner,
+ * north side to its front end. Corners are fans round the corner point taking `cornerLen` of s.
+ * `at(s)` returns a sample {x, z, nx, nz, side, from, to, f, s}.
+ */
+function makeBackPath(rect, ext, cornerLen) {
+  const { xW, xE, zN, zS } = rect;
+  const xF = xE + ext;
+  const segs = [
+    { line: [xF, zS, xW, zS], a: Math.PI / 2, side: 'S' },
+    { corner: [xW, zS], a0: Math.PI / 2, a1: Math.PI, from: 'S', to: 'W' },
+    { line: [xW, zS, xW, zN], a: Math.PI, side: 'W' },
+    { corner: [xW, zN], a0: Math.PI, a1: 1.5 * Math.PI, from: 'W', to: 'N' },
+    { line: [xW, zN, xF, zN], a: 1.5 * Math.PI, side: 'N' },
+  ];
+  let s = 0;
+  for (const g of segs) {
+    g.s0 = s;
+    g.len = g.line ? Math.hypot(g.line[2] - g.line[0], g.line[3] - g.line[1]) : cornerLen;
+    s += g.len;
+  }
+  const total = s;
+  const at = (sIn) => {
+    const sv = Math.min(total, Math.max(0, sIn));
+    const g = segs.find((q) => sv <= q.s0 + q.len) || segs[segs.length - 1];
+    const f = (sv - g.s0) / g.len;
+    if (g.line) {
+      const [x0, z0, x1, z1] = g.line;
+      return { x: x0 + (x1 - x0) * f, z: z0 + (z1 - z0) * f, nx: Math.cos(g.a), nz: Math.sin(g.a), side: g.side, f, s: sv };
+    }
+    const a = g.a0 + (g.a1 - g.a0) * f;
+    return { x: g.corner[0], z: g.corner[1], nx: Math.cos(a), nz: Math.sin(a), side: 'corner', from: g.from, to: g.to, f, s: sv };
+  };
+  const samples = (step, cornerSteps) => {
+    const out = [];
+    for (const g of segs) {
+      const n = g.line ? Math.max(1, Math.round(g.len / step)) : cornerSteps;
+      for (let i = 0; i < n; i++) out.push(at(g.s0 + (g.len * i) / n));
+    }
+    out.push(at(total));
+    return out;
+  };
+  return {
+    at,
+    samples,
+    total,
+    xF,
+    cornerS: (k, f) => segs[k === 'SW' ? 1 : 3].s0 + f * cornerLen,
+    sideS: (side, x) => (side === 'S' ? xF - x : segs[4].s0 + (x - xW)),
+    backS: (z) => segs[2].s0 + (zS - z),
+  };
+}
+
 /** Cylinder between two points (cubits), as a mergeable part. */
 function rod(a, b, r, radial = 5) {
   const d = new THREE.Vector3().subVectors(b, a);
@@ -240,14 +162,30 @@ function rod(a, b, r, radial = 5) {
   return part(g, { pos: [m(c.x), m(c.y), m(c.z)] });
 }
 
-/**
- * Build the goat-hair, ram-skin and tachash coverings.
- * Returns { group, bronzeParts, ropeParts, footprint } (parts are geometries to merge).
- */
+/** Bronze tent stake (meters, local): a tapered pin with a collar and a cord ring; neck at y 0.1. */
+function stakeGeometry() {
+  const g = mergeGeometries(
+    [
+      new THREE.CylinderGeometry(0.016, 0.005, 0.36, 7).translate(0, -0.04, 0),
+      new THREE.CylinderGeometry(0.03, 0.024, 0.03, 9).translate(0, 0.14, 0),
+      new THREE.TorusGeometry(0.019, 0.006, 5, 10).rotateX(Math.PI / 2).translate(0, 0.1, 0),
+    ].map((q) => q.toNonIndexed()),
+  );
+  g.deleteAttribute('uv');
+  return g;
+}
+const STAKE_NECK = 0.1; // m above the stake's origin
+const STAKE_TILT = THREE.MathUtils.degToRad(20); // top leans away from the tent
+
 // Texture tiles (cubits): goat hair spans 2 curtains × 4 cubits; skins 8 × 8 cubits.
 const HAIR_TILE = { curtains: 2, heightCubits: 4 };
 const SKIN_TILE = 8;
 
+/**
+ * Build the goat-hair, ram-skin and tachash coverings with their stakes and cords.
+ * Returns { group, bronzeParts, ropeParts, rect, footprint } (parts are geometries to merge;
+ * footprint {minX, maxX, minZ, maxZ} in cubits bounds the slants and stakes).
+ */
 export function createCoverings() {
   const group = new THREE.Group();
   group.name = 'coverings';
@@ -257,68 +195,171 @@ export function createCoverings() {
   const zO = HW + T.boardThickness;
   const rect = { xW, xE, zN: T.centerZ - zO, zS: T.centerZ + zO };
   const yG = TOP + G.clearance;
+  const R = G.edgeRadius;
+  const path = makeBackPath(rect, G.frontExtend, 5);
 
-  // ---- Goat hair -------------------------------------------------------------------------
+  // Layers, bottom to top. `reach`: fraction of the goat hair's slant; `gap`: normal offset.
+  const goatL = { ...G, gap: 0, reach: 1, frontDroop: G.flap - R };
+  const layers = [goatL, T.ramSkins, T.tachash];
+
+  // ---- Stake positions along the path (s), per layer ---------------------------------------
+  // North/south: every curtain width from the front, shifted per layer so no two layers' cords
+  // share a line. West: a few across the back. Back corners: radial, at different angles.
+  const BACK_Z = [[-4, 0, 4], [-2, 2], [-3.2, 3.2]];
+  const CORNER_F = [[0.5], [0.2, 0.8], [0.35, 0.65]];
+  const stakeS = layers.map((L, li) => {
+    const out = [];
+    for (let k = 1; ; k++) {
+      const x = xE - G.curtainWidth * k - L.stakePhase;
+      if (x < xW + 1.2) break;
+      if (x > xE - 1.5) continue;
+      out.push(path.sideS('S', x), path.sideS('N', x));
+    }
+    for (const z of BACK_Z[li]) out.push(path.backS(T.centerZ + z));
+    for (const f of CORNER_F[li]) out.push(path.cornerS('SW', f), path.cornerS('NW', f));
+    return out.sort((a, b) => a - b);
+  });
+  // Scallop weight: 0 at a stake (or a front end, staked diagonally), 1 midway between; a
+  // little pointed at the stake where the cord pulls, rounded elsewhere.
+  const scallopK = (li, s) => {
+    const list = stakeS[li];
+    let a = 0, b = path.total;
+    for (const p of list) {
+      if (p <= s) a = p;
+      else { b = p; break; }
+    }
+    const k = Math.sin(Math.PI * Math.min(1, Math.max(0, (s - a) / (b - a || 1))));
+    return 0.35 * k + 0.65 * k * k;
+  };
+
+  // ---- Shared shape: the goat hair's slant per path sample ---------------------------------
+  const sideKey = (side) => (side === 'W' ? 'back' : 'side');
+  const mixSide = (smp, get) => {
+    if (smp.side !== 'corner') return get(sideKey(smp.side));
+    const w = smooth(0, 1, smp.f);
+    return get(sideKey(smp.from)) * (1 - w) + get(sideKey(smp.to)) * w;
+  };
+  // Arc of radius R over the roof edge (center at o = 0, y = yG - R) turning down to slant
+  // angle th, then a straight run to the hem H = (reach, hem) in (outward, up) coordinates.
+  const slantOf = (smp) => {
+    const reach = mixSide(smp, (k) => G[k].reach), hem = mixSide(smp, (k) => G[k].hem);
+    let th = Math.atan2(yG - hem, reach);
+    for (let i = 0; i < 4; i++) th = Math.atan2(yG - R * (1 - Math.cos(th)) - hem, reach - R * Math.sin(th));
+    const A = [R * Math.sin(th), yG - R * (1 - Math.cos(th))];
+    return { th, A, H: [reach, hem], L: Math.hypot(reach - A[0], A[1] - hem), arc: R * th, cy: yG - R };
+  };
+  // Inward sag of the slant (deeper between the goat hair's stakes) and corner folds. These
+  // move every layer alike, so the layers stay parallel and never cut through each other.
+  const shapeOff = (smp, t) => {
+    const back = smp.side === 'W' ? 0.6 : smp.side === 'corner' ? 0.8 : 1;
+    let off = -G.belly * back * Math.sin(Math.PI * t) * (0.55 + 0.45 * scallopK(0, smp.s));
+    if (smp.side === 'corner') off += G.cornerFold * t ** 1.2 * Math.sin(Math.PI * smp.f) * Math.sin(6 * Math.PI * smp.f + 0.7);
+    return off;
+  };
+  // World point (cubits) at distance q down the cloth from the roof edge, offset d.
+  const pointAt = (smp, sl, q, d) => {
+    let o, y;
+    if (q <= sl.arc) {
+      const a = q / R;
+      o = (R + d) * Math.sin(a);
+      y = sl.cy + (R + d) * Math.cos(a);
+    } else {
+      const t = (q - sl.arc) / sl.L;
+      const off = d + shapeOff(smp, t);
+      o = sl.A[0] + (sl.H[0] - sl.A[0]) * t + Math.sin(sl.th) * off;
+      y = sl.A[1] + (sl.H[1] - sl.A[1]) * t + Math.cos(sl.th) * off;
+    }
+    return new THREE.Vector3(smp.x + smp.nx * o, y, smp.z + smp.nz * o);
+  };
+  // Hem distance (along the cloth) of layer li at a sample: scalloped between its stakes.
+  const hemQ = (li, smp, sl) => {
+    const L = layers[li];
+    const wob = 0.05 * Math.sin(smp.s * 1.9 + li * 2.1) + 0.03 * Math.sin(smp.s * 4.3 + li);
+    return sl.arc + L.reach * sl.L - (L.scallop + wob) * scallopK(li, smp.s);
+  };
+
+  const samples = path.samples(0.33, 24).map((smp) => ({ smp, sl: slantOf(smp) }));
+  const FRONT_N = 48;
+
+  // ---- One layer's geometry ----------------------------------------------------------------
+  const buildLayer = (li, dropRows, uv) => {
+    const L = layers[li], d = L.gap;
+    const pos = [], uvs = [], idx = [];
+    const push = (p, u) => {
+      pos.push(m(p.x), m(p.y), m(p.z));
+      uvs.push(...u);
+    };
+    // Roof grid.
+    const nx = Math.round(xE - xW), nz = Math.round((rect.zS - rect.zN) / 0.5);
+    for (let j = 0; j <= nz; j++) {
+      const z = rect.zN + ((rect.zS - rect.zN) * j) / nz;
+      for (let i = 0; i <= nx; i++) {
+        const x = xW + ((xE - xW) * i) / nx;
+        push({ x, y: yG + d - roofSag(x, z), z }, uv(x, z));
+      }
+    }
+    for (let j = 0; j < nz; j++) {
+      for (let i = 0; i < nx; i++) {
+        const a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, e = c + 1;
+        idx.push(a, c, b, b, c, e);
+      }
+    }
+    // A strip of columns x rows; quads between neighbouring columns.
+    const strip = (cols, rows, wrapIdx) => {
+      for (let i = 0; i < cols - 1; i++) {
+        for (let j = 0; j < rows - 1; j++) {
+          const a = wrapIdx + i * rows + j, b = a + rows;
+          idx.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+      }
+    };
+    // Back strip: arc rows then slant rows down to the scalloped hem.
+    const ARC = 4;
+    let base = pos.length / 3;
+    for (const { smp, sl } of samples) {
+      const Q = hemQ(li, smp, sl);
+      for (let k = 0; k <= ARC + dropRows; k++) {
+        const q = k <= ARC ? (sl.arc * k) / ARC : sl.arc + ((Q - sl.arc) * (k - ARC)) / dropRows;
+        push(pointAt(smp, sl, q, d), uv(smp.x + smp.nx * q, smp.z + smp.nz * q));
+      }
+    }
+    strip(samples.length, ARC + dropRows + 1, base);
+    // Front flap: over the front edge and straight down, soft vertical folds.
+    base = pos.length / 3;
+    const FROWS = 6;
+    for (let i = 0; i <= FRONT_N; i++) {
+      const z = rect.zN + ((rect.zS - rect.zN) * i) / FRONT_N; // N to S: same winding as the back strip
+      const drop = L.frontDroop + 0.02 * Math.sin(z * 3.1 + li);
+      for (let k = 0; k <= ARC + FROWS; k++) {
+        let o, y, q;
+        if (k <= ARC) {
+          const a = ((Math.PI / 2) * k) / ARC;
+          o = (R + d) * Math.sin(a);
+          y = yG - R + (R + d) * Math.cos(a);
+          q = R * a;
+        } else {
+          const t = (k - ARC) / FROWS;
+          o = R + d + 0.04 * t * Math.sin(z * 2.3 + 0.5);
+          y = yG - R - drop * t;
+          q = (R * Math.PI) / 2 + drop * t;
+        }
+        push({ x: xE + o, y, z }, uv(xE + q, z));
+      }
+    }
+    strip(FRONT_N + 1, ARC + FROWS + 1, base);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    return geo;
+  };
+
+  // ---- Goat hair ---------------------------------------------------------------------------
   // Material coordinates (cubits): E-W from the front flap's hem (0) westward; N-S across the
   // 30-cubit curtains. Curtain joins fall every 4 cubits; the clasp line at G.claspAt.
   const matU = (x) => G.flap + (xE - x);
   const matV = (z) => G.curtainLength / 2 + (z - T.centerZ);
-  const hemOf = { S: G.hemSide, N: G.hemSide, W: G.hemBack, E: yG - G.flap };
-  // Tent pins along the sides, at the hem under each curtain join, plus the two back corners.
-  const pegXs = [];
-  for (let u = G.flap + G.curtainWidth; u < G.flap + (xE - xW); u += G.curtainWidth) pegXs.push(xE - (u - G.flap));
-  const perG = makePerimeter(rect, 1.2);
-  const pegS = [...pegXs.flatMap((x) => [perG.sideS('S', x), perG.sideS('N', x)]), perG.cornerS[0], perG.cornerS[1]];
-  const near = (s, list, w) => {
-    let v = 0;
-    for (const p of list) {
-      let d = Math.abs(s - p);
-      d = Math.min(d, perG.total - d);
-      v = Math.max(v, Math.exp(-((d / w) ** 2)));
-    }
-    return v;
-  };
-  const bars = T.barHeights;
-  const goat = buildCovering({
-    rect,
-    y: yG,
-    edgeR: G.edgeRadius,
-    dropRows: 26,
-    hem(smp) {
-      let h = hemOf[smp.side];
-      if (smp.side === 'corner') {
-        // Back corners blend across the corner; at the front the side curtain keeps its hem
-        // round the corner and the flap starts at the front face (a near-vertical edge).
-        let w = smooth(0, 1, smp.f);
-        if (smp.to === 'E') w = smooth(0.8, 1, smp.f);
-        if (smp.from === 'E') w = smooth(0, 0.2, smp.f);
-        h = hemOf[smp.from] + (hemOf[smp.to] - hemOf[smp.from]) * w;
-      }
-      const wave = smp.side === 'E' ? 0.02 * Math.sin(smp.s * 3.1) : 0.07 * Math.sin(smp.s * 1.9) + 0.04 * Math.sin(smp.s * 4.7 + 1);
-      return h + wave + 0.06 * near(smp.s, pegS, 0.6);
-    },
-    standOff(y, smp) {
-      if (smp.side === 'E') return 0.02;
-      // Out over the top bar, then hanging just clear of the bars and rings.
-      let o = G.standOff * (1 - smooth(bars[2] - 0.2, yG - G.edgeRadius, y));
-      for (const b of bars) o += 0.05 * Math.exp(-(((y - b) / 0.35) ** 2));
-      return o;
-    },
-    fold(smp, t) {
-      const s = smp.s;
-      const wave =
-        0.5 +
-        0.5 *
-          (0.5 * Math.sin((2 * Math.PI * s) / 2.3 + 0.4) +
-            0.3 * Math.sin((2 * Math.PI * s) / 1.1 + 1.3) +
-            0.2 * Math.sin((2 * Math.PI * s) / 0.53 + 2.9));
-      const corner = near(s, perG.cornerS, 1.3);
-      const amp = (smp.side === 'E' ? 0.04 : G.foldAmp) * t ** 1.2 * (1 + 1.8 * corner);
-      const pull = 0.3 * near(s, pegS, 0.8) * t ** 2.5;
-      return amp * wave + pull;
-    },
-    uv: (x, z) => [matU(x) / (G.curtainWidth * HAIR_TILE.curtains), matV(z) / HAIR_TILE.heightCubits],
-  });
   const hairTex = createGoatHairTexture(HAIR_TILE);
   const hairMat = new THREE.MeshStandardMaterial({
     name: 'goat-hair',
@@ -329,32 +370,16 @@ export function createCoverings() {
     roughness: 1,
     side: THREE.DoubleSide,
   });
-  // Weathering over the whole covering plus dust toward the hem (breaks up the repeat).
+  // Weathering over the whole covering (breaks up the repeat).
   addMacroVariation(hairMat, { scale: 0.35, amount: 0.22, dust: 0.0, tint: [1.15, 1.05, 0.95] });
-  const goatMesh = new THREE.Mesh(goat.geo, hairMat);
+  const goatGeo = buildLayer(0, 26, (x, z) => [matU(x) / (G.curtainWidth * HAIR_TILE.curtains), matV(z) / HAIR_TILE.heightCubits]);
+  const goatMesh = new THREE.Mesh(goatGeo, hairMat);
   goatMesh.name = 'goat-hair-covering';
   goatMesh.castShadow = goatMesh.receiveShadow = true;
   group.add(goatMesh);
 
-  // ---- Ram skins dyed red, then tachash: roof only ----------------------------------------
-  const R = T.ramSkins, K = T.tachash;
-  const skinLayer = (name, base, seed, r, y, edgeR, droop, amp, look) => {
-    const layer = buildCovering({
-      rect: r,
-      y,
-      edgeR,
-      arcRows: 3,
-      dropRows: 2,
-      roofStepX: 1,
-      roofStepZ: 0.5,
-      step: 0.5,
-      cornerSteps: 4,
-      cornerLen: 0.6,
-      hem: (smp) => y - edgeR - droop + 0.04 * Math.sin(smp.s * 2.3),
-      standOff: () => 0,
-      fold: (smp, t) => amp * t * (0.5 + 0.5 * Math.sin(smp.s * 3.7)),
-      uv: (x, z) => [x / SKIN_TILE, z / SKIN_TILE],
-    });
+  // ---- Ram skins dyed red, then tachash ----------------------------------------------------
+  const skinLayer = (li, name, base, seed, rows, look) => {
     const mat = new THREE.MeshStandardMaterial({
       name,
       color: 0xffffff,
@@ -365,65 +390,76 @@ export function createCoverings() {
     mat.bumpMap = mat.map;
     mat.bumpScale = 0.5;
     addMacroVariation(mat, { scale: 0.4, amount: look.macro });
-    const mesh = new THREE.Mesh(layer.geo, mat);
+    const mesh = new THREE.Mesh(buildLayer(li, rows, (x, z) => [x / SKIN_TILE, z / SKIN_TILE]), mat);
     mesh.name = name;
+    mesh.receiveShadow = true;
     group.add(mesh);
   };
-  skinLayer(
-    'ram-skins',
-    [128, 36, 26],
-    5,
-    { xW: xW - R.margin, xE: xE + R.margin, zN: rect.zN - R.margin, zS: rect.zS + R.margin },
-    TOP + R.above,
-    R.edgeRadius,
-    R.droop - R.edgeRadius,
-    0.04,
-    { hide: [1.4, 1.1], contrast: 1, roughness: 0.8, macro: 0.12 },
-  );
-  skinLayer(
-    'tachash-skins',
-    [72, 60, 49],
-    9,
-    { xW: xW + K.inset, xE: xE - K.inset, zN: rect.zN + K.inset, zS: rect.zS - K.inset },
-    TOP + K.above,
-    K.edgeRadius,
-    K.droop,
-    0,
-    // Larger hides, low contrast and a slight oily sheen: leathery rather than paved.
-    { hide: [2.2, 1.7], contrast: 0.45, roughness: 0.62, macro: 0.16 },
-  );
+  skinLayer(1, 'ram-skins', [128, 36, 26], 5, 16, { hide: [1.4, 1.1], contrast: 1, roughness: 0.8, macro: 0.12 });
+  // Larger hides, low contrast and a slight oily sheen: leathery rather than paved.
+  skinLayer(2, 'tachash-skins', [72, 60, 49], 9, 9, { hide: [2.2, 1.7], contrast: 0.45, roughness: 0.62, macro: 0.16 });
 
-  // ---- Bronze clasps on the clasp line (Ex 26:11) -----------------------------------------
+  // ---- Bronze clasps on the goat hair's clasp line (Ex 26:11) ------------------------------
   const bronzeParts = [];
   const xC = xE - (G.claspAt - G.flap);
-  const claspGeo = () => new THREE.TorusGeometry(m(0.09), m(0.025), 4, 10);
+  const Z = new THREE.Vector3(0, 0, 1);
+  const claspGeo = () => new THREE.TorusGeometry(m(0.09), m(0.025), 4, 10).scale(1.6, 1, 1);
   for (let k = 0; k < G.clasps; k++) {
-    const v = ((k + 0.5) / G.clasps) * G.curtainLength; // across the material
-    const across = v - G.curtainLength / 2; // + south
+    const across = ((k + 0.5) / G.clasps) * G.curtainLength - G.curtainLength / 2; // + south
     if (Math.abs(across) <= zO) {
       const z = T.centerZ + across;
       const p = [m(xC), m(yG - roofSag(xC, z) + 0.03), m(z)];
-      bronzeParts.push(part(claspGeo().scale(1.6, 1, 1), { pos: p, rot: [Math.PI / 2, 0, 0] }));
-    } else {
-      const side = across > 0 ? 'S' : 'N';
-      const smp = goat.per.at(goat.per.sideS(side, xC));
-      const q = Math.abs(across) - zO;
-      const p = goat.pointAt(smp, q).addScaledVector(new THREE.Vector3(smp.nx, 0, smp.nz), 0.03);
-      bronzeParts.push(part(claspGeo().scale(1.6, 1, 1), { pos: [m(p.x), m(p.y), m(p.z)] }));
+      bronzeParts.push(part(claspGeo(), { pos: p, rot: [Math.PI / 2, 0, 0] }));
+      continue;
     }
+    const smp = path.at(path.sideS(across > 0 ? 'S' : 'N', xC));
+    const sl = slantOf(smp);
+    const q = Math.abs(across) - zO;
+    if (q > hemQ(0, smp, sl) - 0.1) continue;
+    const p = pointAt(smp, sl, q, 0.03);
+    const n = pointAt(smp, sl, q, 0.13).sub(p).normalize();
+    const g = claspGeo().applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Z, n));
+    bronzeParts.push(part(g, { pos: [m(p.x), m(p.y), m(p.z)] }));
   }
 
-  // ---- Tent pins and cords (Ex 35:18) -----------------------------------------------------
+  // ---- Stakes and cords (Ex 35:18; 38:20) --------------------------------------------------
+  // Each stake's cord runs straight from its layer's hem; the cords of the upper layers pass
+  // over the lower layers' slants, so their stakes stand out beyond where the slant would meet
+  // the ground. Front ends: a diagonal cord from each side's hem corner, east and outward.
   const ropeParts = [];
-  for (const s of pegS) {
-    const smp = goat.per.at(s);
-    const hem = goat.hemPoint(smp);
-    const peg = new THREE.Vector3(hem.x + smp.nx * G.pegDistance, 0, hem.z + smp.nz * G.pegDistance);
-    const top = new THREE.Vector3(peg.x, 0.45, peg.z);
-    bronzeParts.push(part(new THREE.CylinderGeometry(m(0.05), m(0.035), m(0.6), 6), { pos: [m(peg.x), m(0.2), m(peg.z)] }));
-    bronzeParts.push(part(new THREE.CylinderGeometry(m(0.09), m(0.07), m(0.08), 8), { pos: [m(peg.x), m(0.52), m(peg.z)] }));
-    ropeParts.push(rod(hem.clone().add(new THREE.Vector3(0, 0.05, 0)), top, 0.022));
-  }
+  const stakeGeo = stakeGeometry();
+  const fp = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
+  const Y = new THREE.Vector3(0, 1, 0), M = new THREE.Matrix4(), qt = new THREE.Quaternion();
+  const addStake = (hem, sx, sz) => {
+    const ox = sx - hem.x, oz = sz - hem.z, ol = Math.hypot(ox, oz);
+    qt.setFromAxisAngle(new THREE.Vector3(oz / ol, 0, -ox / ol), STAKE_TILT);
+    M.compose(new THREE.Vector3(m(sx), 0, m(sz)), qt, new THREE.Vector3(1, 1, 1));
+    bronzeParts.push(part(stakeGeo.clone().applyMatrix4(M)));
+    const neck = new THREE.Vector3(0, STAKE_NECK, 0).applyQuaternion(qt).divideScalar(m(1)).add(new THREE.Vector3(sx, 0, sz));
+    ropeParts.push(rod(hem, neck, 0.016, 4));
+    fp.minX = Math.min(fp.minX, sx);
+    fp.maxX = Math.max(fp.maxX, sx);
+    fp.minZ = Math.min(fp.minZ, sz);
+    fp.maxZ = Math.max(fp.maxZ, sz);
+  };
+  layers.forEach((L, li) => {
+    const out = (smp) => mixSide(smp, (k) => L.stakes[k]);
+    for (const s of stakeS[li]) {
+      const smp = path.at(s);
+      const sl = slantOf(smp);
+      const hem = pointAt(smp, sl, hemQ(li, smp, sl) - 0.06, L.gap + 0.03);
+      addStake(hem, smp.x + smp.nx * out(smp), smp.z + smp.nz * out(smp));
+    }
+    for (const s of [0, path.total]) {
+      const smp = path.at(s);
+      const sl = slantOf(smp);
+      const hem = pointAt(smp, sl, hemQ(li, smp, sl) - 0.06, L.gap + 0.03);
+      const hemO = sl.H[0] * L.reach;
+      const run = out(smp) - hemO;
+      addStake(hem, hem.x + 0.45 * run, smp.z + smp.nz * (hemO + 0.85 * run));
+    }
+  });
+  stakeGeo.dispose();
 
-  return { group, bronzeParts, ropeParts, rect, standOut: G.edgeRadius + G.standOff + 0.25 };
+  return { group, bronzeParts, ropeParts, rect, footprint: fp };
 }
