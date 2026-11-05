@@ -13,7 +13,7 @@ Three.js.
   gate with embroidered drapes tied back), the bronze altar with its perpetual fire, the laver, and the tent with its layered
   coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
   with its mercy seat and cherubim in the Holy of Holies. The tent door stands open. There are
-  also 10 torches, the pillar of fire over the Holy of Holies, post-processing and a starry sky.
+  also 8 torches, the pillar of fire over the Holy of Holies, post-processing and a starry sky.
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
@@ -109,7 +109,7 @@ src/
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 76–113
   times per frame (`gate` 109, interior views 76–86).
-- **Light budget:** 12 point lights (altar fire + fill, 8 torches, the menorah, the pillar of fire), and only one
+- **Light budget:** 10 point lights (altar fire + fill, 6 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials, and bloom picks up values above 2.0.
 - **Interior mask:** `interiorLight.js` patches every `MeshStandardMaterial` so exterior lights,

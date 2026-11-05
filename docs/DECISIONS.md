@@ -150,9 +150,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - An unshadowed 14 cd fill light sits 3.0 m above the rim.
   - The altar bronze uses `shadowSide = DoubleSide`, which fixes a light leak along its base.
   - `addFireBounce` fakes firelight bouncing off the sand onto the altar's walls.
-- 2026-11-05: There are 10 torches, positions in `TORCHES`. 8 have non-shadow 28 cd point
+- 2026-11-05: There are 8 torches, positions in `TORCHES`. 6 have non-shadow 28 cd point
   lights; the 2 west outside corner torches only glow. With the menorah's light that makes
-  11 point lights; the pillar of fire makes 12.
+  9 point lights; the pillar of fire makes 10. (The pair flanking the gate at x 54, z ±12
+  was removed; only the pair nearest the spawn, x 59, z ±7, stands outside the gate.)
   Torch fires have no smoke.
 - 2026-11-05: Each torch is a 2.4 m wooden post in a stone cairn, with a charred,
   pitch-soaked cloth wrap on top and glowing HDR cracks.

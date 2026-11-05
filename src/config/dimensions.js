@@ -293,10 +293,7 @@ export const PLAYER = {
 export const TORCHES = {
   postHeight: 2.4, // meters (not in text)
   list: [
-    // Flanking the gate, outside the east hangings.
-    { x: 54, z: -12, light: true },
-    { x: 54, z: 12, light: true },
-    // Further out along the approach path.
+    // Flanking the approach path outside the gate, nearest the spawn.
     { x: 59, z: -7, light: true },
     { x: 59, z: 7, light: true },
     // Outside the east corners.
