@@ -316,11 +316,11 @@ export const TORCHES = {
 export const PILLAR_OF_FIRE = {
   x: -25, // cubits (middle of the Holy of Holies)
   z: 0, // cubits
-  baseY: 4.75, // m, just above the roof coverings' top (~4.45-4.6 m); soft fade-in above it
-  columnHeight: 10, // m, the fire itself
-  columnRadius: 1.45, // m, Gaussian radius of the fire's density
-  shaftHeight: 52, // m, the yellowish light above the fire, fading into the sky
-  shaftRadius: 1.9, // m at its foot, widening upward
-  shaftSpread: 0.035, // radius gained per meter of height
-  light: { color: 0xffb35a, intensity: 60, decay: 1.6, y: 1.8 }, // cd; y: m above baseY (~6.5 m, above the interior box); no shadow
+  baseY: 8.5, // m, ~4 m above the roof coverings' top (~4.45-4.6 m): the fire hangs in the sky
+  columnHeight: 12, // m, the fire itself
+  columnRadius: 1.25, // m, Gaussian radius of the fire's density (tapers to a point at its foot)
+  shaftHeight: 150, // m, the yellowish light above the fire, fading gradually into the sky
+  shaftRadius: 0.55, // m at its foot, widening upward
+  shaftSpread: 0.006, // radius gained per meter of height
+  light: { color: 0xffb35a, intensity: 90, decay: 1.6, y: 3.5 }, // cd; y: m above baseY (~12 m, in the fire's body); no shadow
 };

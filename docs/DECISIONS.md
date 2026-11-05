@@ -17,8 +17,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   can walk in). Ex 27:16 gives the gate 4 pillars; this build had a post at z = 0 and now
   leaves it out, drawing the two middle panels aside.
 - 2026-11-05: The pillar of fire (Num 9:15–16) stands over the Holy of Holies (x = −25,
-  z = 0 cubits), its foot just above the roof: a ~10 m column of fire, then a 52 m yellowish
-  shaft fading into the stars. Its sizes are artistic license. The cloud by day isn't built.
+  z = 0 cubits). Its sizes are artistic license. The cloud by day isn't built. Revised the same
+  day: the fire hangs in the sky ~4 m above the roof (foot at 8.5 m), a ~12 m column whose foot
+  tapers almost to a point, then a thin (0.55 m) yellowish shaft 150 m tall fading gradually,
+  as if reaching the clouds.
 - 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
   left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
   0.5 × 0.5 cubit; not in the text) carries the screen.
@@ -189,10 +191,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   plus `specularColorBlended` scaled by `uIlDirect`. The shared GOLD colour alone read brown.
 - 2026-11-05: The gold board overlay has soft mottling and hammer dimples, no vertical streaks
   (they read as wood grain); per-board tint varies 0.96–1.02.
-- 2026-11-05: The pillar of fire's light (`scene/pillarOfFire.js`): 0xffb35a, 60 cd, decay
-  1.6, no shadow, ~6.55 m up (above the tent's interior box, so the mask classes it as
-  outside), breathing ±10%. 30 cd left the dark tachash roof unlit. The column's core is HDR
-  (gain 2.6) and blooms; the shaft (gain 0.42) stays under bloom's threshold.
+- 2026-11-05: The pillar of fire's light (`scene/pillarOfFire.js`): 0xffb35a, 90 cd, decay
+  1.6, no shadow, ~12 m up in the fire's body (above the tent's interior box, so the mask
+  classes it as outside), breathing ±10%. Raised with the fire, so 60 → 90 cd to keep the roof
+  lit. The column's core is HDR (gain 2.6) and blooms; the thin shaft (gain 0.5) stays under
+  bloom's threshold.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
 

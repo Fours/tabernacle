@@ -56,6 +56,10 @@ export const PRESETS = {
   // Wide view from inside the courtyard's south-east, looking up past the altar at the tent and
   // the full pillar of fire with its shaft of light fading into the sky.
   firepillar: { pos: [m(45), eye, m(20)], target: [m(-25), 22, 0], fov: 75 },
+  // Far out in the desert to the south-east: the whole shaft, fading up toward the clouds.
+  firepillarfar: { pos: [130, eye, 70], target: [m(-25), 75, 0], fov: 70 },
+  // Close on the fire's tapered foot above the tent roof.
+  firepillarfoot: { pos: [m(10), m(6), m(28)], target: [m(-25), 15, 0], fov: 55 },
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {

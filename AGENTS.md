@@ -138,7 +138,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `ark`,
   `holyofholies`
-- **Torches and sky:** `torch`, `sky`, `firepillar` (the pillar of fire and its shaft from the courtyard)
+- **Torches and sky:** `torch`, `sky`, `firepillar` (the pillar of fire and its shaft from the courtyard),
+  `firepillarfoot` (its tapered foot), `firepillarfar` (the whole shaft from the desert)
 - **First person:** `walk`
 
 Add presets when a task needs a new view.

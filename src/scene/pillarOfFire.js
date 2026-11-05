@@ -77,9 +77,12 @@ void main() {
   float sc = s - sway;
   float n1 = fFbm(vec2(sc * 0.75 + 3.0, y * 0.42 - T * 0.55));
   float n2 = fFbm(vec2(sc * 1.6 + 11.0, y * 0.95 - T * 1.05));
-  float sig = uColR * (0.7 + 0.65 * n1) * (1.0 + 0.25 * smoothstep(0.0, 1.5, 1.5 - y));
+  // Foot tapers down almost to a point: radius grows from ~6% over the lowest ~38%.
+  float taper = mix(0.06, 1.0, pow(smoothstep(0.0, uColH * 0.38, y), 0.6));
+  float sig = uColR * (0.7 + 0.65 * n1) * taper;
   float g = exp(-(sc * sc) / max(sig * sig, 1e-3));
-  float colY = smoothstep(0.0, 1.6, y) * (1.0 - smoothstep(uColH * 0.72, uColH * 1.08, y));
+  float colY = smoothstep(0.0, 0.6, y) * mix(0.55, 1.0, taper)
+    * (1.0 - smoothstep(uColH * 0.72, uColH * 1.08, y));
   float dens = g * colY * clamp(0.2 + 1.5 * (n2 - 0.15), 0.0, 1.6);
   float heat = clamp(dens * 0.85 * (1.0 - 0.2 * smoothstep(uColH * 0.5, uColH, y)), 0.0, 1.0);
   vec3 col = pillarRamp(heat) * dens * uColGain;
@@ -90,8 +93,8 @@ void main() {
   float sw = s - 0.5 * sway;
   float gs = exp(-(sw * sw) / (sigS * sigS));
   float streak = fNoise(vec2(sw / sigS * 2.2 + 5.0, y * 0.06 - T * 0.12));
-  float shaftY = smoothstep(uColH * 0.45, uColH * 1.05, y) * exp(-max(ys, 0.0) / (uShaftH * 0.42))
-    * (1.0 - smoothstep(uShaftH * 0.55, uShaftH * 1.0, ys));
+  float shaftY = smoothstep(uColH * 0.45, uColH * 1.05, y) * exp(-max(ys, 0.0) / (uShaftH * 0.4))
+    * (1.0 - smoothstep(uShaftH * 0.2, uShaftH * 1.0, ys));
   col += vec3(1.0, 0.68, 0.24) * gs * shaftY * (0.7 + 0.6 * streak) * uShaftGain;
 
   col *= win * path;
@@ -133,7 +136,7 @@ export function createPillarOfFire() {
     uShaftSpread: { value: P.shaftSpread },
     uBound: { value: bound },
     uColGain: { value: 2.6 },
-    uShaftGain: { value: 0.42 },
+    uShaftGain: { value: 0.5 },
     uFogMix: { value: 0.5 },
   }]);
   const mat = new THREE.ShaderMaterial({
