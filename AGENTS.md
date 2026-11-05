@@ -85,7 +85,7 @@ src/
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
-    sky.js              star dome, Milky Way, moon
+    sky.js              star dome, Milky Way (no moon)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
     textiles.js         procedural linen, embroidered screen, goat hair, skin textures
     bronzeParts.js      geometry merge helpers
