@@ -2,17 +2,18 @@
 
 **Status:** active
 **Goal:** The laver, menorah, ark, showbread and incense smoke look richer and more real; the
-gold furnishings carry a subtle patina of use. The tent's four coverings read as four stepped
-layers, each staked and roped to the ground. Rocks and low Middle-Eastern scrub dot the ground,
+gold furnishings carry a subtle patina of use. The tent's four coverings are rebuilt as stepped,
+staked layers: the goat hair hides the linen as in the text, and the ram skins and tachash step
+in above it, each layer staked and roped to the ground. Rocks and low Middle-Eastern scrub dot the ground,
 and the camp of Israel — thousands of cheap, unlit tents in the four tribal camps of Numbers 2 —
 stretches away into the dark.
 
 **In scope:**
 - Laver detail and finish.
-- Outer coverings overhaul (four visible, staked layers, wider N–S footprint).
+- Coverings overhaul (four layers, three visible outside, each staked; wider N–S footprint).
 - Gold grime/patina on all gold items, ark included.
 - Menorah ornament (leaves, calyxes, flowers) and overall finish.
-- Ark: smaller cherubim, ornate lid and body.
+- Ark: ornate lid and body (cherubim keep their size).
 - Showbread realism.
 - Incense smoke realism.
 - Rocks and ground vegetation.
@@ -22,15 +23,16 @@ stretches away into the dark.
 to the courtyard hangings, altar, veil or ceiling weave; sound.
 
 **Assumptions** (move each to `docs/DECISIONS.md` when its step lands):
-- **Four visible coverings (user's choice):** linen, goat hair, ram skins, tachash, from
-  bottom to top. Each layer reaches further out than the one above it so its edge shows
-  beneath: tachash shortest, then ram skins, then goat hair, with the linen's edge lowest and
-  outermost. This departs from Ex 26 (the goat hair is longer than the linen and hides it) —
-  record it under "Interpretation of the text" as artistic license at the user's direction.
+- **Four coverings (user's choice, following Ex 26):** linen, goat hair, ram skins, tachash,
+  from bottom to top. The goat hair is longer than the linen and hides it completely outside
+  (the linen shows only as the ceiling inside). Above the goat hair each layer reaches less far
+  than the one below, so the goat hair's edge shows beneath the ram skins and the ram skins'
+  edge beneath the tachash: three visible stepped layers outside.
 - **Covering shape:** instead of hanging straight down the walls, the coverings on the N and S
   sides are pulled out at a slant (tent-like) to bronze stakes, extending further N–S than the
   walls; the west side gets the same treatment, shorter. The east (door) side keeps the
-  open-door arrangement. Lower layers are staked further out. Every layer has its own row of
+  open-door arrangement. Lower layers are staked further out. Every visible layer (and the
+  hidden linen is not staked) has its own row of
   bronze stakes and cords (Ex 35:18, 38:20 "pins of the tabernacle"). The furthest stakes stay
   well inside the courtyard hangings (≥ ~3 cubits clear of the pillar line at z = ±25).
 - **Gold grime:** a shader patch on the shared gold materials (`GOLD`, `GOLD_OVERLAY` and any
@@ -40,12 +42,12 @@ to the courtyard hangings, altar, veil or ceiling weave; sound.
 - **Menorah ornament:** Ex 25:33–34 gives cups, knobs (kaftor) and flowers (perach). Leaves
   are added at the user's direction: small almond leaves under each knop and calyx, petals on
   each flower, finer beading. Layout, height and lamp positions (DECISIONS) stay.
-- **Ark (at the user's direction):** cherubim scaled to 50% of their current size, still
-  kneeling and facing each other, still one piece with the mercy seat. The lid gets an ornate
+- **Ark (at the user's direction):** the cherubim stay as they are (10 handbreadths, Sukkah
+  5b). The lid gets an ornate
   border (leaf/palmette and rosette frieze inside the crown); the body gets framed panels with
   leaf scrollwork and rosettes, in the spirit of film-prop arks, but ancient Near Eastern in
-  motif, no figures besides the cherubim. Dimensions, rings and poles stay. Record the
-  cherubim size change as a departure from Sukkah 5b's 10 handbreadths.
+  motif, no figures besides the cherubim. Dimensions, rings and poles stay. The ornament is
+  reconstruction (the text gives only the crown, Ex 25:11).
 - **Showbread:** loaves stay flat and stacked as decided; they get irregular shapes, a
   procedural crust texture with bump, lighter flour dusting, scorch/burn patches and edge
   char. No new draw calls beyond the current loaves mesh.
@@ -99,11 +101,11 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   **Carry-over notes:**
 
 - [ ] **Step 2: Four staked coverings** — model: Opus / effort: medium
-  **Goal:** Rebuild the outer coverings so four layers (linen bottom, goat hair, ram skins,
-  tachash top) step outward on the N, S and W sides, each slanting from the roof edge down to
-  its own row of bronze stakes with cords, each lower layer's edge showing below the one above.
-  Each layer keeps its texture (linen with cherubim weave/border, goat hair, red ram skin, dark
-  tachash leather) and gets soft sag between stake points and folds at the corners. The inside
+  **Goal:** Rebuild the coverings so the layers step outward on the N, S and W sides: the
+  goat hair (hiding the linen beneath it entirely) slants from the roof edge down to its own
+  row of bronze stakes with cords, then the ram skins and tachash above it reach less far, each
+  staked, each lower layer's edge showing below the one above. Each layer keeps its texture
+  (goat hair, red ram skin, dark tachash leather) and gets soft sag between stake points and folds at the corners. The inside
   ceiling stays as it is (the linen sheet seen from inside must still match). Replace the 18
   current pins with the new per-layer stakes. Update colliders so the player can't walk
   through the slanted coverings or stakes.
@@ -111,10 +113,10 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   `src/scene/textiles.js`, `src/config/dimensions.js` (`TABERNACLE`), `src/camera/devCamera.js`
   (add `coverings`, `coveringsw`), `src/scene/interiorLight.js` only if the mask breaks.
   **Spec:** SPEC "Tabernacle" coverings; DECISIONS "Tabernacle tent" (goat hair, ram skins,
-  tachash, linen ceiling, pins); plan assumptions "Four visible coverings" and "Covering shape".
+  tachash, linen ceiling, pins); plan assumptions "Four coverings" and "Covering shape".
   **Accept when:** at `tent`, `tentback`, `tentcorner`, `coverings`, `coveringsw` and `iso`,
-  four distinct layers are visible stepping out, each with its stakes and taut cords; no
-  z-fighting or gaps between layers; `ceiling`, `holyplace`, `holyofholies` unchanged inside
+  three distinct layers (goat hair, ram skins, tachash) are visible stepping out, each with
+  its stakes and taut cords; no linen visible outside; no z-fighting or gaps between layers; `ceiling`, `holyplace`, `holyofholies` unchanged inside
   (no light leaks); door area at `gate` still reads open; stakes clear of the courtyard
   hangings; walking along the north side (`rig.simulate`) is blocked by the coverings; draws
   ≤ baseline +3; build passes, console clean.
@@ -149,16 +151,15 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   **Carry-over notes:**
 
 - [ ] **Step 5: Ark** — model: Opus / effort: medium
-  **Goal:** Scale the cherubim to 50% (around their base on the mercy seat, wing tips still
-  reaching toward each other over the centre). Add an ornate border on the lid inside the crown
+  **Goal:** Leave the cherubim unchanged. Add an ornate border on the lid inside the crown
   (palmette/leaf frieze, rosettes at corners), and on the body framed panels with leaf
   scrollwork, rosettes, beaded edges and corner fittings, plus decorated feet and ring plates —
   a richer, "film ark" read in ancient Near Eastern motifs. Keep dimensions, rings, poles and
   the single merged gold mesh; keep build time reasonable.
   **Files:** `src/scene/ark.js`, `src/config/dimensions.js` (`ARK`), `src/scene/materials.js`.
   **Spec:** SPEC "Ark"; DECISIONS "Interior furnishings" (ark, cherubim); assumption "Ark".
-  **Accept when:** `ark` and `holyofholies` (night) show smaller cherubim and clearly ornate
-  lid and body; outer dimensions unchanged; ≤ ~200k triangles, still 1 draw for the gold;
+  **Accept when:** `ark` and `holyofholies` (night) show the cherubim unchanged and a clearly
+  ornate lid and body; outer dimensions unchanged; ≤ ~200k triangles, still 1 draw for the gold;
   load-time meshing ≤ ~200 ms; build passes, console clean.
   **Carry-over notes:**
 
