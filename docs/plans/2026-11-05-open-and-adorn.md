@@ -101,7 +101,7 @@ sound; daytime.
   alias. Build passes, console clean, budgets met.
   **Carry-over notes:**
 
-- [ ] **Step 4: Open the courtyard gate** — model: Opus / effort: medium
+- [x] **Step 4: Open the courtyard gate** — model: Opus / effort: medium
   **Goal:** Remove the middle gate post at z = 0 (with its socket, capital, hook, peg and cord).
   Draw the two middle panels (z = −5 … +5 cubits) apart: each is gathered into realistic
   hanging folds and tied back to the post at z = ±5, so the 10-cubit opening is clear. The

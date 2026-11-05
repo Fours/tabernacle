@@ -13,12 +13,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   western 50×50 square and the altar in the eastern square.
 - 2026-11-04: Boards are 1 cubit thick — rabbinic tradition; the text doesn't give a thickness.
 - 2026-11-04: Torches are artistic license, added for light and atmosphere.
+- 2026-11-05: The gate stands open (artistic license, at the user's direction, so the player
+  can walk in). Ex 27:16 gives the gate 4 pillars; this build had a post at z = 0 and now
+  leaves it out, drawing the two middle panels aside.
 
 ## Courtyard
 
 - 2026-11-04: 60 pillars stand every 5 cubits around the perimeter. The "4 gate + 3 + 3"
   count is reconciled by crediting each pillar with one 5-cubit span. So the 20-cubit gate has
-  posts at z = −10, −5, 0, +5, +10 cubits, with one in the middle.
+  posts at z = −10, −5, 0, +5, +10 cubits, with one in the middle. The middle post is now
+  left out so the gate stands open (see "Interpretation of the text"), so 59 pillars stand.
+- 2026-11-05: The two middle gate panels (z = −5 … +5 cubits) are drawn aside: procedural
+  pleated meshes (`addGatheredDrape` in courtyard.js) gathered at the posts at z = ±5 and tied
+  back at 2.6 cubits with a purple cord (`COURTYARD.gateOpenHalf`, `gateTieHeight`). The fillet
+  spans the 10-cubit opening. Drapes and cords are part of the single `gate-screen` mesh; the
+  cords sample the texture's purple border band. Each drape has a 0.17 m circle collider.
 - 2026-11-05: Each pillar shaft is 5.25 cubits including the socket, plus a 0.3-cubit silver
   capital — this lets the 5-cubit hanging hang from hooks and still clear the ground. Sockets
   are 0.8×0.8×0.5 cubits.
@@ -202,12 +211,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: First person is the default. `?view=<preset>` switches to the free camera,
   except `walk`; `?cam=` always wins.
 - 2026-11-04: The player has a 0.3 m radius and walks at 1.4 m/s (3.5 m/s running). The
-  `walk` spawn is at z = +2.5 cubits, in the gap south of the middle gate pillar.
+  `walk` spawn is at z = 0, 15 cubits east of the open gate, facing west. The `sky` preset
+  keeps the old spawn spot (z = +2.5 cubits).
 - 2026-11-04: WASD works without pointer lock, because the in-app browser pane refuses
   pointer lock; mouse look still needs it.
 - 2026-11-05: `PLAYER.lookSpeed` is 0.7. Head bob is vertical only and on by default.
 - 2026-11-04: Gate screens and hangings people walk through don't collide; the gate pillars
-  do. The tent's entrance screen is walk-through; the entrance pillar sockets, side and west
+  and the gathered middle drapes do. The tent's entrance screen is walk-through; the entrance pillar sockets, side and west
   walls and the veil collide, so the player can reach x ≈ −19.2 cubits in the Holy Place.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
