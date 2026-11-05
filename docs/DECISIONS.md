@@ -193,9 +193,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
-## Performance baseline (2026-11-05)
+## Performance baseline (2026-11-05, with the interior built)
 
-- About 3.7–5.2 ms per frame at 2048×1536 with the post chain on, and 78–102 draw calls
-  depending on the view.
-- About 190k scene triangles. With the 6 cube-shadow passes, about 855k triangles are drawn
-  per frame.
+- Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on, over all 24
+  presets: 6.1–8.9 ms per frame, typically about 7 ms. Interior and exterior views cost the
+  same within noise. Absolute frame times vary between sessions on this machine (an earlier
+  session read 3.7–5.2 ms for the exterior alone), so compare only within one session.
+- Draw calls: 72–103 per frame (exterior views 72–103, interior views 75–85). The interior
+  meshes are hidden while the camera is outside, so `gate` is 99 from its first frame.
+- Triangles drawn per frame: about 790k–860k in exterior views and 970k–1.01M in interior
+  views, including the 6 cube-shadow passes of the altar light.

@@ -105,6 +105,14 @@ if (params.cam === 'fp') {
   rig = createDevCamera(camera, canvas, params.view || 'iso');
 }
 
+// Presets applied later (`rig.apply`) or a respawn must not draw the wrong set for a frame.
+for (const k of ['apply', 'reset', 'setPosition']) {
+  if (typeof rig[k] !== 'function') continue;
+  const fn = rig[k].bind(rig);
+  rig[k] = (...a) => { const r = fn(...a); updateInteriorVisibility(); return r; };
+}
+updateInteriorVisibility();
+
 const debug = params.debug ? createDebug() : null;
 if (debug) scene.add(debug.group);
 

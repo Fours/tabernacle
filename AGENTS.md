@@ -9,12 +9,13 @@ A walkable, nighttime 3D reconstruction of the **Tabernacle (Mishkan) of Israel 
 wilderness**, as described in the Torah (Exodus 25–27, 30, 35–40). It runs in the browser with
 Three.js.
 
-- **What's built:** the exterior is complete. That includes the courtyard (60 pillars, linen
-  hangings, embroidered gate), the bronze altar with its perpetual fire, the laver, and the
-  tent with its layered coverings. There are also 10 torches, post-processing and a starry sky.
+- **What's built:** the whole site. The courtyard (60 pillars, linen hangings, embroidered
+  gate), the bronze altar with its perpetual fire, the laver, and the tent with its layered
+  coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
+  with its mercy seat and cherubim in the Holy of Holies. There are also 10 torches,
+  post-processing and a starry sky.
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
-- **Not built yet:** the interiors (veil, ark, menorah, table, incense altar).
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
   actually made, and why: `docs/DECISIONS.md`. Record any new interpretive or technical
   choice there.
@@ -78,6 +79,10 @@ src/
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
     interiorLight.js    per-fragment inside/outside light mask, warm room ambient (INTERIOR)
     menorah.js          menorah (merged gold), 7 lamp flames, the Holy Place's light
+    showbread.js        table of showbread: table, poles, vessels, two stacks of 6 loaves
+    incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
+    veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
+    ark.js              ark, mercy seat, two hammered cherubim, poles
     sky.js              star dome, Milky Way, moon
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
     textiles.js         procedural linen, embroidered screen, goat hair, skin textures
@@ -100,8 +105,8 @@ src/
   wires both up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`. Use
   `addMacroVariation` on large tiled surfaces.
-- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 78–102
-  times per frame.
+- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 72–103
+  times per frame (interior views 75–85).
 - **Light budget:** 11 point lights (altar fire + fill, 8 torches, the menorah), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials, and bloom picks up values above 2.0.
@@ -129,7 +134,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Courtyard:** `gate`, `corner`, `pillar`
 - **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
-- **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`
+- **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `ark`,
+  `holyofholies`
 - **Torches and sky:** `torch`, `sky`
 - **First person:** `walk`
 
@@ -141,7 +147,9 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, fires`.
+composer, menorah, interior, updateInteriorVisibility, fires`. `interior` is the interior
+light uniforms (`INTERIOR`); `updateInteriorVisibility()` shows or hides the interior meshes by
+camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPosition`, and each frame).
 
 - **Walking:** `rig.simulate({f, b, l, r, run}, seconds)` walks the player at 60 Hz and
   returns `{x, z}`. Other rig calls: `rig.reset()`, `rig.getPosition()`, `rig.setPosition()`
