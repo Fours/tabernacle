@@ -31,9 +31,8 @@ to the courtyard hangings, altar, veil or ceiling weave; sound.
 - **Covering shape:** instead of hanging straight down the walls, the coverings on the N and S
   sides are pulled out at a slant (tent-like) to bronze stakes, extending further N–S than the
   walls; the west side gets the same treatment, shorter. The east (door) side keeps the
-  open-door arrangement. Lower layers are staked further out. Every visible layer (and the
-  hidden linen is not staked) has its own row of
-  bronze stakes and cords (Ex 35:18, 38:20 "pins of the tabernacle"). The furthest stakes stay
+  open-door arrangement. Lower layers are staked further out. Each visible layer has its own row of bronze
+  stakes (the hidden linen has none) and cords (Ex 35:18, 38:20 "pins of the tabernacle"). The furthest stakes stay
   well inside the courtyard hangings (≥ ~3 cubits clear of the pillar line at z = ±25).
 - **Gold grime:** a shader patch on the shared gold materials (`GOLD`, `GOLD_OVERLAY` and any
   gold used inside the tent): low-frequency world-space tarnish, darker and rougher in recesses
