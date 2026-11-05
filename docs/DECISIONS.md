@@ -164,7 +164,16 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   tips nearly meeting over the center. The body is a signed-distance sculpture meshed at load
   with marching cubes (~120 ms); wings are three rows of feather blades plus two rows
   of coverts along the bone on both faces. Ark and cherubim are
-  one gold mesh (1 draw, ~105k triangles).
+  one gold mesh (1 draw).
+- 2026-11-05: Ark ornament (`scene/arkOrnament.js`, at the user's direction; reconstruction —
+  the text gives only the crown, Ex 25:11). Plant motifs only, no figures besides the
+  cherubim. Profiled crown (bead, cove, band with bead-and-reel and leaf tips, roll, inner lip),
+  same height and reach as before; molded plinth; framed recessed panels with beaded edges —
+  long sides a central rosette with almond-leaf vines, palmettes and rosettes, short sides a
+  central panel plus narrow palmette-column panels; corner pilasters; leaf-wrapped bun feet;
+  scalloped rosette plates behind the rings. The mercy seat has a palmette-and-bud frieze with
+  corner rosettes, left plain under the cherubim's feet. Real relief merged into the one gold
+  mesh: ~205k triangles in all, ~26 ms to build, +0.26 ms at `holyofholies`.
 
 ## Fire & lighting
 

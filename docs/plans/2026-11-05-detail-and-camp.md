@@ -149,7 +149,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   triangles ≤ ~150k for the menorah; still 1 draw for its gold; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 5: Ark** — model: Opus / effort: medium
+- [x] **Step 5: Ark** — model: Opus / effort: medium
   **Goal:** Leave the cherubim unchanged. Add an ornate border on the lid inside the crown
   (palmette/leaf frieze, rosettes at corners), and on the body framed panels with leaf
   scrollwork, rosettes, beaded edges and corner fittings, plus decorated feet and ring plates —
