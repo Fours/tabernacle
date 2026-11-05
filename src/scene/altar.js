@@ -24,7 +24,7 @@ function hornGeometry(outDir) {
   for (let i = 0; i <= ts; i++) {
     const t = i / ts;
     curve.getPointAt(t, c);
-    const r = THREE.MathUtils.lerp(rBase, rTip, Math.pow(t, 0.75));
+    const r = THREE.MathUtils.lerp(rBase, rTip, Math.pow(t, 1.4)); // stays stout, then rounds off
     for (let j = 0; j <= rs; j++) {
       const k = i * (rs + 1) + j;
       v.fromBufferAttribute(p, k).sub(c).multiplyScalar(r).add(c);
@@ -100,12 +100,15 @@ export function createAltar() {
   bronze.push(boxPart(t, H, W - 2 * t, [-(L - t) / 2, H / 2, 0], 'cubit'));
   bronze.push(boxPart(t, H, W - 2 * t, [(L - t) / 2, H / 2, 0], 'cubit'));
 
-  // Horns: one piece with the corners.
+  // Horns: one piece with the corners. Own mesh so they don't cast shadows: the real fire is a
+  // broad source whose flames rise above the horns, so their shadows would be very soft, not
+  // the long hard wedges a point light throws across the courtyard.
+  const horns = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const dir = new THREE.Vector3(sx, 0, sz).normalize();
       for (const g of hornGeometry(dir)) {
-        bronze.push(part(g, { pos: [sx * (L - t) / 2, H - m(0.03), sz * (W - t) / 2] }));
+        horns.push(part(g, { pos: [sx * (L - t) / 2, H - m(0.03), sz * (W - t) / 2] }));
       }
     }
   }
@@ -174,6 +177,11 @@ export function createAltar() {
   // (that coincidence leaked a thin bright line along the base).
   BRONZE_PLATED.shadowSide = THREE.DoubleSide;
   group.add(bronzeMesh);
+
+  const hornMesh = new THREE.Mesh(merge(horns), BRONZE_PLATED);
+  hornMesh.name = 'altar-horns';
+  hornMesh.receiveShadow = true;
+  group.add(hornMesh);
 
   const acaciaMesh = new THREE.Mesh(merge(acacia), ACACIA);
   acaciaMesh.name = 'altar-pole-cores';

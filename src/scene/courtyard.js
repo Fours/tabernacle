@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COURTYARD as C, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
-import { ACACIA, BRONZE, SILVER, ROPE, COLORS } from './materials.js';
+import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './materials.js';
 import { createLinenTexture, createEmbroideredScreenTexture } from './textiles.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
@@ -242,6 +242,8 @@ export function createCourtyard() {
   });
   linen.bumpMap = linen.map;
   linen.bumpScale = 0.6;
+  // Slightly uneven bleaching between panels, and desert dust soaking up the lower hem.
+  addMacroVariation(linen, { scale: 0.18, amount: 0.07, dust: 0.3, dustHeight: 0.7, tint: [1.0, 0.97, 0.92] });
   const hangings = new THREE.Mesh(clothGeometry(linenBuf), linen);
   hangings.name = 'hangings';
   hangings.castShadow = hangings.receiveShadow = true;
@@ -257,6 +259,7 @@ export function createCourtyard() {
     roughness: 0.9,
     side: THREE.DoubleSide,
   });
+  addMacroVariation(gateMat, { scale: 0.2, amount: 0.05, dust: 0.3, dustHeight: 0.7 });
   const gate = new THREE.Mesh(clothGeometry(gateBuf), gateMat);
   gate.name = 'gate-screen'; // non-colliding (Decisions log)
   gate.castShadow = gate.receiveShadow = true;

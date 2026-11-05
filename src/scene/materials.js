@@ -16,6 +16,65 @@ export const COLORS = {
   scarlet: 0xb01a2a, // tola'at shani
 };
 
+// World-space value noise shared by the material patches below (GLSL).
+export const WORLD_NOISE_GLSL = /* glsl */ `
+float wvHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float wvNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(wvHash(i), wvHash(i + vec2(1.0, 0.0)), u.x),
+             mix(wvHash(i + vec2(0.0, 1.0)), wvHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float wvFbm(vec2 p) {
+  return 0.5 * wvNoise(p) + 0.3 * wvNoise(p * 2.13 + 3.7) + 0.2 * wvNoise(p * 4.57 + 9.1);
+}
+`;
+
+/**
+ * Break up visible texture tiling with large-scale, world-space tone variation (patchy
+ * fading / dirt), and optionally dust darkening near the ground. Patches `onBeforeCompile`
+ * (chains any existing patch). Cheap: a few noise lookups per fragment.
+ * @param {THREE.Material} mat
+ * @param {{ scale?: number, amount?: number, dust?: number, dustHeight?: number, tint?: number[] }} o
+ *   scale: noise frequency (1/m); amount: ±fraction of tone change; dust: darkening at y = 0
+ *   fading out by dustHeight (m); tint: rgb multiplier at the dark end of the noise.
+ */
+export function addMacroVariation(mat, { scale = 0.25, amount = 0.15, dust = 0, dustHeight = 0.6, tint = [1, 1, 1] } = {}) {
+  const prev = mat.onBeforeCompile;
+  const t = tint.map((v) => v.toFixed(3)).join(', ');
+  mat.onBeforeCompile = (shader, renderer) => {
+    if (prev) prev(shader, renderer);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vMacroPos;')
+      .replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+{
+  vec4 mp = vec4(transformed, 1.0);
+  #ifdef USE_INSTANCING
+  mp = instanceMatrix * mp;
+  #endif
+  vMacroPos = (modelMatrix * mp).xyz;
+}`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vMacroPos;\n${WORLD_NOISE_GLSL}`)
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+{
+  vec2 q = vec2(vMacroPos.x + vMacroPos.y * 0.37, vMacroPos.z - vMacroPos.y * 0.61) * ${scale.toFixed(4)};
+  float n = wvFbm(q) * 2.0 - 1.0;
+  diffuseColor.rgb *= 1.0 + n * ${amount.toFixed(4)};
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(${t}), clamp(-n, 0.0, 1.0));
+  diffuseColor.rgb *= 1.0 - ${dust.toFixed(4)} * (1.0 - smoothstep(0.0, ${dustHeight.toFixed(4)}, vMacroPos.y));
+}`,
+      );
+  };
+  mat.customProgramCacheKey = () => `macro-${scale}-${amount}-${dust}-${dustHeight}-${t}`;
+  return mat;
+}
+
 /** Vertical wood-grain texture for acacia (procedural). */
 function acaciaGrainTexture() {
   const w = 64, h = 256;
@@ -45,39 +104,71 @@ function acaciaGrainTexture() {
 }
 
 /**
- * Bronze overlay plates (procedural): 1-cubit tile with seam lines, corner rivets and light
- * patina streaks. Meant for geometry whose UVs are in cubits (see `cubitUV` in altar.js).
+ * Hammered bronze overlay (procedural). One tile = one overlay sheet, 2.5 × 1.5 cubits (set via
+ * `repeat` for geometry whose UVs are in cubits; see mode `cubit` in bronzeParts.js): soft
+ * hammer dimples, broad tone mottling, faint patina and a thin overlap seam with a few small
+ * nails. Low contrast, so the sheets read as metal rather than bricks.
  */
 function bronzePlateTexture() {
-  const S = 128;
+  const W = 320, H = 192;
   const c = document.createElement('canvas');
-  c.width = c.height = S;
+  c.width = W;
+  c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#e6e6e6';
-  g.fillRect(0, 0, S, S);
+  g.fillStyle = '#dedad4';
+  g.fillRect(0, 0, W, H);
   let seed = 11;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 70; i++) {
-    const x = rnd() * S, y = rnd() * S;
-    g.fillStyle = rnd() < 0.5 ? `rgba(90,70,50,${0.05 + rnd() * 0.1})` : `rgba(255,255,255,${0.05 + rnd() * 0.1})`;
-    g.fillRect(x, y, 1 + rnd() * 3, 6 + rnd() * 22);
+  const wrapDraw = (x, y, r, f) => {
+    for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+      if (x + dx + r < 0 || x + dx - r > W || y + dy + r < 0 || y + dy - r > H) continue;
+      f(x + dx, y + dy);
+    }
+  };
+  // Broad mottling (uneven polish / oxidation).
+  for (let i = 0; i < 40; i++) {
+    const x = rnd() * W, y = rnd() * H, r = 20 + rnd() * 50;
+    const a = 0.04 + rnd() * 0.07;
+    const col = rnd() < 0.55 ? `rgba(70,55,40,${a})` : `rgba(255,250,240,${a})`;
+    wrapDraw(x, y, r, (px, py) => {
+      const grd = g.createRadialGradient(px, py, 0, px, py, r);
+      grd.addColorStop(0, col);
+      grd.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grd;
+      g.fillRect(px - r, py - r, 2 * r, 2 * r);
+    });
   }
-  // Seams along the tile edges (wrapping, so draw on both sides).
-  g.fillStyle = 'rgba(40,24,10,0.75)';
-  g.fillRect(0, 0, 3, S);
-  g.fillRect(0, 0, S, 3);
-  g.fillStyle = 'rgba(255,230,190,0.25)';
-  g.fillRect(3, 0, 1, S);
-  g.fillRect(0, 3, S, 1);
-  // Rivets.
-  for (const [rx, ry] of [[12, 12], [S - 12, 12], [12, S - 12], [S - 12, S - 12], [S / 2, 12], [S / 2, S - 12]]) {
-    g.fillStyle = 'rgba(40,24,10,0.6)';
-    g.beginPath(); g.arc(rx + 1, ry + 1, 4, 0, 7); g.fill();
-    g.fillStyle = 'rgba(255,235,200,0.9)';
-    g.beginPath(); g.arc(rx, ry, 3.2, 0, 7); g.fill();
+  // Hammer dimples: light rim on top, dark on the bottom.
+  for (let i = 0; i < 700; i++) {
+    const x = rnd() * W, y = rnd() * H, r = 2 + rnd() * 4;
+    g.fillStyle = `rgba(255,248,235,${0.05 + rnd() * 0.06})`;
+    g.beginPath(); g.ellipse(x, y - 0.6, r, r * 0.8, 0, 0, 7); g.fill();
+    g.fillStyle = `rgba(60,45,30,${0.05 + rnd() * 0.06})`;
+    g.beginPath(); g.ellipse(x, y + 0.6, r * 0.8, r * 0.6, 0, 0, 7); g.fill();
+  }
+  // Faint green-brown patina in a few streaks.
+  for (let i = 0; i < 18; i++) {
+    const x = rnd() * W, y = rnd() * H;
+    g.fillStyle = `rgba(80,95,70,${0.04 + rnd() * 0.05})`;
+    g.fillRect(x, y, 2 + rnd() * 5, 10 + rnd() * 40);
+  }
+  // Overlap seams: thin, low contrast, along the sheet's left and bottom edges (wrapping).
+  g.fillStyle = 'rgba(50,35,20,0.35)';
+  g.fillRect(0, 0, 2, H);
+  g.fillRect(0, H - 2, W, 2);
+  g.fillStyle = 'rgba(255,240,215,0.18)';
+  g.fillRect(2, 0, 1, H);
+  g.fillRect(0, H - 3, W, 1);
+  // Small nails along the vertical seam.
+  for (let y = 12; y < H; y += 36) {
+    g.fillStyle = 'rgba(50,35,20,0.4)';
+    g.beginPath(); g.arc(6.6, y + 0.6, 2.2, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,240,210,0.45)';
+    g.beginPath(); g.arc(6, y, 1.7, 0, 7); g.fill();
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1 / 2.5, 1 / 1.5);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
   return t;
@@ -105,25 +196,28 @@ function earthTexture() {
   return t;
 }
 
+// Metals: mostly metallic now that scene.environment (render/environment.js) gives them a dim
+// night sky to reflect; a little diffuse is kept for worn/oxidized surfaces so they still
+// catch the firelight broadly instead of only as highlights.
 export const BRONZE = new THREE.MeshStandardMaterial({
   name: 'bronze',
   color: COLORS.bronze,
-  roughness: 0.45,
-  metalness: 0.55,
+  roughness: 0.42,
+  metalness: 0.8,
 });
 
 export const SILVER = new THREE.MeshStandardMaterial({
   name: 'silver',
   color: COLORS.silver,
-  roughness: 0.3,
-  metalness: 0.5,
+  roughness: 0.42,
+  metalness: 0.85,
 });
 
 export const GOLD = new THREE.MeshStandardMaterial({
   name: 'gold',
   color: COLORS.gold,
-  roughness: 0.35,
-  metalness: 0.6,
+  roughness: 0.3,
+  metalness: 0.85,
 });
 
 export const ACACIA = new THREE.MeshStandardMaterial({
@@ -140,12 +234,15 @@ export const ROPE = new THREE.MeshStandardMaterial({
 });
 
 /** Bronze overlay with plate seams and rivets. Geometry needs cubit-scaled UVs. */
+const plateTex = bronzePlateTexture();
 export const BRONZE_PLATED = new THREE.MeshStandardMaterial({
   name: 'bronze-plated',
   color: COLORS.bronze,
-  map: bronzePlateTexture(),
-  roughness: 0.45,
-  metalness: 0.55,
+  map: plateTex,
+  bumpMap: plateTex,
+  bumpScale: 0.6,
+  roughness: 0.48,
+  metalness: 0.6,
 });
 
 export const EARTH = new THREE.MeshStandardMaterial({
@@ -211,6 +308,6 @@ export const GOLD_OVERLAY = new THREE.MeshStandardMaterial({
   name: 'gold-overlay',
   color: COLORS.gold,
   map: goldOverlayTexture(),
-  roughness: 0.35,
-  metalness: 0.6,
+  roughness: 0.32,
+  metalness: 0.85,
 });

@@ -104,8 +104,8 @@ export const ALTAR = {
   wallThickness: 0.35, // acacia boards + bronze overlay (not in text)
   hearthDrop: 0.45, // earth/stone fill surface sits this far below the rim (tradition: filled with earth)
   hornHeight: 1, // horns rise 1 cubit (rabbinic tradition)
-  hornBaseRadius: 0.2, // not in text
-  hornTipRadius: 0.03, // not in text
+  hornBaseRadius: 0.3, // not in text (stout, so the horns read as horns, not spikes)
+  hornTipRadius: 0.09, // not in text (blunt, rounded tip)
   hornOutward: 0.22, // how far the horn tip leans outward along the corner diagonal (not in text)
   // Ledge (karkov) and bronze net (Ex 27:5): the net hangs beneath the ledge and reaches halfway
   // up the altar (1.5 cubits).

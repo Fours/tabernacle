@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { createGoatHairTexture, createSkinTexture } from './textiles.js';
+import { addMacroVariation } from './materials.js';
 import { part } from './bronzeParts.js';
 
 // Tabernacle coverings (Ex 26:7-14) draped over a flat roof. Everything here is computed in
@@ -179,6 +180,10 @@ function rod(a, b, r, radial = 5) {
  * Build the goat-hair, ram-skin and tachash coverings.
  * Returns { group, bronzeParts, ropeParts, footprint } (parts are geometries to merge).
  */
+// Texture tiles (cubits): goat hair spans 2 curtains × 4 cubits; skins 8 × 8 cubits.
+const HAIR_TILE = { curtains: 2, heightCubits: 4 };
+const SKIN_TILE = 8;
+
 export function createCoverings() {
   const group = new THREE.Group();
   group.name = 'coverings';
@@ -248,9 +253,9 @@ export function createCoverings() {
       const pull = 0.3 * near(s, pegS, 0.8) * t ** 2.5;
       return amp * wave + pull;
     },
-    uv: (x, z) => [matU(x) / G.curtainWidth, matV(z) / 2],
+    uv: (x, z) => [matU(x) / (G.curtainWidth * HAIR_TILE.curtains), matV(z) / HAIR_TILE.heightCubits],
   });
-  const hairTex = createGoatHairTexture();
+  const hairTex = createGoatHairTexture(HAIR_TILE);
   const hairMat = new THREE.MeshStandardMaterial({
     name: 'goat-hair',
     color: 0xffffff,
@@ -260,6 +265,8 @@ export function createCoverings() {
     roughness: 1,
     side: THREE.DoubleSide,
   });
+  // Weathering over the whole covering plus dust toward the hem (breaks up the repeat).
+  addMacroVariation(hairMat, { scale: 0.35, amount: 0.22, dust: 0.0, tint: [1.15, 1.05, 0.95] });
   const goatMesh = new THREE.Mesh(goat.geo, hairMat);
   goatMesh.name = 'goat-hair-covering';
   goatMesh.castShadow = goatMesh.receiveShadow = true;
@@ -267,7 +274,7 @@ export function createCoverings() {
 
   // ---- Ram skins dyed red, then tachash: roof only ----------------------------------------
   const R = T.ramSkins, K = T.tachash;
-  const skinLayer = (name, base, seed, r, y, edgeR, droop, amp) => {
+  const skinLayer = (name, base, seed, r, y, edgeR, droop, amp, look) => {
     const layer = buildCovering({
       rect: r,
       y,
@@ -282,17 +289,18 @@ export function createCoverings() {
       hem: (smp) => y - edgeR - droop + 0.04 * Math.sin(smp.s * 2.3),
       standOff: () => 0,
       fold: (smp, t) => amp * t * (0.5 + 0.5 * Math.sin(smp.s * 3.7)),
-      uv: (x, z) => [x / 4, z / 4],
+      uv: (x, z) => [x / SKIN_TILE, z / SKIN_TILE],
     });
     const mat = new THREE.MeshStandardMaterial({
       name,
       color: 0xffffff,
-      map: createSkinTexture({ base, seed }),
-      roughness: 0.8,
+      map: createSkinTexture({ base, seed, tile: SKIN_TILE, hide: look.hide, contrast: look.contrast }),
+      roughness: look.roughness,
       side: THREE.DoubleSide,
     });
     mat.bumpMap = mat.map;
-    mat.bumpScale = 0.8;
+    mat.bumpScale = 0.5;
+    addMacroVariation(mat, { scale: 0.4, amount: look.macro });
     const mesh = new THREE.Mesh(layer.geo, mat);
     mesh.name = name;
     group.add(mesh);
@@ -306,16 +314,19 @@ export function createCoverings() {
     R.edgeRadius,
     R.droop - R.edgeRadius,
     0.04,
+    { hide: [1.4, 1.1], contrast: 1, roughness: 0.8, macro: 0.12 },
   );
   skinLayer(
     'tachash-skins',
-    [80, 74, 66],
+    [72, 60, 49],
     9,
     { xW: xW + K.inset, xE: xE - K.inset, zN: rect.zN + K.inset, zS: rect.zS - K.inset },
     TOP + K.above,
     K.edgeRadius,
     K.droop,
     0,
+    // Larger hides, low contrast and a slight oily sheen: leathery rather than paved.
+    { hide: [2.2, 1.7], contrast: 0.45, roughness: 0.62, macro: 0.16 },
   );
 
   // ---- Bronze clasps on the clasp line (Ex 26:11) -----------------------------------------

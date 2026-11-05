@@ -204,11 +204,14 @@ export function createEmbroideredScreenTexture({ width = 2048, height = 512, pan
 }
 
 /**
- * Goat-hair cloth (Ex 26:7): dark, nearly black, coarse hand-spun weave. The tile spans one
- * 4-cubit curtain width in u and 2 cubits in v, with the sewn join between curtains at u = 0.
+ * Goat-hair cloth (Ex 26:7): dark, nearly black, coarse hand-spun weave. The tile spans
+ * `curtains` curtain widths (4 cubits each) in u and `heightCubits` in v, with a sewn join
+ * at the start of each curtain. Each curtain gets its own batch tone and band layout, so the
+ * repeat is long and irregular.
  */
-export function createGoatHairTexture() {
-  const W = 512, H = 256;
+export function createGoatHairTexture({ curtains = 2, heightCubits = 4 } = {}) {
+  const CW = 512; // px per curtain (4 cubits)
+  const W = CW * curtains, H = 128 * heightCubits;
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
@@ -216,23 +219,37 @@ export function createGoatHairTexture() {
   const rnd = seeded(31);
   g.fillStyle = '#2a2420';
   g.fillRect(0, 0, W, H);
-  // Faint broad bands across the curtain (hand-spun batches of hair).
-  for (let x = 0; x < W; ) {
-    const bw = 20 + rnd() * 60;
-    g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '90,80,70'},${0.05 + rnd() * 0.1})`;
-    g.fillRect(x, 0, bw, H);
-    x += bw;
-  }
-  // Coarse basket weave: 4px cells alternating warp / weft floats, low contrast.
-  for (let y = 0; y < H; y += 4) {
-    for (let x = 0; x < W; x += 4) {
-      const a = 0.12 + rnd() * 0.16;
-      g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${a})` : `rgba(95,85,75,${a})`;
-      if (((x + y) >> 2) % 2) g.fillRect(x, y + 1, 4, 2);
-      else g.fillRect(x + 1, y, 2, 4);
+  for (let k = 0; k < curtains; k++) {
+    const x0 = k * CW;
+    // Batch tone of this curtain (hair from different goats / spinning).
+    const tone = rnd();
+    g.fillStyle = tone < 0.5 ? `rgba(0,0,0,${0.06 + rnd() * 0.12})` : `rgba(80,68,58,${0.05 + rnd() * 0.1})`;
+    g.fillRect(x0, 0, CW, H);
+    // Irregular broad bands across the curtain (warp batches), varying in width and strength.
+    for (let x = x0; x < x0 + CW; ) {
+      const bw = 10 + rnd() * 70;
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '95,85,72'},${0.03 + rnd() * 0.12})`;
+      g.fillRect(x, 0, Math.min(bw, x0 + CW - x), H);
+      x += bw;
+    }
+    // Weft batches along the length, so rows don't repeat every tile either.
+    for (let y = 0; y < H; ) {
+      const bh = 8 + rnd() * 60;
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '95,85,72'},${0.02 + rnd() * 0.08})`;
+      g.fillRect(x0, y, CW, bh);
+      y += bh;
     }
   }
-  // Whole-thread tone variation (hand spun yarn).
+  // Coarse weave: 4px cells alternating warp / weft floats, low contrast, with occasional
+  // irregular (thicker / skipped) threads.
+  for (let y = 0; y < H; y += 4) {
+    for (let x = 0; x < W; x += 4) {
+      const a = 0.08 + rnd() * 0.18;
+      g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${a})` : `rgba(95,85,75,${a})`;
+      if (((x + y) >> 2) % 2) g.fillRect(x, y + 1, 4, 2 + (rnd() < 0.1 ? 1 : 0));
+      else g.fillRect(x + 1, y, 2 + (rnd() < 0.1 ? 1 : 0), 4);
+    }
+  }
   for (let x = 0; x < W; x += 4) {
     g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '120,110,100'},${rnd() * 0.12})`;
     g.fillRect(x, 0, 3, H);
@@ -241,28 +258,27 @@ export function createGoatHairTexture() {
     g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '120,110,100'},${rnd() * 0.1})`;
     g.fillRect(0, y, W, 3);
   }
-  // Stray grey hairs.
+  // Stray grey hairs and a few lighter tufts.
   g.lineWidth = 0.7;
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 400 * curtains * heightCubits / 2; i++) {
     const x = rnd() * W, y = rnd() * H, a = rnd() * Math.PI;
     const l = 4 + rnd() * 14;
-    g.strokeStyle = `rgba(170,160,150,${0.08 + rnd() * 0.18})`;
+    g.strokeStyle = `rgba(170,160,150,${0.06 + rnd() * 0.16})`;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
     g.stroke();
   }
-  // Sewn join at u = 0 (wraps): dark overlap band, raised edges and cross stitches.
-  g.fillStyle = 'rgba(0,0,0,0.75)';
-  g.fillRect(0, 0, 4, H);
-  g.fillRect(W - 4, 0, 4, H);
-  g.fillStyle = 'rgba(110,100,90,0.35)';
-  g.fillRect(5, 0, 2, H);
-  g.fillRect(W - 7, 0, 2, H);
-  g.fillStyle = 'rgba(150,140,125,0.45)';
-  for (let y = 0; y < H; y += 8) {
-    g.fillRect(W - 6, y, 6, 2);
-    g.fillRect(0, y, 6, 2);
+  // Sewn joins at the start of each curtain (u = k / curtains; wraps).
+  for (let k = 0; k <= curtains; k++) {
+    const xj = k * CW;
+    g.fillStyle = 'rgba(0,0,0,0.7)';
+    g.fillRect(xj - 4, 0, 8, H);
+    g.fillStyle = 'rgba(110,100,90,0.3)';
+    g.fillRect(xj + 5, 0, 2, H);
+    g.fillRect(xj - 7, 0, 2, H);
+    g.fillStyle = 'rgba(150,140,125,0.4)';
+    for (let y = rnd() * 4; y < H; y += 7 + rnd() * 3) g.fillRect(xj - 6, y, 12, 1.6);
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -272,63 +288,96 @@ export function createGoatHairTexture() {
 }
 
 /**
- * Pieced animal skins stitched into a covering (ram skins dyed red, tachash). The tile is
- * 4×4 cubits: four rows of hides about 1.3×1 cubit, offset like brickwork, with stitched
- * seams, mottling and creases.
+ * Pieced animal skins stitched into a covering (ram skins dyed red, tachash). The tile spans
+ * `tile` cubits square: rows of irregular hides (`hide` = [width, height] in cubits, widths
+ * varying per hide, rows of varying height), overlapping at sewn seams, with mottling, a
+ * darker spine and creases. Low hide-to-hide contrast so it reads as leather, not paving.
  */
-export function createSkinTexture({ base = [126, 42, 31], seed = 5, variation = 18 } = {}) {
-  const S = 512;
+export function createSkinTexture({ base = [126, 42, 31], seed = 5, variation = 18, tile = 8, hide = [1.4, 1.1], contrast = 1 } = {}) {
+  const S = 1024;
+  const px = S / tile; // px per cubit
   const c = document.createElement('canvas');
   c.width = c.height = S;
   const g = c.getContext('2d');
   const rnd = seeded(seed);
   const rgb = (k, a = 1) => `rgba(${base.map((v) => Math.max(0, Math.min(255, Math.round(v * k)))).join(',')},${a})`;
-  g.fillStyle = rgb(0.55);
+  g.fillStyle = rgb(0.92);
   g.fillRect(0, 0, S, S);
-  const rowsN = 4, rowH = S / rowsN, hideW = S / 3;
-  for (let r = 0; r < rowsN; r++) {
-    const off = (r % 2) * hideW * 0.5 + rnd() * 20;
-    for (let i = -1; i < 4; i++) {
-      const x0 = off + i * hideW, y0 = r * rowH;
-      const k = 1 + (rnd() - 0.5) * (variation / 50);
-      for (const dx of [-S, 0, S]) {
-        const x = x0 + dx;
-        if (x > S || x + hideW < 0) continue;
-        // Hide body: tinted, darker toward its edges.
-        const grd = g.createRadialGradient(x + hideW / 2, y0 + rowH / 2, 10, x + hideW / 2, y0 + rowH / 2, hideW * 0.62);
-        grd.addColorStop(0, rgb(k * 1.08));
-        grd.addColorStop(1, rgb(k * 0.78));
+  // Irregular hide outline: a rounded rectangle with wobbly edges.
+  const hidePath = (x, y, w, h) => {
+    const n = 28;
+    g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const cx = Math.cos(a), cy = Math.sin(a);
+      // Superellipse (squarish) radius with wobble.
+      const p = 4;
+      const r = 1 / Math.pow(Math.pow(Math.abs(cx), p) + Math.pow(Math.abs(cy), p), 1 / p);
+      const wob = 1 + 0.05 * Math.sin(a * 5 + x) + 0.03 * Math.sin(a * 9 + y);
+      const X = x + w / 2 + cx * r * (w / 2) * wob;
+      const Y = y + h / 2 + cy * r * (h / 2) * wob;
+      if (i === 0) g.moveTo(X, Y);
+      else g.lineTo(X, Y);
+    }
+    g.closePath();
+  };
+  let y = -px * 0.3;
+  while (y < S) {
+    const rowH = hide[1] * px * (0.85 + rnd() * 0.3);
+    let x = -rnd() * hide[0] * px;
+    while (x < S) {
+      const w = hide[0] * px * (0.75 + rnd() * 0.5);
+      const k = 1 + (rnd() - 0.5) * (variation / 60) * contrast;
+      const ox = (rnd() - 0.5) * 6, oy = (rnd() - 0.5) * 6;
+      for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) {
+        const X = x + dx + ox, Y = y + dy + oy;
+        if (X > S || X + w < 0 || Y > S || Y + rowH < 0) continue;
+        // Hide body (slightly larger than its cell: neighbours overlap at the seams), with a
+        // gentle darkening toward the edges and a faint darker spine along its length.
+        const grd = g.createRadialGradient(X + w / 2, Y + rowH / 2, 4, X + w / 2, Y + rowH / 2, Math.max(w, rowH) * 0.7);
+        grd.addColorStop(0, rgb(k * (1 + 0.03 * contrast)));
+        grd.addColorStop(1, rgb(k * (1 - 0.1 * contrast)));
         g.fillStyle = grd;
-        g.beginPath();
-        g.roundRect(x + 2, y0 + 2, hideW - 4, rowH - 4, 10);
+        hidePath(X - 3, Y - 3, w + 6, rowH + 6);
         g.fill();
-        // Stitched seam around the hide.
-        g.strokeStyle = 'rgba(20,10,5,0.55)';
-        g.lineWidth = 2;
+        g.fillStyle = rgb(k * 0.93, 0.35);
+        g.fillRect(X + w * 0.15, Y + rowH * 0.47, w * 0.7, rowH * 0.06);
+        // Seam: thin dark line and a subtle stitch row just inside.
+        g.strokeStyle = 'rgba(15,8,4,0.32)';
+        g.lineWidth = 1.5;
         g.stroke();
         g.save();
-        g.setLineDash([3, 4]);
-        g.strokeStyle = rgb(1.5, 0.5);
+        g.setLineDash([2, 5]);
+        g.strokeStyle = rgb(1.35, 0.25);
         g.lineWidth = 1;
-        g.beginPath();
-        g.roundRect(x + 6, y0 + 6, hideW - 12, rowH - 12, 8);
+        hidePath(X + 2, Y + 2, w - 4, rowH - 4);
         g.stroke();
         g.restore();
       }
+      x += w;
     }
+    y += rowH;
   }
-  // Mottling.
-  for (let i = 0; i < 1600; i++) {
-    const x = rnd() * S, y = rnd() * S, rr = 1 + rnd() * 6;
-    g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${rnd() * 0.12})` : `rgba(255,235,210,${rnd() * 0.06})`;
+  // Mottling at two scales.
+  for (let i = 0; i < 2600; i++) {
+    const x = rnd() * S, y = rnd() * S, rr = 1 + rnd() * 5;
+    g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${rnd() * 0.1})` : `rgba(255,235,210,${rnd() * 0.05})`;
     g.beginPath();
     g.arc(x, y, rr, 0, 7);
     g.fill();
   }
-  // Creases.
   for (let i = 0; i < 60; i++) {
-    const x = rnd() * S, y = rnd() * S, a = rnd() * Math.PI * 2, l = 15 + rnd() * 40;
-    g.strokeStyle = `rgba(0,0,0,${0.12 + rnd() * 0.15})`;
+    const x = rnd() * S, y = rnd() * S, rr = 20 + rnd() * 60;
+    const grd = g.createRadialGradient(x, y, 0, x, y, rr);
+    grd.addColorStop(0, rnd() < 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(255,235,210,0.04)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.fillRect(x - rr, y - rr, 2 * rr, 2 * rr);
+  }
+  // Creases.
+  for (let i = 0; i < 140; i++) {
+    const x = rnd() * S, y = rnd() * S, a = rnd() * Math.PI * 2, l = 15 + rnd() * 50;
+    g.strokeStyle = `rgba(0,0,0,${0.08 + rnd() * 0.12})`;
     g.lineWidth = 1 + rnd();
     g.beginPath();
     g.moveTo(x, y);
