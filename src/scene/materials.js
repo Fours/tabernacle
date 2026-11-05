@@ -162,3 +162,55 @@ export const WATER = new THREE.MeshStandardMaterial({
   roughness: 0.08,
   metalness: 0.2,
 });
+
+/**
+ * Gold overlay on a board face (procedural): the texture spans one whole board face
+ * (u across its width, v up its height) with darker seams at the board edges, faint
+ * hammer marks and vertical burnish streaks. Used with BoxGeometry's per-face UVs.
+ */
+function goldOverlayTexture() {
+  const w = 128, h = 512;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#e4e0d8';
+  g.fillRect(0, 0, w, h);
+  let seed = 41;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  // Vertical burnish streaks.
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * w;
+    g.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.05 + rnd() * 0.12})` : `rgba(90,70,40,${0.04 + rnd() * 0.08})`;
+    g.fillRect(x, 0, 1 + rnd() * 4, h);
+  }
+  // Hammer marks.
+  for (let i = 0; i < 500; i++) {
+    const x = rnd() * w, y = rnd() * h, r = 1.5 + rnd() * 3;
+    g.fillStyle = rnd() < 0.5 ? `rgba(255,250,235,${0.08 + rnd() * 0.1})` : `rgba(80,60,30,${0.06 + rnd() * 0.08})`;
+    g.beginPath();
+    g.ellipse(x, y, r, r * 1.6, 0, 0, 7);
+    g.fill();
+  }
+  // Board edges: dark seam with a bright bevel just inside.
+  g.fillStyle = 'rgba(45,30,10,0.85)';
+  g.fillRect(0, 0, 3, h);
+  g.fillRect(w - 3, 0, 3, h);
+  g.fillStyle = 'rgba(255,245,215,0.5)';
+  g.fillRect(3, 0, 2, h);
+  g.fillStyle = 'rgba(70,50,20,0.35)';
+  g.fillRect(w - 6, 0, 3, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+/** Gold-overlaid board (Tabernacle walls); one texture per board face. */
+export const GOLD_OVERLAY = new THREE.MeshStandardMaterial({
+  name: 'gold-overlay',
+  color: COLORS.gold,
+  map: goldOverlayTexture(),
+  roughness: 0.35,
+  metalness: 0.6,
+});
