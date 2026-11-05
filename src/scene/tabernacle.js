@@ -3,7 +3,7 @@ import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
 import { GOLD, GOLD_OVERLAY, SILVER, BRONZE, ROPE } from './materials.js';
 import { part, merge } from './bronzeParts.js';
-import { createEmbroideredScreenTextures } from './textiles.js';
+import { createEmbroideredScreenTextures } from './embroidery.js';
 import { createCoverings, createLinenCeiling } from './tentCoverings.js';
 import { createVeil } from './veil.js';
 import { addGatheredDrape, clothGeometry } from './drape.js';

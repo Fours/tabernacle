@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { part } from './bronzeParts.js';
-import { createCherubimTexture, createLinenTexture } from './textiles.js';
+import { createLinenTexture } from './textiles.js';
+import { createCherubimTexture } from './cherubimWeave.js';
 import { roofSag } from './tentCoverings.js';
 
 // The veil (Ex 26:31-33; 36:35-36) between the Holy Place and the Holy of Holies: a curtain

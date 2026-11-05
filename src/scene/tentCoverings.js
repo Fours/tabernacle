@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
-import { createGoatHairTexture, createSkinTexture, createCherubimTexture, createLinenTexture } from './textiles.js';
+import { createGoatHairTexture, createSkinTexture, createLinenTexture } from './textiles.js';
+import { createCherubimTexture } from './cherubimWeave.js';
 import { addMacroVariation } from './materials.js';
 import { part } from './bronzeParts.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';

@@ -91,7 +91,9 @@ src/
     ark.js              ark, mercy seat, two hammered cherubim, poles
     sky.js              star dome, Milky Way (no moon)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
-    textiles.js         procedural linen, embroidered screen, goat hair, skin, tent cloth textures
+    textiles.js         shared canvas helpers (seeded, paintWeave, hex, grey); linen, goat hair, skin, tent cloth textures
+    embroidery.js       embroidered gate and door screen textures (colour + bump)
+    cherubimWeave.js    woven cherubim and garden motifs for the ceiling and veil
     bronzeParts.js      geometry merge helpers
     colliders.js        2D box, circle, oriented-box and spatial-grid colliders, resolveCircle
   camera/
@@ -109,7 +111,7 @@ src/
 - Each scene module returns a `THREE.Group`. It exposes `userData.colliders` (2D shapes on the
   ground plane, from `colliders.js`) and, if animated, `userData.update(dt, time)`. `main.js`
   wires both up automatically.
-- **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`. Use
+- **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`, `embroidery.js` and `cherubimWeave.js`. Use
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 77–116
   times per frame (`gate` 116, interior views 86–97; the camp adds 6).

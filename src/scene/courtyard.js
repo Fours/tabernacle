@@ -3,7 +3,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COURTYARD as C, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
 import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './materials.js';
-import { createLinenTexture, createEmbroideredScreenTextures } from './textiles.js';
+import { createLinenTexture } from './textiles.js';
+import { createEmbroideredScreenTextures } from './embroidery.js';
 import { addGatheredDrape, clothGeometry } from './drape.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
