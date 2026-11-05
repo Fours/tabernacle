@@ -75,7 +75,7 @@ sound; daytime.
   no unrunnable shaders, budgets met (report probe capture time at load).
   **Carry-over notes:**
 
-- [ ] **Step 2: Smaller stars and moon** — model: Sonnet / effort: medium
+- [x] **Step 2: Smaller stars and moon** — model: Sonnet / effort: medium
   **Goal:** Reduce the size of the largest stars (the `rBase`/gain of the biggest star layers
   in `sky.js`) and shrink the moon disc so nothing in the sky reads as an oversized star. Keep
   the overall star density, twinkle and Milky Way.
