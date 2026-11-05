@@ -78,6 +78,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   north and south sides and stick out 1.5 cubits past the rings.
 - 2026-11-05: The utensils lie south of the altar and don't collide. The laver is a
   reconstruction: a human-scale bronze basin on a foot and stem, rim at about 0.9 m.
+- 2026-11-05: Laver detail (`scene/laver.js`, 3 draws): stepped, beaded foot; 16-flute stem
+  with a knop; basin with a lotus-and-bud frieze (ancient Near Eastern, not in the text) and a
+  rolled rim; four spouts with plug taps; two ring handles. Its own mirror-polished bronze
+  (Ex 38:8, the women's mirrors) with verdigris in recesses, mineral streaks under the spouts
+  and a deposit line at the water level (1.8 cubits). Non-metallic water with shader ripples;
+  slow drips (in the water mesh) onto a damp patch of sand.
 
 ## Tabernacle tent
 

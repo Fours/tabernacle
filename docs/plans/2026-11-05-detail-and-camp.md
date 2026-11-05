@@ -84,7 +84,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
 
 ## Steps
 
-- [ ] **Step 1: Laver** — model: Opus / effort: medium
+- [x] **Step 1: Laver** — model: Opus / effort: medium
   **Goal:** A more detailed, realistic laver. Polished-mirror bronze (Ex 38:8, made from
   bronze mirrors) with hammered/cast variation, patina in recesses and water stains near the
   spouts. Richer lathe profile: molded foot with steps and bead, fluted or ribbed stem with a
