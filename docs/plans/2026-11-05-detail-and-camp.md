@@ -162,7 +162,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   load-time meshing ≤ ~200 ms; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 6: Showbread** — model: Sonnet / effort: high
+- [x] **Step 6: Showbread** — model: Sonnet / effort: high
   **Goal:** Loaves that look like real baked bread: irregular outlines and slightly domed,
   uneven tops; a procedural crust texture (color map + bump/roughness) with browning gradients,
   darker scorched patches and charred edges, small blisters/cracks, light flour dust; each loaf

@@ -149,6 +149,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   rings on the legs of the long sides, poles E–W (closed gold cylinders, no acacia core).
   12 flat loaves in two stacks of six, each topped by a gold frankincense cup with resin.
   Gold dishes, bowl, jars and pan stand on the floor north of the table (no collider).
+- 2026-11-05: Showbread realism (reconstruction): each loaf has a seeded irregular outline, an
+  uneven dome and a rounded rim, with planar UVs turned and mirrored per loaf. A procedural
+  canvas crust (768 px tile over 0.36 m): golden-to-brown browning, pale patches, scorched and
+  charred spots, blisters, cracks, docking pits and flour, plus a data map with bump (R) and
+  roughness (G). Rim browning is in vertex colours; vertex alpha masks the crust off the
+  frankincense. One material, one loaves mesh; ~80 ms at load.
 - 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
   east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
