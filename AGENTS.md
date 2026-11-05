@@ -9,11 +9,11 @@ A walkable, nighttime 3D reconstruction of the **Tabernacle (Mishkan) of Israel 
 wilderness**, as described in the Torah (Exodus 25–27, 30, 35–40). It runs in the browser with
 Three.js.
 
-- **What's built:** the whole site. The courtyard (60 pillars, linen hangings, embroidered
-  gate), the bronze altar with its perpetual fire, the laver, and the tent with its layered
+- **What's built:** the whole site. The courtyard (59 pillars, linen hangings, an open
+  gate with embroidered drapes tied back), the bronze altar with its perpetual fire, the laver, and the tent with its layered
   coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
-  with its mercy seat and cherubim in the Holy of Holies. There are also 10 torches,
-  post-processing and a starry sky.
+  with its mercy seat and cherubim in the Holy of Holies. The tent door stands open. There are
+  also 10 torches, the pillar of fire over the Holy of Holies, post-processing and a starry sky.
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
@@ -67,14 +67,15 @@ src/
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES
   scene/
     ground.js           procedural sand
-    courtyard.js        pillars, fillets, hooks, hangings, gate, pegs/cords (instanced)
-    altar.js            hollow bronze altar, horns, ledge, grating, rings, poles, utensils
-    altarFire.js        places firewood + fire on altar.userData.hearth
-    firewood.js         log stack + coals with glowing cracks
+    courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
+    drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
+    altar.js            hollow bronze altar, top grate, ember bed, horns molded into the rim, ledge, network, rings, poles, utensils
+    altarFire.js        places the coal bed + fire on altar.userData.hearth
+    firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)
     torches.js          torch posts, wrapped heads, small fires and lights
     pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
-    tabernacle.js       boards, sockets, bars, entrance pillars + screen
+    tabernacle.js       boards, sockets, bars, door beam + tied-back screen
     tentCoverings.js    goat hair drape, ram skins, tachash, clasps
     laver.js            bronze basin on a stand
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
@@ -106,8 +107,8 @@ src/
   wires both up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`. Use
   `addMacroVariation` on large tiled surfaces.
-- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 72–103
-  times per frame (interior views 75–85).
+- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 76–113
+  times per frame (`gate` 109, interior views 76–86).
 - **Light budget:** 12 point lights (altar fire + fill, 8 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials, and bloom picks up values above 2.0.

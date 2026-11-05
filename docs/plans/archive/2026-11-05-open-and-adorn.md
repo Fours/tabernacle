@@ -1,6 +1,6 @@
 # Plan: Open gates, richer embroidery, altar grate and pillar of fire
 
-**Status:** active
+**Status:** complete
 **Goal:** The Holy Place has reflective gold walls, a clearer glint on the ark and fuller incense
 smoke. The sky has no oversized stars or moon. The courtyard gate and the tent door carry rich
 floral/garden embroidery and both stand open, their screens drawn back so the player walks
@@ -154,7 +154,7 @@ sound; daytime.
   budgets met.
   **Carry-over notes:**
 
-- [ ] **Step 7: Pillar of fire** — model: Opus / effort: medium
+- [x] **Step 7: Pillar of fire** — model: Opus / effort: medium
   **Goal:** New `src/scene/pillarOfFire.js`: a column of fire about 10 m tall centered above the
   Holy of Holies (x = −25, z = 0 cubits), its base just above the roof, then a longer shaft of
   yellowish light (~40–60 m) that fades upward into the night sky. Animated, emissive, additive,
@@ -176,3 +176,28 @@ sound; daytime.
   - After Step 6, `gate` is 108 draws (furnishings show through the open door). The pillar
     should add at most 1–2 draws (merge column + shaft into one mesh if possible); a gate
     count up to ~110 is accepted and goes in the new baseline.
+
+## Outcomes
+
+| Step | Model | Rounds | Sub-agent tokens | Result |
+|---|---|---|---|---|
+| 1 Interior finish | Opus/med | 1 | 114k | Static reflection probe on Holy Place gold, ark glint term, widening incense plume |
+| 2 Stars and moon | Sonnet/med | 1 | 57k | Largest star layers capped; moon 0.8° → 0.33° with tighter halo |
+| 3 Embroidery | Opus/med | 1 | 135k | Procedural stitched garden embroidery (vine/pomegranate gate, palm/almond door) with bump |
+| 4 Open gate | Opus/med | 1 | 104k | Middle post removed, pleated tied-back drapes, spawn at z = 0; +0 draws |
+| 5 Altar grate | Opus/med | 1 | 134k | Cast grate over a glowing ember bed, horns molded into a rim lip; +1 draw |
+| 6 Open door | Opus/med | 1 | 135k | Entrance pillars gone, gold beam, tied-back screen, soft exterior spill; shared `drape.js` |
+| 7 Pillar of fire | Opus/med | 1 | 127k | One-draw analytic volume column + 52 m shaft, 12th point light, `firepillar` preset |
+
+## Lessons learned
+
+- Every step passed first time at Opus/medium (Sonnet for the small sky step); briefs that
+  named exact files and existing helpers (e.g. Step 6 reusing Step 4's drape) kept rounds at 1.
+- Opening the door made the furnishings visible from the courtyard, which raised `gate` draw
+  calls by 8. Plan visibility rules and draw budgets together when a step opens a sightline.
+- The GPU here flips between fast and throttled modes, sometimes mid-measurement. Sub-agents
+  handled it by A/B comparing in the same mode; future briefs should ask for that up front.
+- The pane's console keeps errors from hot reloads across navigations; check whether the code
+  still contains the failing symbol before treating an error as live.
+- Orchestrator docs edits by script must check where a slice ends: a Step 3 replace dropped a
+  section heading in DECISIONS.md (restored in Step 5's commit).

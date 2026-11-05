@@ -16,6 +16,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The gate stands open (artistic license, at the user's direction, so the player
   can walk in). Ex 27:16 gives the gate 4 pillars; this build had a post at z = 0 and now
   leaves it out, drawing the two middle panels aside.
+- 2026-11-05: The pillar of fire (Num 9:15–16) stands over the Holy of Holies (x = −25,
+  z = 0 cubits), its foot just above the roof: a ~10 m column of fire, then a 52 m yellowish
+  shaft fading into the stars. Its sizes are artistic license. The cloud by day isn't built.
 - 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
   left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
   0.5 × 0.5 cubit; not in the text) carries the screen.
@@ -140,7 +143,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - `addFireBounce` fakes firelight bouncing off the sand onto the altar's walls.
 - 2026-11-05: There are 10 torches, positions in `TORCHES`. 8 have non-shadow 28 cd point
   lights; the 2 west outside corner torches only glow. With the menorah's light that makes
-  11 point lights in total.
+  11 point lights; the pillar of fire makes 12.
   Torch fires have no smoke.
 - 2026-11-05: Each torch is a 2.4 m wooden post in a stone cairn, with a charred,
   pitch-soaked cloth wrap on top and glowing HDR cracks.
@@ -181,6 +184,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   plus `specularColorBlended` scaled by `uIlDirect`. The shared GOLD colour alone read brown.
 - 2026-11-05: The gold board overlay has soft mottling and hammer dimples, no vertical streaks
   (they read as wood grain); per-board tint varies 0.96–1.02.
+- 2026-11-05: The pillar of fire's light (`scene/pillarOfFire.js`): 0xffb35a, 60 cd, decay
+  1.6, no shadow, ~6.55 m up (above the tent's interior box, so the mask classes it as
+  outside), breathing ±10%. 30 cd left the dark tachash roof unlit. The column's core is HDR
+  (gain 2.6) and blooms; the shaft (gain 0.42) stays under bloom's threshold.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
 
@@ -223,6 +230,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - The goat-hair texture tile spans 2 curtains × 4 cubits.
   - The skin textures tile every 8×8 cubits.
   - The tachash is dark brown leather.
+- 2026-11-05: The pillar of fire is one analytic-volume draw: a flared bounding cylinder drawn
+  back faces only, whose shader takes the ray's closest approach to the axis with a Gaussian
+  density, wobbled by fire.js noise (`NOISE_GLSL`) and brighter with path length when looking
+  along it (capped ×3). It gets half the scene fog (`uFogMix` 0.5) so the shaft stays visible
+  from the courtyard, and a 4% multiplicative dither against banding.
 
 ## Camera & controls
 
@@ -241,13 +253,15 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
-## Performance baseline (2026-11-05, with the interior built)
+## Performance baseline (2026-11-05, after opening the gate and door and adding the pillar of fire)
 
-- Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on, over all 24
-  presets: 6.1–8.9 ms per frame, typically about 7 ms. Interior and exterior views cost the
-  same within noise. Absolute frame times vary between sessions on this machine (an earlier
-  session read 3.7–5.2 ms for the exterior alone), so compare only within one session.
-- Draw calls: 72–103 per frame (exterior views 72–103, interior views 75–85). The interior
-  meshes are hidden while the camera is outside, so `gate` is 99 from its first frame.
-- Triangles drawn per frame: about 790k–860k in exterior views and 970k–1.01M in interior
-  views, including the 6 cube-shadow passes of the altar light.
+- Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on. The GPU on
+  this machine flips between a fast mode (`gate` ~0.3–0.8 ms per frame) and a throttled mode
+  (~6–9 ms), sometimes mid-run; compare only like with like in one session.
+- Step costs measured within that rule: the reflection probe +0.1–0.4 ms in interior views
+  (one capture of ~60–200 ms at load), the open door +0.15 ms at `gate` (furnishings drawn
+  through it), the pillar volume ≤0.04 ms except +0.4 ms at `firepillar`, the 12th light
+  most of the rest (<1 ms throttled).
+- Draw calls: `gate` 109, `iso` 113, `tent` 88, `firepillar` 98, `holyplace` 86,
+  `holyofholies` 76. The Holy Place furnishings and veil now show whenever the camera is east
+  of the tent front, which is why `gate` rose from 99.
