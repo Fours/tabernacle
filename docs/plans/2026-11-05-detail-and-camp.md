@@ -187,7 +187,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   budget at `smoke`; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 8: Rocks and vegetation** — model: Opus / effort: medium
+- [x] **Step 8: Rocks and vegetation** — model: Opus / effort: medium
   **Goal:** A new `scene/groundScatter.js`: a few procedural rock shapes (displaced
   icosahedra, flint and limestone tones) placed in random clumps, and low vegetation — grass
   tufts and blades (alpha-tested or thin-blade geometry), small round shrubs — fitting a

@@ -248,6 +248,19 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
 
+## World
+
+- 2026-11-05: Ground scatter (`scene/groundScatter.js`, 4 instanced draws): the wilderness is
+  read as stony steppe. Seeded clumps of flint and limestone stones (3–25 cm, each shaped in
+  the vertex shader), dry grass tufts and blades, broom and wormwood shrubs (25–65 cm) with a
+  gentle wind sway. Density by distance from the court: full within 15 m, 0.3 at 45 m, 0.04 at
+  90 m, none past 170 m; pebbles and blades only within ~40 m; far rocks use a 20-triangle
+  mesh; blades and twigs halve past ~35–40 m from the camera. The court is trodden (~28
+  pebbles near its hangings). Kept clear: a 3.7-cubit peg band outside the pillar line, the
+  east lane |z| < 11 cubits to the edge, 1.5 m around the west torches. No colliders; receives
+  shadows, casts none. `userData.removeWhere` lets later modules clear scatter (the camp).
+  About +0.6–0.7 ms at `gate`.
+
 ## Rendering
 
 - 2026-11-05: Tone mapping is ACES Filmic, exposure 1.1, sRGB output — AgX washed out the
