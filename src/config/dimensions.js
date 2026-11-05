@@ -178,6 +178,59 @@ export const MENORAH = {
   colliderRadius: 0.5, // cubits: three circles along the branch span (not in text)
 };
 
+// Table of showbread (Ex 25:23-30; 37:10-16; Lev 24:5-9). Only the 2 x 1 x 1.5 cubit size, the
+// handbreadth-wide frame, crowns, four rings and poles are in the text; the rest is
+// reconstruction. North side of the Holy Place, opposite the menorah (26:35; 40:22).
+export const SHOWBREAD = {
+  x: -8, // cubits (about 2/5 of the way in from the entrance; not in text)
+  z: -2.5, // north of center
+  length: 2, // E-W
+  width: 1, // N-S
+  height: 1.5, // top of the slab (the crown rises above it)
+  hb: 1 / 6, // handbreadth in cubits: the frame (rim) is 1 handbreadth wide
+  topThickness: 0.08, // gold-overlaid slab (not in text)
+  frameThickness: 0.04, // frame wall thickness (not in text)
+  frameInset: 0.035, // frame's outer face sits this far inside the slab's edge (not in text)
+  legSize: 0.12, // square legs (not in text)
+  crownWidth: 0.05, // zer: gold molding around the top's edge (not in text)
+  crownHeight: 0.07, // rises above the slab (not in text)
+  frameCrownSize: 0.03, // the frame's own crown, a bead along its lower edge (not in text)
+  ringRadius: 0.07, // gold rings at the legs, level with the frame (not in text)
+  ringTube: 0.018, // not in text
+  poleRadius: 0.042, // acacia poles overlaid with gold (not in text)
+  poleOverhang: 0.55, // poles reach this far past the table's ends (not in text)
+  // Loaves: 12 in two stacks of six (Lev 24:6), a gold cup of frankincense on each (24:7).
+  loaf: { length: 0.78, width: 0.6, thickness: 0.075 }, // flat loaves (not in text)
+  utensilsX: 0.3, // floor utensils' center, from the table's center (cubits, not in text)
+  utensilsZ: -1.35, // toward the north wall (not in text)
+};
+
+// Altar of incense (Ex 30:1-10; 37:25-28): 1 x 1 x 2 cubits, horns of one piece with it, a crown
+// around the top, two rings under the crown on each of two opposite sides, two poles. Placed
+// before the veil (30:6; 40:26). Horn size, crown and plinth are reconstruction.
+export const INCENSE_ALTAR = {
+  x: -18.5, // cubits: centered just east of the veil (x = -20), 1 cubit clear of it (not in text)
+  z: 0,
+  size: 1, // square footprint
+  height: 2,
+  hornHeight: 0.45, // not in text (rabbinic tradition has them smaller than the bronze altar's)
+  hornBaseRadius: 0.075, // not in text
+  hornTipRadius: 0.025, // not in text
+  hornOutward: 0.05, // not in text
+  crownWidth: 0.07, // the crown (zer) projects this far outward from the sides (not in text)
+  crownHeight: 0.1, // not in text
+  crownLip: 0.035, // raised lip of the crown above the top (not in text)
+  plinth: 0.04, // footing that projects from the sides (not in text)
+  plinthHeight: 0.08, // not in text
+  ringRadius: 0.07, // two rings per N and S side, under the crown (not in text)
+  ringTube: 0.018, // not in text
+  ringSpacing: 0.3, // rings at +/- this far from the side's center (not in text)
+  ringDrop: 0.2, // ring center below the top (not in text)
+  poleRadius: 0.042, // not in text
+  poleOverhang: 0.55, // not in text
+  panRadius: 0.27, // gold firepan holding the coals (not in text)
+};
+
 // Non-biblical: human / player values, in meters.
 export const PLAYER = {
   eyeHeight: 1.6,

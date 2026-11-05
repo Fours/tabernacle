@@ -589,3 +589,107 @@ export function createLampFlames(wicks, { width = 0.028, height = 0.06, brightne
     },
   };
 }
+
+// ---- Incense smoke --------------------------------------------------------------------
+// A thin, slow, faint wisp rising from the incense altar's coals: one instanced draw of soft
+// camera-facing puffs that all follow the same lazily swaying path, so they read as one ribbon
+// of smoke. Alpha-blended (not additive); no light.
+
+const WISP_VERT = /* glsl */ `
+uniform float uTime;
+uniform float uHeight;
+uniform float uSize;
+attribute vec4 aRand;
+varying vec2 vUv;
+varying float vAge;
+varying float vSeed;
+#include <fog_pars_vertex>
+${BILLBOARD_GLSL}
+void main() {
+  float t = uTime / 11.0 + aRand.z;
+  float age = fract(t);
+  float rise = uHeight * age * (1.0 - 0.15 * age);
+  // Shared sway: the whole column bends the same way at a given height, growing with height.
+  float k = age * age;
+  vec3 p = vec3(
+    0.07 * uHeight * k * sin(age * 5.5 - uTime * 0.55) + 0.02 * uHeight * k * sin(age * 13.0 - uTime * 0.9 + aRand.x * 6.0),
+    rise,
+    0.06 * uHeight * k * sin(age * 4.3 - uTime * 0.42 + 1.7) + 0.02 * uHeight * k * cos(age * 11.0 - uTime * 0.8 + aRand.y * 6.0));
+  float size = uSize * mix(0.7, 1.1, aRand.y) * (0.6 + 3.2 * age);
+  vec4 mv = billboard(p, position.xy, size, 1.0);
+  gl_Position = projectionMatrix * mv;
+  vec4 mvPosition = mv;
+  #include <fog_vertex>
+  vUv = uv;
+  vAge = age;
+  vSeed = aRand.x;
+}
+`;
+
+const WISP_FRAG = /* glsl */ `
+uniform float uTime;
+uniform float uOpacity;
+uniform vec3 uColor;
+uniform vec3 uGlow;
+varying vec2 vUv;
+varying float vAge;
+varying float vSeed;
+#include <fog_pars_fragment>
+${NOISE_GLSL}
+void main() {
+  vec2 c = vUv * 2.0 - 1.0;
+  float n = fFbm(vUv * 3.0 + vec2(vSeed * 9.0, vSeed * 4.0 - uTime * 0.1));
+  float d = length(c) - (n - 0.5) * 0.8;
+  float shape = 1.0 - smoothstep(0.0, 1.0, d);
+  if (shape <= 0.0) discard;
+  float fade = smoothstep(0.0, 0.1, vAge) * (1.0 - smoothstep(0.35, 1.0, vAge));
+  // Warmed by the coals at its root, then cool grey-blue.
+  vec3 col = mix(uGlow, uColor, smoothstep(0.0, 0.3, vAge));
+  gl_FragColor = vec4(col, shape * shape * fade * uOpacity);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+  #include <fog_fragment>
+}
+`;
+
+/**
+ * Thin incense smoke wisp, one instanced draw. The mesh's origin is the smoke's source.
+ * @param {{ count?: number, height?: number, size?: number, opacity?: number, color?: number,
+ *   glow?: number, seed?: number }} o  height/size in meters.
+ * @returns {{ mesh: THREE.Mesh, update(time:number):void, dispose():void }}
+ */
+export function createIncenseSmoke({ count = 14, height = 1.4, size = 0.03, opacity = 0.2, color = 0x8a8f9a, glow = 0xd08a50, seed = 5 } = {}) {
+  const rnd = rng(seed * 7919 + 29);
+  const geo = quadParticles(count, rnd, new THREE.Sphere(new THREE.Vector3(0, height * 0.5, 0), height * 0.7));
+  const mat = new THREE.ShaderMaterial({
+    name: 'incense-smoke',
+    uniforms: {
+      uTime: { value: 0 },
+      uHeight: { value: height },
+      uSize: { value: size },
+      uOpacity: { value: opacity },
+      uColor: { value: new THREE.Color(color) },
+      uGlow: { value: new THREE.Color(glow) },
+      ...fogUniforms(),
+    },
+    fog: true,
+    vertexShader: WISP_VERT,
+    fragmentShader: WISP_FRAG,
+    transparent: true,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'incense-smoke';
+  mesh.renderOrder = 1;
+  const tOffset = rnd() * 100;
+  return {
+    mesh,
+    update(time) {
+      mat.uniforms.uTime.value = (time + tOffset) % 3600;
+    },
+    dispose() {
+      geo.dispose();
+      mat.dispose();
+    },
+  };
+}

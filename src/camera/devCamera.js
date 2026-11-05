@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { COURTYARD, ALTAR, TABERNACLE, MENORAH, m, PLAYER } from '../config/dimensions.js';
+import { COURTYARD, ALTAR, TABERNACLE, MENORAH, SHOWBREAD, INCENSE_ALTAR, m, PLAYER } from '../config/dimensions.js';
 
 const eye = PLAYER.eyeHeight;
 const hx = COURTYARD.length / 2; // cubits
@@ -40,6 +40,10 @@ export const PRESETS = {
   veil: { pos: [m(-9), eye, m(0.5)], target: [m(TABERNACLE.veil.x), m(4.6), 0], fov: 62 },
   // Close three-quarter view of the menorah from the north-east (room side), slightly above.
   menorah: { pos: [m(MENORAH.x + 2), m(2.9), m(MENORAH.z - 3.6)], target: [m(MENORAH.x), m(1.75), m(MENORAH.z)], fov: 50 },
+  // Close three-quarter view of the table of showbread from the south-east (room side).
+  table: { pos: [m(SHOWBREAD.x + 2.2), m(2.2), m(SHOWBREAD.z + 2.6)], target: [m(SHOWBREAD.x), m(0.85), m(SHOWBREAD.z)], fov: 50 },
+  // Close three-quarter view of the altar of incense from the east and slightly north, above.
+  incense: { pos: [m(INCENSE_ALTAR.x + 3.2), m(2.7), m(INCENSE_ALTAR.z + 1.5)], target: [m(INCENSE_ALTAR.x), m(1.8), m(INCENSE_ALTAR.z)], fov: 55 },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },

@@ -34,12 +34,12 @@ const SPILL = 0.3; // cool sky/moon/env fraction at the entrance, fading out 1.5
 export const INTERIOR = {
   uIlSource: { value: new THREE.Vector3() }, // world position the room ambient falls off from (m)
   uIlAmbient: { value: new THREE.Color(0, 0, 0) }, // warm room ambient (already flicker-scaled)
-  uIlFalloff: { value: 0.35 }, // 1 / (1 + (d * falloff)^2) shaping, 1/m
-  uIlSpec: { value: 10.0 }, // room ambient seen in reflections (metals), relative to diffuse
+  uIlFalloff: { value: 0.28 }, // 1 / (1 + (d * falloff)^2) shaping, 1/m
+  uIlSpec: { value: 14.0 }, // room ambient seen in reflections (metals), relative to diffuse
   uIlLobe: { value: 3.0 }, // extra reflected glow toward the menorah
   uIlUp: { value: 2.5 }, // extra reflected glow from the lit linen ceiling
   uIlMetalRough: { value: 0.45 }, // minimum roughness of metals inside
-  uIlMetalDiffuse: { value: 0.4 }, // diffuse fraction given to metals inside
+  uIlMetalDiffuse: { value: 0.65 }, // diffuse fraction given to metals inside
   uIlTint: { value: 1.0 }, // how much room reflections on metal take the metal's color
 };
 

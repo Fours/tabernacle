@@ -9,6 +9,8 @@ import { createTorches } from './scene/torches.js';
 import { createAltarFire } from './scene/altarFire.js';
 import { createLighting } from './scene/lighting.js';
 import { createMenorah } from './scene/menorah.js';
+import { createShowbread } from './scene/showbread.js';
+import { createIncenseAltar } from './scene/incenseAltar.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
@@ -49,7 +51,7 @@ const altar = createAltar();
 const altarFire = createAltarFire(altar.userData.hearth);
 const torches = createTorches();
 const menorah = createMenorah();
-const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches, menorah];
+const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches, menorah, createShowbread(), createIncenseAltar()];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
