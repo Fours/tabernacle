@@ -51,12 +51,14 @@ function bake(g, glowAt) {
  * @param {number} [o.layers=4]
  * @param {number} [o.logsPerLayer=4]
  * @param {number} [o.logRadius=0.065]   (m)
+ * @param {number} [o.leaners=4]         Loose logs leaning on the stack.
  * @param {number} [o.coals=70]          Glowing coal lumps on the bed.
+ * @param {number} [o.glow=2.2]          Ember emissive strength.
  * @param {number} [o.seed=5]
  * @returns {{ mesh: THREE.Mesh, height: number, update(time:number, level:number):void, dispose():void }}
  */
 export function createFirewood(o = {}) {
-  const { size = 1.2, layers = 4, logsPerLayer = 4, logRadius = 0.065, coals = 70, seed = 5 } = o;
+  const { size = 1.2, layers = 4, logsPerLayer = 4, logRadius = 0.065, leaners = 4, coals = 70, glow = 2.2, seed = 5 } = o;
   const rnd = rng(seed);
   const half = size / 2;
   const step = logRadius * 1.75; // logs of the next layer rest in the notches
@@ -95,8 +97,8 @@ export function createFirewood(o = {}) {
   }
 
   // ---- A few loose logs leaning on the stack -------------------------------------------
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + 0.6 + rnd() * 0.4;
+  for (let i = 0; i < leaners; i++) {
+    const a = (i / leaners) * Math.PI * 2 + 0.6 + rnd() * 0.4;
     const r = logRadius * (0.7 + 0.3 * rnd());
     const len = size * (0.55 + 0.15 * rnd());
     const g = logGeometry(r, len, rnd);
@@ -125,7 +127,7 @@ export function createFirewood(o = {}) {
   const geo = mergeGeometries(parts);
   parts.forEach((p) => p.dispose());
 
-  const uniforms = { uTime: { value: 0 }, uLevel: { value: 0 } };
+  const uniforms = { uTime: { value: 0 }, uLevel: { value: 0 }, uGlow: { value: glow } };
   const mat = new THREE.MeshStandardMaterial({
     name: 'firewood',
     color: 0xffffff,
@@ -136,6 +138,7 @@ export function createFirewood(o = {}) {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = uniforms.uTime;
     shader.uniforms.uLevel = uniforms.uLevel;
+    shader.uniforms.uGlow = uniforms.uGlow;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float aGlow;\nvarying float vGlow;\nvarying vec3 vLocal;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;\nvLocal = position;');
@@ -145,6 +148,7 @@ export function createFirewood(o = {}) {
         `#include <common>
 uniform float uTime;
 uniform float uLevel;
+uniform float uGlow;
 varying float vGlow;
 varying vec3 vLocal;
 float wHash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
@@ -162,7 +166,7 @@ float wNoise(vec3 p) {
   float cracks = smoothstep(0.42, 0.78, wNoise(vLocal * 26.0 + vec3(0.0, -uTime * 0.12, uTime * 0.05)));
   float pulse = 0.7 + 0.3 * wNoise(vLocal * 5.0 + vec3(uTime * 0.6)) + 0.25 * uLevel;
   float g = pow(max(vGlow, 0.0), 1.6) * mix(0.15, 1.0, cracks) * pulse;
-  totalEmissiveRadiance += vec3(1.0, 0.22, 0.03) * g * 2.2;
+  totalEmissiveRadiance += vec3(1.0, 0.22, 0.03) * g * uGlow;
 }`,
       );
   };

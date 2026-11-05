@@ -127,11 +127,21 @@ export const ALTAR = {
   x: 25,
   z: 0,
   wallThickness: 0.35, // acacia boards + bronze overlay (not in text)
-  hearthDrop: 0.45, // earth/stone fill surface sits this far below the rim (tradition: filled with earth)
+  hearthDrop: 0.9, // earth fill (ember bed) this far below the rim, under the grate (tradition: filled with earth)
   hornHeight: 1, // horns rise 1 cubit (rabbinic tradition)
   hornBaseRadius: 0.3, // not in text (stout, so the horns read as horns, not spikes)
   hornTipRadius: 0.09, // not in text (blunt, rounded tip)
   hornOutward: 0.22, // how far the horn tip leans outward along the corner diagonal (not in text)
+  hornFootprint: 0.85, // square foot where each horn grows out of the rim corner (not in text)
+  hornFillet: 0.38, // fraction of the horn's height over which the foot narrows into the horn
+  rimCapHeight: 0.07, // cast lip capping the wall tops, one piece with the horns (not in text)
+  rimCapOverhang: 0.04, // not in text
+  // Top grate: a heavy cast bronze grate over the fire inside the rim (not in text; the
+  // Ex 27:4 network is the exterior one below the ledge).
+  grateDrop: 0.18, // grate top this far below the rim
+  grateBar: 0.2, // bar width
+  grateDepth: 0.24, // bar depth
+  gratePitch: 0.62, // bar spacing (center to center)
   // Ledge (karkov) and bronze net (Ex 27:5): the net hangs beneath the ledge and reaches halfway
   // up the altar (1.5 cubits).
   ledgeTop: 2.25, // height of the ledge's top face (not in text; rabbinic: below the rim)
