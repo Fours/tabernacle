@@ -28,6 +28,10 @@ export const COURTYARD = {
   pegDistance: 3, // bronze pegs: horizontal distance outward from pillar line (not in text)
   gateWidth: 20, // centered on east side
   gatePillars: 4,
+  // Artistic license (DECISIONS.md): the middle gate post (z = 0) is left out and the two middle
+  // gate panels are drawn apart, gathered and tied back to the posts at z = +/-5 cubits.
+  gateOpenHalf: 5, // half-width of the open middle of the gate
+  gateTieHeight: 2.6, // tie-back height above ground (not in text)
   sideHangingWidth: 15, // each side of the gate, east side
   sideHangingPillars: 3,
 };
