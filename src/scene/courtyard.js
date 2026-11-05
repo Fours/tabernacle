@@ -171,6 +171,7 @@ export function createCourtyard() {
     capitals.setMatrixAt(i, M);
     colliders.push(circle(m(x), m(z), (SOCKET_W / 2) * 1.1));
   });
+  for (const im of [sockets, shafts, capitals]) im.castShadow = im.receiveShadow = true;
   group.add(sockets, shafts, capitals);
 
   // ---- Hangings, gate screen, fillets, hooks ---------------------------------------------
@@ -243,6 +244,7 @@ export function createCourtyard() {
   linen.bumpScale = 0.6;
   const hangings = new THREE.Mesh(clothGeometry(linenBuf), linen);
   hangings.name = 'hangings';
+  hangings.castShadow = hangings.receiveShadow = true;
   group.add(hangings);
 
   const weave = createLinenTexture();
@@ -257,6 +259,7 @@ export function createCourtyard() {
   });
   const gate = new THREE.Mesh(clothGeometry(gateBuf), gateMat);
   gate.name = 'gate-screen'; // non-colliding (Decisions log)
+  gate.castShadow = gate.receiveShadow = true;
   group.add(gate);
 
   // Silver fillets: rods between capitals (unit cylinder along X, scaled per span).

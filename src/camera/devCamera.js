@@ -17,6 +17,8 @@ export const PRESETS = {
   altartop: { pos: [m(ALTAR.x + 1.5), m(14), m(5.5)], target: [m(ALTAR.x), m(2.5), 0], fov: 50 },
   // Low side view along the ledge/net band from the south-east, plus utensils.
   altarlow: { pos: [m(ALTAR.x + 7), m(2.4), m(9)], target: [m(ALTAR.x), m(1.8), m(1)] },
+  // The altar fire close-up at eye level from the south-east (flames above the rim, hearth glow).
+  fire: { pos: [m(ALTAR.x + 7), eye, m(6)], target: [m(ALTAR.x), m(3.2), 0], fov: 55 },
   laver: { pos: [m(10 + 6), m(3.2), m(3 + 6)], target: [m(10), m(1.2), m(3)] },
   tent: {
     pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],

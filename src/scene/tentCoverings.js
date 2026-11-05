@@ -262,6 +262,7 @@ export function createCoverings() {
   });
   const goatMesh = new THREE.Mesh(goat.geo, hairMat);
   goatMesh.name = 'goat-hair-covering';
+  goatMesh.castShadow = goatMesh.receiveShadow = true;
   group.add(goatMesh);
 
   // ---- Ram skins dyed red, then tachash: roof only ----------------------------------------

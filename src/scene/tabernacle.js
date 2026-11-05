@@ -44,6 +44,7 @@ function buildBoardsAndSockets(group) {
   boardGeo.translate(0, m(H / 2), 0);
   const boardMesh = new THREE.InstancedMesh(boardGeo, GOLD_OVERLAY, boards.length);
   boardMesh.name = 'boards';
+  boardMesh.castShadow = boardMesh.receiveShadow = true;
   // Square frustum (slightly narrower at the top) so neighbouring sockets read separately.
   const sockGeo = new THREE.CylinderGeometry(Math.SQRT1_2 * 0.9, Math.SQRT1_2, 1, 4, 1).toNonIndexed();
   sockGeo.rotateY(Math.PI / 4);
@@ -52,6 +53,7 @@ function buildBoardsAndSockets(group) {
   sockGeo.translate(0, m(T.socketHeight / 2), 0);
   const sockMesh = new THREE.InstancedMesh(sockGeo, SILVER, boards.length * 2);
   sockMesh.name = 'silver-sockets';
+  sockMesh.receiveShadow = true;
   const c = new THREE.Color();
   let seed = 3;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -180,6 +182,7 @@ function screenMesh() {
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'entrance-screen';
+  mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -192,6 +195,7 @@ export function createTabernacle() {
   const ent = entranceParts();
   const goldMesh = new THREE.Mesh(merge([...barParts(), ...ent.gold]), GOLD);
   goldMesh.name = 'gold-bars-rings-pillars';
+  goldMesh.castShadow = goldMesh.receiveShadow = true;
   group.add(goldMesh);
 
   group.add(screenMesh());
