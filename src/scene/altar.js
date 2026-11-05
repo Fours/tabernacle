@@ -10,60 +10,29 @@ function lathe(profile, segments = 24) {
   return new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(m(r), m(y))), segments);
 }
 
-/**
- * A horn cast in one piece with the rim: it grows out of a square foot whose outer faces are
- * flush with the rim's, narrows through a concave fillet into a round horn, then tapers and
- * leans out over the corner. Cross-sections morph from a rounded square (superellipse) to a
- * circle. Sits at the local origin (foot center); `sx`, `sz` give the corner's direction.
- */
-function moldedHornGeometry(sx, sz) {
-  const hh = m(A.hornHeight), half = m(A.hornFootprint) / 2;
-  const rBase = m(A.hornBaseRadius), rTip = m(A.hornTipRadius), f = A.hornFillet;
-  // Lean so the tip ends just inside the outer corner (plus the horn's own outward curve).
-  const lean = half - m(0.14) + m(A.hornOutward) * 0.3;
-  const pts = [[0, -0.02], [0, 0.3], [0.32, 0.72], [1, 1]].map(
-    ([o, h]) => new THREE.Vector3(sx * o * lean, h * hh, sz * o * lean),
+/** Tapered, outward-curving horn rising from a corner; sits at the local origin. */
+function hornGeometry(outDir) {
+  const hh = m(A.hornHeight), out = m(A.hornOutward);
+  const pts = [[0, 0], [0.05, 0.4], [0.35, 0.75], [1, 1]].map(
+    ([o, h]) => new THREE.Vector3(outDir.x * o * out, h * hh, outDir.z * o * out),
   );
-  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-  const ts = 26, rs = 40;
-  const pos = [];
-  const c = new THREE.Vector3(), tan = new THREE.Vector3(), v = new THREE.Vector3();
-  const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const ts = 18, rs = 10;
+  const tube = new THREE.TubeGeometry(curve, ts, 1, rs, false);
+  const p = tube.attributes.position;
+  const rBase = m(A.hornBaseRadius), rTip = m(A.hornTipRadius);
+  const c = new THREE.Vector3(), v = new THREE.Vector3();
   for (let i = 0; i <= ts; i++) {
-    const u = i / ts;
-    curve.getPointAt(u, c);
-    curve.getTangentAt(u, tan);
-    q.setFromUnitVectors(up, tan);
-    let R, n;
-    if (u < f) {
-      const w = 1 - u / f;
-      R = rBase + (half - rBase) * w * w; // concave fillet into the rim
-      n = 2 + 10 * w * w * w; // rounded square -> circle
-    } else {
-      R = THREE.MathUtils.lerp(rBase, rTip, Math.pow((u - f) / (1 - f), 1.3));
-      n = 2;
-    }
-    const e = 2 / n;
+    const t = i / ts;
+    curve.getPointAt(t, c);
+    const r = THREE.MathUtils.lerp(rBase, rTip, Math.pow(t, 1.4)); // stays stout, then rounds off
     for (let j = 0; j <= rs; j++) {
-      const a = (j / rs) * Math.PI * 2;
-      const ca = Math.cos(a), sa = Math.sin(a);
-      v.set(Math.sign(ca) * Math.pow(Math.abs(ca), e) * R, 0, Math.sign(sa) * Math.pow(Math.abs(sa), e) * R);
-      v.applyQuaternion(q).add(c);
-      pos.push(v.x, v.y, v.z);
+      const k = i * (rs + 1) + j;
+      v.fromBufferAttribute(p, k).sub(c).multiplyScalar(r).add(c);
+      p.setXYZ(k, v.x, v.y, v.z);
     }
   }
-  const idx = [];
-  for (let i = 0; i < ts; i++) {
-    for (let j = 0; j < rs; j++) {
-      const a = i * (rs + 1) + j, b = a + rs + 1;
-      idx.push(a, a + 1, b, b, a + 1, b + 1);
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return [g, new THREE.SphereGeometry(rTip, 12, 8).translate(pts[3].x, pts[3].y, pts[3].z)];
+  return [tube, new THREE.SphereGeometry(rTip, 8, 6).translate(pts[3].x, pts[3].y, pts[3].z)];
 }
 
 /** Gradient for the grate's heat glow: uv.x = heat (0 cold .. 1 glowing), sRGB. */
@@ -188,23 +157,15 @@ export function createAltar() {
   bronze.push(boxPart(t, H, W - 2 * t, [-(L - t) / 2, H / 2, 0], 'cubit'));
   bronze.push(boxPart(t, H, W - 2 * t, [(L - t) / 2, H / 2, 0], 'cubit'));
 
-  // Top: a cast lip capping the walls, with the horns growing out of its corners (Ex 27:2,
-  // "of one piece with it"), merged into one mesh. Kept out of the shadow map: the real fire is
-  // a broad source whose flames rise above the horns, so their shadows would be very soft, not
+  // Horns: one piece with the corners. Own mesh so they don't cast shadows: the real fire is a
+  // broad source whose flames rise above the horns, so their shadows would be very soft, not
   // the long hard wedges a point light throws across the courtyard.
-  const top = [];
-  const ch = m(A.rimCapHeight), ov = m(A.rimCapOverhang);
-  for (const sz of [-1, 1]) {
-    top.push(boxPart(L + 2 * ov, ch, t + ov, [0, H + ch / 2, sz * ((W - t) / 2 + ov / 2)], 'cubit'));
-  }
-  for (const sx of [-1, 1]) {
-    top.push(boxPart(t + ov, ch, W - 2 * t, [sx * ((L - t) / 2 + ov / 2), H + ch / 2, 0], 'cubit'));
-  }
-  const hHalf = m(A.hornFootprint) / 2;
+  const horns = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      for (const g of moldedHornGeometry(sx, sz)) {
-        top.push(part(g, { pos: [sx * (L / 2 + ov - hHalf), H + ch, sz * (W / 2 + ov - hHalf)] }));
+      const dir = new THREE.Vector3(sx, 0, sz).normalize();
+      for (const g of hornGeometry(dir)) {
+        horns.push(part(g, { pos: [sx * (L - t) / 2, H - m(0.03), sz * (W - t) / 2] }));
       }
     }
   }
@@ -274,10 +235,10 @@ export function createAltar() {
   BRONZE_PLATED.shadowSide = THREE.DoubleSide;
   group.add(bronzeMesh);
 
-  const topMesh = new THREE.Mesh(merge(top), BRONZE_PLATED);
-  topMesh.name = 'altar-top';
-  topMesh.receiveShadow = true;
-  group.add(topMesh);
+  const hornMesh = new THREE.Mesh(merge(horns), BRONZE_PLATED);
+  hornMesh.name = 'altar-horns';
+  hornMesh.receiveShadow = true;
+  group.add(hornMesh);
 
   const acaciaMesh = new THREE.Mesh(merge(acacia), ACACIA);
   acaciaMesh.name = 'altar-pole-cores';

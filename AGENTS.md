@@ -69,7 +69,7 @@ src/
     ground.js           procedural sand
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
     drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
-    altar.js            hollow bronze altar, top grate, ember bed, horns molded into the rim, ledge, network, rings, poles, utensils
+    altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)

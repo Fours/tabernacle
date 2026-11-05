@@ -55,10 +55,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   gaps. The grate's heat tint is baked per vertex with an emissive glow on its undersides; it
   casts no shadow. `altar.userData.hearth = {x, y, bedY, z, size}` in world meters: `y` is the
   grate top, `bedY` the ember bed.
-- 2026-11-05: The horns are 1 cubit tall (rabbinic), blunt and curved, "of one piece" with the
-  altar (Ex 27:2): each rises from a 0.85-cubit square foot flush with a cast rim lip, with a
-  concave fillet over its lower 38% blending square to round, then tapers and leans out. Lip
-  and horns are one merged mesh (`altar-top`) that casts no shadow (otherwise wedge shadows).
+- 2026-11-05: The horns are 1 cubit tall (rabbinic), blunt and curved. Each has a 0.3-cubit
+  base and 0.09-cubit tip. They are a separate mesh that casts no shadow — otherwise they throw
+  long wedge shadows. A molded version (horns growing out of a cast rim lip with fillets) was
+  tried and reverted at the user's request: it looked worse.
 - 2026-11-05: The ledge top is at 2.25 cubits and projects 0.6. The bronze network hangs from
   the ledge edge down to 1.5 cubits (halfway up the altar). The carrying poles run E–W on the
   north and south sides and stick out 1.5 cubits past the rings.

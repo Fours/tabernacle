@@ -185,7 +185,7 @@ sound; daytime.
 | 2 Stars and moon | Sonnet/med | 1 | 57k | Largest star layers capped; moon 0.8° → 0.33° with tighter halo |
 | 3 Embroidery | Opus/med | 1 | 135k | Procedural stitched garden embroidery (vine/pomegranate gate, palm/almond door) with bump |
 | 4 Open gate | Opus/med | 1 | 104k | Middle post removed, pleated tied-back drapes, spawn at z = 0; +0 draws |
-| 5 Altar grate | Opus/med | 1 | 134k | Cast grate over a glowing ember bed, horns molded into a rim lip; +1 draw |
+| 5 Altar grate | Opus/med | 1 | 134k | Cast grate over a glowing ember bed; +1 draw. The molded horns were later reverted at the user's request |
 | 6 Open door | Opus/med | 1 | 135k | Entrance pillars gone, gold beam, tied-back screen, soft exterior spill; shared `drape.js` |
 | 7 Pillar of fire | Opus/med | 1 | 127k | One-draw analytic volume column + 52 m shaft, 12th point light, `firepillar` preset |
 
