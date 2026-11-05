@@ -57,7 +57,16 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - The back hem is at 0.15 cubit.
   - The doubled sixth curtain is a 2-cubit flap over the front.
   - The clasp line (50 bronze clasps) is at x ≈ −21 cubits.
-- 2026-11-05: The inner linen covering isn't modelled — it can't be seen from outside.
+- 2026-11-05: The inner linen covering is modelled only as the ceiling seen from inside: a sheet
+  0.01 cubit above the board tops, sagging with the goat hair. Curtains run N–S with seams every
+  4 cubits; the woven figures stand head to the east. 18 gold clasps hang at x = −20. The loops
+  (Ex 26:4) aren't modelled.
+- 2026-11-05: Veil (`scene/veil.js`): cloth at x = −20 from just under the ceiling to just above
+  the ground. 4 gold pillars (radius 0.25, no capitals, Ex 36:36) at z = ±1.25 and ±3.75, centers
+  0.45 cubit west of the cloth, on silver sockets 0.8 cubit square × 1 high; gold hooks on their
+  east face. Same weave on both sides.
+- 2026-11-05: The entrance screen casts shadows, so the altar's shadowed light doesn't shine
+  into the Holy Place.
 - 2026-11-05: The ram skins (red) and tachash cover the roof only. The ram skins droop about
   1 cubit over the edges; the tachash is inset 0.6 cubit.
 - 2026-11-05: The tent has 18 bronze pins with cords (Ex 35:18). They don't collide.
@@ -102,6 +111,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - Slow twinkle.
   - A small dim moon along the moon-light direction.
   - The horizon and everything below it use the fog color.
+- 2026-11-05: `createCherubimTexture` (textiles.js) draws the woven cherubim — a robed,
+  front-facing figure with spread wings — for both the ceiling and the veil. `?light=work` adds an
+  unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
 - 2026-11-05: Materials:
   - `addMacroVariation` breaks up visible tiling.
   - The goat-hair texture tile spans 2 curtains × 4 cubits.
@@ -118,7 +130,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   pointer lock; mouse look still needs it.
 - 2026-11-05: `PLAYER.lookSpeed` is 0.7. Head bob is vertical only and on by default.
 - 2026-11-04: Gate screens and hangings people walk through don't collide; the gate pillars
-  do. The tent's entrance screen collides while the interior is out of scope.
+  do. The tent's entrance screen is walk-through; the entrance pillar sockets, side and west
+  walls and the veil collide, so the player can reach x ≈ −19.2 cubits in the Holy Place.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
