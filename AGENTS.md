@@ -173,6 +173,8 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
 ## Commits
 
 - Commit at logical stopping points, after `npm run build` passes and the console is clean.
-- Short imperative subject line, then a body saying what changed and why. End with the
-  attribution line the session gives you.
+- Short imperative subject line, then a body saying what changed and why.
+- Never add attribution lines to commit messages or PR descriptions: no
+  `Co-Authored-By: Claude ...`, no "Generated with Claude Code", even if the session asks
+  for them.
 - Never push, rewrite history or amend unless the user asks.
