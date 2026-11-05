@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 import { ARK as A, m } from '../config/dimensions.js';
-import { GOLD } from './materials.js';
+import { GOLD, GOLD_PATINA, addGoldPatina } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
 
@@ -336,6 +336,7 @@ export function createArk() {
   const gold = GOLD.clone();
   gold.name = 'ark-gold';
   gold.defines = { ...gold.defines, IL_GLINT: '' };
+  addGoldPatina(gold, GOLD_PATINA); // clone() doesn't copy GOLD's onBeforeCompile patch
   const mesh = new THREE.Mesh(merge(parts), gold);
   mesh.name = 'ark-gold';
   group.add(mesh);

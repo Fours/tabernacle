@@ -114,6 +114,103 @@ export function addFireBounce(mat, { center, inner = 1.2, outer = 4.5, height = 
   return mat;
 }
 
+// 3D world-space value noise for the gold patina (no projection axis, so no streaks on any face).
+const PATINA_GLSL = /* glsl */ `
+float gpHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float gpNoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  vec3 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(gpHash(i), gpHash(i + vec3(1, 0, 0)), u.x), mix(gpHash(i + vec3(0, 1, 0)), gpHash(i + vec3(1, 1, 0)), u.x), u.y),
+             mix(mix(gpHash(i + vec3(0, 0, 1)), gpHash(i + vec3(1, 0, 1)), u.x), mix(gpHash(i + vec3(0, 1, 1)), gpHash(i + vec3(1, 1, 1)), u.x), u.y), u.z);
+}
+`;
+
+/**
+ * Used-gold patina: subtle tarnish and grime on gold, all in world space (no textures, no draws).
+ * - Tarnish: low-frequency patches, slightly darker/browner and rougher.
+ * - Grime: darker and rougher toward the floor (fading out by `grimeHeight` m), on faces that
+ *   look down, and in concave creases (curvature from screen-space derivatives of the normal).
+ * - Smudges: faint hazy handling blotches between `smudgeBand` heights (m), mostly roughness.
+ * - Micro-scratches: fine streaks in roughness, faded out before they alias.
+ * Metalness stays ≥ 0.75 (interiorLight.js treats ≥ 0.7 as metal). Inside the tent the interior
+ * mask re-colours gold to its own hue keeping luminance, and clamps roughness to ≥ 0.45, so the
+ * wear reads there as darkening and as roughness above 0.45 (blurrier probe reflections).
+ * Patches `onBeforeCompile` (chains any existing patch).
+ * @param {THREE.MeshStandardMaterial} mat
+ * @param {{ scale?: number, tarnish?: number, grime?: number, grimeHeight?: number, smudge?: number,
+ *   smudgeBand?: number[], scratches?: number, rough?: number, tarnishRough?: number }} o
+ *   scale: tarnish noise frequency (1/m); tarnish/grime/smudge: darkening strengths (0..1);
+ *   scratches: roughness amplitude of the scratches; rough / tarnishRough: roughness added by
+ *   full grime / full tarnish.
+ */
+export function addGoldPatina(mat, {
+  scale = 1.1, tarnish = 0.14, grime = 0.4, grimeHeight = 0.55, smudge = 0.15,
+  smudgeBand = [0.6, 1.5], scratches = 0.08, rough = 0.32, tarnishRough = 0.15,
+} = {}) {
+  const prev = mat.onBeforeCompile;
+  const f = (v) => v.toFixed(4);
+  mat.onBeforeCompile = (shader, renderer) => {
+    if (prev) prev(shader, renderer);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGpPos;')
+      .replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+{
+  vec4 gp = vec4(transformed, 1.0);
+  #ifdef USE_INSTANCING
+  gp = instanceMatrix * gp;
+  #endif
+  vGpPos = (modelMatrix * gp).xyz;
+}`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vGpPos;\n${PATINA_GLSL}`)
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+{
+  vec3 p = vGpPos;
+  vec3 nW = inverseTransformDirection(normal, viewMatrix);
+  // Tarnish: two octaves of broad patches.
+  float t = gpNoise(p * ${f(scale)}) * 0.65 + gpNoise(p * ${f(scale * 3.1)} + 7.3) * 0.35;
+  float tar = smoothstep(0.3, 0.8, t);
+  // Concave creases: d(normal)·d(position) < 0 (view space; rotation-invariant), in 1/m.
+  vec3 vp = -vViewPosition;
+  vec3 dpx = dFdx(vp), dpy = dFdy(vp);
+  float kx = dot(dFdx(normal), dpx) / max(dot(dpx, dpx), 1e-8);
+  float ky = dot(dFdy(normal), dpy) / max(dot(dpy, dpy), 1e-8);
+  float crease = clamp(-(kx + ky) * 0.02, 0.0, 1.0);
+  // Grime: low down, under overhangs, in creases; broken up by noise.
+  float low = 1.0 - smoothstep(0.0, ${f(grimeHeight)}, p.y);
+  float down = smoothstep(0.1, 0.8, -nW.y);
+  float gn = gpNoise(p * 6.0 + 3.1);
+  float gr = clamp((low * 0.8 + down * 0.35 + crease * 0.6) * (0.55 + 0.9 * gn) - 0.05, 0.0, 1.0);
+  // Handling smudges: hazy blotches at hand height.
+  float band = smoothstep(${f(smudgeBand[0] - 0.2)}, ${f(smudgeBand[0])}, p.y) * (1.0 - smoothstep(${f(smudgeBand[1])}, ${f(smudgeBand[1] + 0.25)}, p.y));
+  float sm = band * smoothstep(0.62, 0.82, gpNoise(p * 9.0 + 11.7));
+  // Micro-scratches: fine streaks, faded where they'd alias.
+  float sc = 0.0;
+  {
+    vec3 sp = p * vec3(90.0, 4.0, 90.0);
+    float sv = dot(sp, vec3(0.8, 0.0, -0.6)) + gpNoise(p * 3.0) * 4.0;
+    float fw = fwidth(sv);
+    sc = smoothstep(0.75, 0.95, gpNoise(vec3(sv, sp.y, dot(sp, vec3(0.6, 0.0, 0.8)) * 0.05))) * (1.0 - smoothstep(0.3, 0.9, fw));
+  }
+  vec3 tarCol = mix(vec3(1.0), vec3(0.74, 0.62, 0.44), tar * ${f(tarnish / 0.14)});
+  vec3 grCol = mix(vec3(1.0), vec3(0.42, 0.33, 0.22), gr * ${f(grime / 0.4)});
+  diffuseColor.rgb *= clamp(tarCol * grCol * (1.0 - ${f(smudge)} * sm), 0.0, 1.0);
+  roughnessFactor = clamp(roughnessFactor + tar * ${f(tarnishRough)} + gr * ${f(rough)} + sm * 0.25 + sc * ${f(scratches)}, 0.04, 1.0);
+  metalnessFactor = max(metalnessFactor - gr * 0.08, min(metalnessFactor, 0.75));
+}`,
+      );
+  };
+  const key = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => `${key}|patina-${scale}-${tarnish}-${grime}-${grimeHeight}-${smudge}-${smudgeBand}-${scratches}-${rough}-${tarnishRough}`;
+  mat.needsUpdate = true;
+  return mat;
+}
+
 /** Vertical wood-grain texture for acacia (procedural). */
 function acaciaGrainTexture() {
   const w = 64, h = 256;
@@ -252,12 +349,16 @@ export const SILVER = new THREE.MeshStandardMaterial({
   metalness: 0.85,
 });
 
+/** Patina settings for the furniture gold (GOLD and its clones, e.g. the ark's). */
+export const GOLD_PATINA = { scale: 2.0, tarnish: 0.18 };
+
 export const GOLD = new THREE.MeshStandardMaterial({
   name: 'gold',
   color: COLORS.gold,
   roughness: 0.3,
   metalness: 0.85,
 });
+addGoldPatina(GOLD, GOLD_PATINA);
 
 export const ACACIA = new THREE.MeshStandardMaterial({
   name: 'acacia',
@@ -353,3 +454,5 @@ export const GOLD_OVERLAY = new THREE.MeshStandardMaterial({
   roughness: 0.32,
   metalness: 0.85,
 });
+// Walls: gentler tarnish and fewer smudges (big flat areas show blotches more than furniture).
+addGoldPatina(GOLD_OVERLAY, { scale: 0.8, tarnish: 0.09, smudge: 0.06, tarnishRough: 0.05 });
