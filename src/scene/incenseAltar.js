@@ -9,7 +9,7 @@ import { createIncenseSmoke } from './fire.js';
 // horns of one piece with it, a crown around the top, two rings under the crown on each of the
 // north and south sides, and two poles. On top, a gold firepan with a few glowing coals and a
 // thin wisp of incense smoke. One merged gold mesh, one coals mesh (emissive: no light), one
-// instanced smoke draw. Local frame: origin on the floor at the altar's center.
+// ribbon smoke draw. Local frame: origin on the floor at the altar's center.
 
 const S = m(A.size), H = m(A.height);
 const CW = m(A.crownWidth), CH = m(A.crownHeight), LIP = m(A.crownLip);
@@ -151,9 +151,9 @@ export function createIncenseAltar() {
   coalMesh.position.y = H;
   group.add(coalMesh);
 
-  // Incense smoke rising from the coals: a thin ribbon at the root, widening and thinning into a
-  // soft plume as it rises.
-  const smoke = createIncenseSmoke({ count: 240, height: 1.9, size: 0.08, opacity: 0.12, color: 0xb4ab9e, spread: 0.8, grow: 8, cycle: 15 });
+  // Incense smoke rising from the coals: a thin laminar thread that sways, twists and splits
+  // into curling wisps, fading into a faint haze about 1.3 m up.
+  const smoke = createIncenseSmoke();
   smoke.mesh.position.set(0, H + m(0.14), 0);
   group.add(smoke.mesh);
 
