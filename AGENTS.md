@@ -263,7 +263,7 @@ has checked and committed it.
   *Accept when:* the `corner` and `gate` close-ups read clearly as linen on silver-capped
   pillars with bronze bases, and the frame rate holds.
 
-- [ ] **Step 3: Bronze altar in detail.**
+- [x] **Step 3: Bronze altar in detail.**
   Bronze-overlaid hollow altar with horns, ledge, grating halfway up, 4 rings and 2 poles.
   Optional utensils nearby. Optional laver detail.
   *Accept when:* the `altar` view matches every item in the altar spec.
@@ -335,3 +335,12 @@ Record interpretive or technical choices here (date, decision, reason).
 - 2026-11-05: Gate screen embroidery is geometric only (bands, lozenges, eight-pointed stars).
 - 2026-11-05: Shared materials/colors live in `src/scene/materials.js`; textile textures
   (linen, embroidered screen) in `src/scene/textiles.js`. Reuse them.
+- 2026-11-05: Altar is hollow, walls 0.35 cubit thick, filled with earth to 0.45 cubit below
+  the rim as a hearth (rabbinic). `altar.userData.hearth = {x, y, z, size}` (world meters).
+- 2026-11-05: Altar horns 1 cubit tall (rabbinic), curved/tapered. Ledge top at 2.25 cubits,
+  projecting 0.6; bronze network hangs from the ledge edge down to 1.5 cubits (halfway).
+  Poles run E–W on the north and south sides, 1.5 cubits past the rings.
+- 2026-11-05: Utensils lie south of the altar (no colliders). Laver is a reconstructed
+  human-scale bronze basin on a foot and stem, rim ≈ 0.9 m.
+- 2026-11-05: Step 7 notes: altar bronze seam texture reads a bit brick-like; horns read as
+  thin spikes from some angles — soften/thicken when refining materials.
