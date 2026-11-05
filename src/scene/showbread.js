@@ -144,8 +144,9 @@ function createBreadTextures(size = 768) {
   const g = cc.getContext('2d'), h = hc.getContext('2d');
 
   // Base colour and height from the noise fields.
-  const GOLD_C = [238, 184, 104], BROWN_C = [178, 110, 48], PALE_C = [240, 208, 146];
-  const SCORCH_C = [74, 40, 16], CHAR_C = [30, 17, 9];
+  // Tan wheat crust: low saturation so the menorah's warm light doesn't push it to red.
+  const GOLD_C = [222, 188, 138], BROWN_C = [186, 148, 102], PALE_C = [234, 214, 176];
+  const SCORCH_C = [112, 88, 62], CHAR_C = [58, 46, 34];
   const ci = g.createImageData(size, size), hi = h.createImageData(size, size);
   const px = [0, 0, 0];
   for (let i = 0; i < size * size; i++) {
@@ -153,9 +154,9 @@ function createBreadTextures(size = 768) {
     mix3(px, GOLD_C, BROWN_C, sstep(0.36, 0.62, m));
     mix3(px, px, PALE_C, sstep(0.4, 0.3, m) * 0.4);
     const sc = sstep(0.655, 0.75, scorchF[i]) * (0.6 + 0.4 * sstep(0.35, 0.65, gr));
-    mix3(px, px, SCORCH_C, sc * 0.8);
-    const ch = sstep(0.72, 0.77, charF[i]) * (0.7 + 0.3 * sstep(0.3, 0.7, gr));
-    mix3(px, px, CHAR_C, ch);
+    mix3(px, px, SCORCH_C, sc * 0.35);
+    const ch = sstep(0.75, 0.8, charF[i]) * (0.7 + 0.3 * sstep(0.3, 0.7, gr));
+    mix3(px, px, CHAR_C, ch * 0.6);
     const f = 0.92 + 0.16 * gr;
     ci.data[i * 4] = px[0] * f;
     ci.data[i * 4 + 1] = px[1] * f;
@@ -198,17 +199,17 @@ function createBreadTextures(size = 768) {
       h.arc(cx, cy, r * 1.2, 0, Math.PI * 2);
       h.stroke();
       if (kind < 0.45) { // scorched cap
-        radial(g, cx, cy, r * 0.9, [[0, 'rgba(48,24,9,0.8)'], [0.6, 'rgba(70,36,14,0.5)'], [1, 'rgba(70,36,14,0)']]);
+        radial(g, cx, cy, r * 0.9, [[0, 'rgba(92,72,50,0.55)'], [0.6, 'rgba(110,88,62,0.3)'], [1, 'rgba(110,88,62,0)']]);
       } else if (kind < 0.8) { // pale, thin-skinned blister
         radial(g, cx, cy, r, [[0, 'rgba(244,214,150,0.5)'], [0.7, 'rgba(236,196,128,0.25)'], [1, 'rgba(236,196,128,0)']]);
-        g.strokeStyle = 'rgba(90,50,20,0.18)';
+        g.strokeStyle = 'rgba(110,86,60,0.18)';
         g.lineWidth = Math.max(1, r * 0.12);
         g.beginPath();
         g.arc(cx + r * 0.1, cy + r * 0.1, r * 1.1, 0.2, 2.4);
         g.stroke();
       } else { // burst
         radial(g, cx, cy, r * 0.7, [[0, 'rgba(236,200,140,0.9)'], [1, 'rgba(236,200,140,0)']]);
-        g.strokeStyle = 'rgba(55,28,10,0.7)';
+        g.strokeStyle = 'rgba(84,66,46,0.6)';
         g.lineWidth = Math.max(1.2, r * 0.14);
         g.beginPath();
         g.arc(cx, cy, r * 0.75, 0.4, 5.6);
@@ -244,7 +245,7 @@ function createBreadTextures(size = 768) {
           ctx.stroke();
         };
         if (crumb) stroke(g, 'rgba(238,204,140,0.35)', w * 1.6, 1.5, -1.5);
-        stroke(g, 'rgba(46,24,9,0.85)', w);
+        stroke(g, 'rgba(78,60,42,0.75)', w);
         stroke(h, 'rgba(0,0,0,0.45)', w * 2.6);
         stroke(h, 'rgba(0,0,0,0.9)', w);
       }
@@ -255,7 +256,7 @@ function createBreadTextures(size = 768) {
   for (let i = 0; i < 140; i++) {
     const x = rnd() * size, y = rnd() * size, r = 1.3 + rnd() * 2;
     wrap(x, y, r * 2, (cx, cy) => {
-      radial(g, cx, cy, r * 1.6, [[0, 'rgba(34,17,6,0.85)'], [0.6, 'rgba(60,30,10,0.45)'], [1, 'rgba(60,30,10,0)']]);
+      radial(g, cx, cy, r * 1.6, [[0, 'rgba(66,52,38,0.6)'], [0.6, 'rgba(90,72,52,0.3)'], [1, 'rgba(90,72,52,0)']]);
       radial(h, cx, cy, r * 1.8, [[0, 'rgba(0,0,0,0.9)'], [1, 'rgba(0,0,0,0)']]);
     });
   }
@@ -369,14 +370,14 @@ function loaf(rnd) {
     const a = (px / TILE) * flip, b = pz / TILE;
     uv[i * 2] = a * cr - b * sr + uvOff[0];
     uv[i * 2 + 1] = a * sr + b * cr + uvOff[1];
-    // Edge browning: darker and redder toward the rim, with irregular charred spots.
+    // Edge browning: a little darker and browner toward the rim, with faint toasted spots.
     const rr = Math.min(s.rr, 1.05);
     const ed = ss(rr, 0.6, 1.0);
     const nE = 0.5 + 0.25 * Math.sin(5 * s.th + charPh[0]) + 0.17 * Math.sin(11 * s.th + charPh[1]) + 0.08 * Math.sin(23 * s.th + charPh[2]);
     const chr = ss(nE, 0.58, 0.84) * ss(rr, 0.82, 1.0);
     const bottom = yo < -h * 0.2 ? 0.85 : 1;
-    const m1 = (1 - 0.28 * ed - 0.42 * chr) * tone * bottom;
-    c.setRGB(m1, Math.pow(m1, 1.25 + ed * 0.4) * (1 + warm), Math.pow(m1, 1.7 + ed * 0.8));
+    const m1 = (1 - 0.2 * ed - 0.25 * chr) * tone * bottom;
+    c.setRGB(m1, Math.pow(m1, 1.05 + ed * 0.1) * (1 + warm), Math.pow(m1, 1.15 + ed * 0.2));
     col.set([c.r, c.g, c.b, 1], i * 4);
   }
   g.computeVertexNormals();
