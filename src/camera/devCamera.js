@@ -13,6 +13,11 @@ export const PRESETS = {
   iso: { pos: [m(60), m(45), m(68)], target: [0, 0, 0] },
   gate: { pos: [m(hx + 20), eye, 0], target: [m(hx), eye, 0] },
   altar: { pos: [m(ALTAR.x + 9), m(7), m(8)], target: [m(ALTAR.x), m(1.5), 0] },
+  // Straight-ish down into the altar: hearth, wall thickness, horns, ledge, net, rings, poles.
+  altartop: { pos: [m(ALTAR.x + 1.5), m(14), m(5.5)], target: [m(ALTAR.x), m(2.5), 0], fov: 50 },
+  // Low side view along the ledge/net band from the south-east, plus utensils.
+  altarlow: { pos: [m(ALTAR.x + 7), m(2.4), m(9)], target: [m(ALTAR.x), m(1.8), m(1)] },
+  laver: { pos: [m(10 + 6), m(3.2), m(3 + 6)], target: [m(10), m(1.2), m(3)] },
   tent: {
     pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],
     target: [m(TABERNACLE.interiorMaxX), m(4), 0],

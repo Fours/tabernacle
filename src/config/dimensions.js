@@ -50,22 +50,49 @@ export const TABERNACLE = {
   entranceScreenThickness: 0.1, // blockout (not in text)
 };
 
-// Bronze altar (Ex 27:1-8; 38:1-7)
+// Bronze altar (Ex 27:1-8; 38:1-7). Only length/width/height are in the text; the rest is
+// reconstruction (see AGENTS.md Decisions log).
 export const ALTAR = {
   length: 5,
   width: 5,
   height: 3,
   x: 25,
   z: 0,
-  hornSize: 0.5, // not in text (blockout)
+  wallThickness: 0.35, // acacia boards + bronze overlay (not in text)
+  hearthDrop: 0.45, // earth/stone fill surface sits this far below the rim (tradition: filled with earth)
+  hornHeight: 1, // horns rise 1 cubit (rabbinic tradition)
+  hornBaseRadius: 0.2, // not in text
+  hornTipRadius: 0.03, // not in text
+  hornOutward: 0.22, // how far the horn tip leans outward along the corner diagonal (not in text)
+  // Ledge (karkov) and bronze net (Ex 27:5): the net hangs beneath the ledge and reaches halfway
+  // up the altar (1.5 cubits).
+  ledgeTop: 2.25, // height of the ledge's top face (not in text; rabbinic: below the rim)
+  ledgeProjection: 0.6, // how far the ledge sticks out from the wall (not in text)
+  ledgeThickness: 0.12, // not in text
+  gratingBottom: 1.5, // halfway up the altar (Ex 27:5)
+  gratingBarSize: 0.04, // lattice bar thickness (not in text)
+  gratingSpacing: 0.3, // lattice pitch (not in text)
+  ringRadius: 0.25, // bronze ring centerline radius, at the grating's 4 corners (not in text)
+  ringTube: 0.05, // not in text
+  poleRadius: 0.09, // acacia poles overlaid with bronze (not in text)
+  poleOverhang: 1.5, // how far each pole extends beyond the outer ring centers (not in text)
 };
 
-// Laver (optional; no dimensions in text — placeholder values)
+// Utensils (Ex 27:3; 38:3), placed on the ground near the altar's south side. Sizes not in text.
+export const ALTAR_UTENSILS = {
+  offsetZ: 4.6, // cubits south of the altar's center
+};
+
+// Laver (Ex 30:17-21; 38:8): bronze basin on a bronze base. Text gives no dimensions, so this is
+// a human-scale reconstruction (rim at ~0.9 m, convenient for washing hands and feet).
 export const LAVER = {
   x: 10,
   z: 3,
-  radius: 1,
-  height: 2,
+  radius: 1, // basin outer radius at the rim
+  height: 2, // overall height (rim)
+  footRadius: 0.85,
+  stemRadius: 0.28,
+  spouts: 4, // small bronze spouts around the basin (not in text)
 };
 
 // Non-biblical: human / player values, in meters.

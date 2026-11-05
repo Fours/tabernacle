@@ -44,6 +44,67 @@ function acaciaGrainTexture() {
   return t;
 }
 
+/**
+ * Bronze overlay plates (procedural): 1-cubit tile with seam lines, corner rivets and light
+ * patina streaks. Meant for geometry whose UVs are in cubits (see `cubitUV` in altar.js).
+ */
+function bronzePlateTexture() {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.fillStyle = '#e6e6e6';
+  g.fillRect(0, 0, S, S);
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * S, y = rnd() * S;
+    g.fillStyle = rnd() < 0.5 ? `rgba(90,70,50,${0.05 + rnd() * 0.1})` : `rgba(255,255,255,${0.05 + rnd() * 0.1})`;
+    g.fillRect(x, y, 1 + rnd() * 3, 6 + rnd() * 22);
+  }
+  // Seams along the tile edges (wrapping, so draw on both sides).
+  g.fillStyle = 'rgba(40,24,10,0.75)';
+  g.fillRect(0, 0, 3, S);
+  g.fillRect(0, 0, S, 3);
+  g.fillStyle = 'rgba(255,230,190,0.25)';
+  g.fillRect(3, 0, 1, S);
+  g.fillRect(0, 3, S, 1);
+  // Rivets.
+  for (const [rx, ry] of [[12, 12], [S - 12, 12], [12, S - 12], [S - 12, S - 12], [S / 2, 12], [S / 2, S - 12]]) {
+    g.fillStyle = 'rgba(40,24,10,0.6)';
+    g.beginPath(); g.arc(rx + 1, ry + 1, 4, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,235,200,0.9)';
+    g.beginPath(); g.arc(rx, ry, 3.2, 0, 7); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+/** Speckled dark earth / ash (procedural), for the altar's earth-filled hearth. */
+function earthTexture() {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.fillStyle = '#6a5a48';
+  g.fillRect(0, 0, S, S);
+  let seed = 23;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 900; i++) {
+    const v = 40 + rnd() * 110;
+    g.fillStyle = `rgba(${v},${v * 0.85},${v * 0.7},${0.3 + rnd() * 0.5})`;
+    g.fillRect(rnd() * S, rnd() * S, 1 + rnd() * 3, 1 + rnd() * 3);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
 export const BRONZE = new THREE.MeshStandardMaterial({
   name: 'bronze',
   color: COLORS.bronze,
@@ -76,4 +137,28 @@ export const ROPE = new THREE.MeshStandardMaterial({
   name: 'rope',
   color: COLORS.rope,
   roughness: 1,
+});
+
+/** Bronze overlay with plate seams and rivets. Geometry needs cubit-scaled UVs. */
+export const BRONZE_PLATED = new THREE.MeshStandardMaterial({
+  name: 'bronze-plated',
+  color: COLORS.bronze,
+  map: bronzePlateTexture(),
+  roughness: 0.45,
+  metalness: 0.55,
+});
+
+export const EARTH = new THREE.MeshStandardMaterial({
+  name: 'earth',
+  color: 0xffffff,
+  map: earthTexture(),
+  roughness: 1,
+});
+
+/** Still water in the laver (dark, glossy). */
+export const WATER = new THREE.MeshStandardMaterial({
+  name: 'water',
+  color: 0x14222c,
+  roughness: 0.08,
+  metalness: 0.2,
 });
