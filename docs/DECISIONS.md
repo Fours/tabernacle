@@ -260,6 +260,19 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   east lane |z| < 11 cubits to the edge, 1.5 m around the west torches. No colliders; receives
   shadows, casts none. `userData.removeWhere` lets later modules clear scatter (the camp).
   About +0.6–0.7 ms at `gate`.
+- 2026-11-05: Camp of Israel (`scene/camp.js`, 6 instanced draws, ~4,500 tents, no lights).
+  Bands are measured from the court rectangle. Levites in rows facing the court at 10–30 m:
+  Moses, Aaron and the priests east, Gershon west, Kohath south, Merari north (Num 3:23–38).
+  Tribal camps from 36 m out to ±286 m: Judah east, Reuben south, Ephraim west, Dan north
+  (Num 2), three tribes each side by side split by straight lanes at ±95 m, the leader's tribe
+  in the middle (our choice; the text gives no order within a camp). Density follows the
+  Num 2 census a little. Diagonal lanes from the court corners, cross streets at 105/170/235 m,
+  the east approach (|z| < 7 m) open to the edge. Tribes are 24 m family clusters of tent rows,
+  noise-thinned. Variants: small ridge tent, goat-hair tent with a propped front flap,
+  multi-pole family tent with walls partly down; near LOD within 60 m of the court, coarse
+  beyond. Goat-hair or undyed cloth colours per instance. No shadows cast; near tents receive.
+  Every tent collides via one spatial-grid collider (`colliders.js`). Scatter is cleared under
+  tents. `camp` sits 58 m up because the fog hides the camp from higher.
 
 ## Rendering
 

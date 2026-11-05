@@ -1,6 +1,6 @@
 # Plan: Detail pass and the camp of Israel
 
-**Status:** active
+**Status:** complete
 **Goal:** The laver, menorah, ark, showbread and incense smoke look richer and more real; the
 gold furnishings carry a subtle patina of use. The tent's four coverings are rebuilt as stepped,
 staked layers: the goat hair hides the linen as in the text, and the ram skins and tachash step
@@ -204,7 +204,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   inside the tent; ≤ 4 new draws; frame time within budget; build passes, console clean.
   **Carry-over notes:**
 
-- [ ] **Step 9: Camp of Israel** — model: Opus / effort: medium
+- [x] **Step 9: Camp of Israel** — model: Opus / effort: medium
   **Goal:** A new `scene/camp.js`: 3 low-poly tent variants (see assumptions) built
   procedurally with a shared cloth texture, instanced into thousands of tents laid out per
   Numbers 2/3 (Levite inner ring, four tribal camps, lanes between, open east approach),
@@ -222,3 +222,29 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   `camp` vs `gate` same session; load time increase ≤ ~300 ms; build passes, console clean.
   Update the performance baseline in DECISIONS.md at the end.
   **Carry-over notes:**
+
+## Outcomes
+
+| Step | Rounds | Sub-agent tokens | Result |
+|---|---|---|---|
+| 1 Laver | 1 | 126k | Fluted, frieze-banded mirror-bronze laver, rippling water, drips, damp sand; 3 draws |
+| 2 Coverings | 1 | 168k | Goat hair, ram skins, tachash stepped on slants to 67 stakes; linen hidden; colliders |
+| 3 Gold patina | 1 | 129k | Shared `addGoldPatina` shader patch; +0.35 ms in the Holy Place |
+| 4 Menorah | 1 | 118k | Leaves, blossoms, fluted cups, beaded joints, sculpted base; 134k tris, 1 draw |
+| 5 Ark | 1 | 160k | Profiled crown, panels with vines and rosettes, leaf feet, lid frieze; cherubim unchanged |
+| 6 Showbread | 1 | 110k | Irregular loaves with procedural crust, scorch and flour; no extra draws |
+| 7 Incense smoke | 1 | 85k | Laminar thread breaking into twisting ribbons; 1 draw |
+| 8 Rocks & scrub | 1 | 170k | Instanced stones, grass and shrubs in clumps; 4 draws, ~+0.6 ms |
+| 9 Camp | 1 | 203k | ~4,500 instanced tents in the Numbers 2–3 layout; 6 draws, ~+0.2 ms |
+
+## Lessons learned
+
+- Every step converged in one round: tight briefs with exact files, a fixed draw budget and
+  named presets kept sub-agents focused.
+- Timing in the hidden pane is unreliable for load costs too (showbread reported 0.5 s; a
+  direct re-import measured ~80 ms). Re-measure before acting on a load-time overrun.
+- `material.clone()` drops `onBeforeCompile`; shared shader patches must be re-applied to
+  clones (the ark's gold).
+- Fog at 0.012 limits how much of a large far-field scene reads at night; high overview
+  presets need to stay below ~60 m.
+- Possible follow-ups: denser rock clumps; a closer menorah preset to show its leaves.
