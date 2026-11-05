@@ -1,0 +1,47 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { COURTYARD, ALTAR, TABERNACLE, m, PLAYER } from '../config/dimensions.js';
+
+const eye = PLAYER.eyeHeight;
+const hx = COURTYARD.length / 2; // cubits
+const hz = COURTYARD.width / 2;
+
+/** Deterministic preset views. Positions/targets in meters. */
+export const PRESETS = {
+  // Very high + narrow FOV so the top view is near-orthographic (proportions readable).
+  top: { pos: [0, m(600), 0.001], target: [0, 0, 0], fov: 10 },
+  iso: { pos: [m(60), m(45), m(68)], target: [0, 0, 0] },
+  gate: { pos: [m(hx + 20), eye, 0], target: [m(hx), eye, 0] },
+  altar: { pos: [m(ALTAR.x + 9), m(7), m(8)], target: [m(ALTAR.x), m(1.5), 0] },
+  tent: {
+    pos: [m(TABERNACLE.interiorMaxX + 16), eye, m(-5)],
+    target: [m(TABERNACLE.interiorMaxX), m(4), 0],
+  },
+  corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
+  // Same spot as the first-person spawn (outside the gate, facing west).
+  walk: { pos: [m(hx + 15), eye, 0], target: [m(hx), eye, 0] },
+};
+
+export function createDevCamera(camera, domElement, viewName = 'iso') {
+  const controls = new OrbitControls(camera, domElement);
+  controls.enableDamping = true;
+  const apply = (name) => {
+    const p = PRESETS[name] || PRESETS.iso;
+    camera.fov = p.fov || 60;
+    camera.updateProjectionMatrix();
+    camera.position.set(...p.pos);
+    controls.target.set(...p.target);
+    controls.update();
+  };
+  apply(viewName);
+  return {
+    controls,
+    apply,
+    update() {
+      controls.update();
+    },
+    dispose() {
+      controls.dispose();
+    },
+  };
+}

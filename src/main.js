@@ -1,52 +1,46 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { getParams } from './debug/params.js';
+import { createGround } from './scene/ground.js';
+import { createCourtyard } from './scene/courtyard.js';
+import { createAltar } from './scene/altar.js';
+import { createTabernacle } from './scene/tabernacle.js';
+import { createLaver } from './scene/laver.js';
+import { createLighting } from './scene/lighting.js';
+import { createDevCamera, PRESETS } from './camera/devCamera.js';
+import { createFirstPerson } from './camera/firstPerson.js';
+import { createDebug } from './debug/overlay.js';
 
+const params = getParams();
 const canvas = document.querySelector('#scene');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0d12);
+scene.background = new THREE.Color(0x05070f);
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
-);
-camera.position.set(4, 3, 6);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 0.75, 0);
+// Scene elements
+const elements = [createGround(), createCourtyard(), createAltar(), createTabernacle(), createLaver()];
+const colliders = [];
+for (const g of elements) {
+  scene.add(g);
+  colliders.push(...(g.userData.colliders || []));
+}
+scene.add(createLighting({ work: params.light === 'work' }));
 
-// Lighting
-scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-sun.position.set(5, 8, 4);
-sun.castShadow = true;
-scene.add(sun);
+// Camera mode
+let rig;
+if (params.cam === 'fp') {
+  rig = createFirstPerson(camera, canvas, colliders, PRESETS.walk);
+} else {
+  rig = createDevCamera(camera, canvas, params.view || 'iso');
+}
 
-// Ground
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(20, 20),
-  new THREE.MeshStandardMaterial({ color: 0x2a2f3a }),
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Placeholder object
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(1.5, 1.5, 1.5),
-  new THREE.MeshStandardMaterial({ color: 0xd4a84b, roughness: 0.4, metalness: 0.3 }),
-);
-cube.position.y = 0.75;
-cube.castShadow = true;
-scene.add(cube);
+const debug = params.debug ? createDebug() : null;
+if (debug) scene.add(debug.group);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -54,9 +48,15 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-const clock = new THREE.Clock();
-renderer.setAnimationLoop(() => {
-  cube.rotation.y += clock.getDelta() * 0.5;
-  controls.update();
+// Small debug handle for automated verification.
+window.__tabernacle = { THREE, scene, camera, renderer, colliders, params, rig };
+
+const timer = new THREE.Timer();
+timer.connect(document);
+renderer.setAnimationLoop((time) => {
+  timer.update(time);
+  const dt = timer.getDelta();
+  rig.update(dt);
   renderer.render(scene, camera);
+  if (debug) debug.update(renderer);
 });
