@@ -70,12 +70,14 @@ src/
     altar.js            hollow bronze altar, horns, ledge, grating, rings, poles, utensils
     altarFire.js        places firewood + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks
-    fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}
+    fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)
     torches.js          torch posts, wrapped heads, small fires and lights
     tabernacle.js       boards, sockets, bars, entrance pillars + screen
     tentCoverings.js    goat hair drape, ram skins, tachash, clasps
     laver.js            bronze basin on a stand
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
+    interiorLight.js    per-fragment inside/outside light mask, warm room ambient (INTERIOR)
+    menorah.js          menorah (merged gold), 7 lamp flames, the Holy Place's light
     sky.js              star dome, Milky Way, moon
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
     textiles.js         procedural linen, embroidered screen, goat hair, skin textures
@@ -100,9 +102,12 @@ src/
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 78–102
   times per frame.
-- **Light budget:** 10 point lights, and only one shadow caster, the altar fire. Don't add
-  shadow-casting lights; new glows should use emissive materials, and bloom picks up values
-  above 2.0.
+- **Light budget:** 11 point lights (altar fire + fill, 8 torches, the menorah), and only one
+  shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
+  materials, and bloom picks up values above 2.0.
+- **Interior mask:** `interiorLight.js` patches every `MeshStandardMaterial` so exterior lights,
+  sky fill and the env map stay out of the tent and the menorah stays in. New lit materials are
+  covered automatically if they're in the scene when `main.js` calls `applyInteriorMask`.
 - Dispose of anything you replace. Don't create new objects inside the render loop.
 
 ## URL parameters & presets
@@ -124,6 +129,7 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Courtyard:** `gate`, `corner`, `pillar`
 - **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`
+- **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`
 - **Torches and sky:** `torch`, `sky`
 - **First person:** `walk`
 

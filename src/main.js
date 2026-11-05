@@ -8,6 +8,8 @@ import { createLaver } from './scene/laver.js';
 import { createTorches } from './scene/torches.js';
 import { createAltarFire } from './scene/altarFire.js';
 import { createLighting } from './scene/lighting.js';
+import { createMenorah } from './scene/menorah.js';
+import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
@@ -46,7 +48,8 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 const altar = createAltar();
 const altarFire = createAltarFire(altar.userData.hearth);
 const torches = createTorches();
-const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches];
+const menorah = createMenorah();
+const elements = [createGround(), createCourtyard(), altar, altarFire, createTabernacle(), createLaver(), torches, menorah];
 const colliders = [];
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
@@ -58,6 +61,9 @@ for (const g of elements) {
 const sky = createSky({ fogColor: FOG_COLOR });
 scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
+// Keep exterior lights, sky fill and the night environment out of the tent, and the menorah's
+// light in (scene/interiorLight.js). Patches every lit material, so call after assembly.
+applyInteriorMask(scene);
 // The altar's firelight bounce (materials.js addFireBounce) flickers with the fire.
 updaters.push(() => {
   altar.userData.bounce.value = 1 + 0.25 * altarFire.userData.fire.level;
@@ -87,7 +93,7 @@ window.addEventListener('resize', () => {
 
 // Small debug handle for automated verification.
 window.__tabernacle = {
-  THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer,
+  THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

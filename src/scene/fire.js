@@ -477,3 +477,115 @@ export function createFire(o = {}) {
   fire.update(0, 0);
   return fire;
 }
+
+// ---- Lamp flames ----------------------------------------------------------------------
+// Small, steady oil-lamp flames (menorah): one instanced camera-facing quad per wick with a
+// teardrop shape that flickers and sways in the shader. One draw call for all of them.
+
+const LAMP_VERT = /* glsl */ `
+uniform float uTime;
+uniform float uWidth;
+uniform float uHeight;
+attribute vec4 aWick; // xyz: wick position (local), w: seed
+varying vec2 vUv;
+varying float vSway;
+varying float vHeat;
+#include <fog_pars_vertex>
+${BILLBOARD_GLSL}
+void main() {
+  float s = aWick.w * 17.0;
+  float t = uTime;
+  // Gusts are rare and soft; most of the time the flame just breathes.
+  float flick = 0.08 * sin(t * 11.0 + s) + 0.05 * sin(t * 23.7 + s * 2.3) + 0.04 * sin(t * 3.1 + s * 0.7);
+  float h = uHeight * (1.0 + flick);
+  vec3 c = aWick.xyz + vec3(0.0, h * 0.5 - uHeight * 0.08, 0.0);
+  vec4 mv = billboard(c, position.xy, uWidth, h / uWidth);
+  gl_Position = projectionMatrix * mv;
+  vec4 mvPosition = mv;
+  #include <fog_vertex>
+  vUv = uv;
+  vSway = 0.12 * sin(t * 2.3 + s) + 0.06 * sin(t * 7.9 + s * 1.7);
+  vHeat = 1.0 + 1.5 * flick;
+}
+`;
+
+const LAMP_FRAG = /* glsl */ `
+uniform float uBrightness;
+varying vec2 vUv;
+varying float vSway;
+varying float vHeat;
+${FOG_ADDITIVE_GLSL}
+void main() {
+  vec2 c = vUv * 2.0 - 1.0;
+  float v = clamp(c.y * 0.5 + 0.5, 0.0, 1.0);
+  c.x -= vSway * v * v * 1.6;
+  // Teardrop: round base low in the quad, tapering to a point at the top.
+  float halfW = 0.62 * (1.0 - 0.82 * smoothstep(0.2, 1.0, v));
+  float yy = c.y + 0.45;
+  float d = length(vec2(c.x / max(halfW, 0.02), yy / (yy > 0.0 ? 1.45 : 0.55)));
+  float body = 1.0 - smoothstep(0.55, 1.0, d);
+  if (body <= 0.001) discard;
+  float core = 1.0 - smoothstep(0.0, 0.6, d);
+  vec3 outer = mix(vec3(1.0, 0.36, 0.06), vec3(1.0, 0.55, 0.16), v);
+  vec3 col = mix(outer, vec3(1.0, 0.86, 0.6), core);
+  // Faint blue at the root of the flame.
+  col = mix(col, vec3(0.25, 0.35, 1.0), (1.0 - smoothstep(0.0, 0.22, v)) * (1.0 - core) * 0.6);
+  float glow = body * (1.2 + 4.5 * core * core) * vHeat;
+  gl_FragColor = vec4(col * glow * uBrightness * (1.0 - fogAmount()), body);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`;
+
+/**
+ * Small lamp flames, one per wick, in a single instanced draw.
+ * @param {number[][]} wicks  Wick positions [x, y, z] (local, meters).
+ * @param {{ width?: number, height?: number, brightness?: number, seed?: number }} o
+ * @returns {{ mesh: THREE.Mesh, uniforms: object, update(time:number):void, dispose():void }}
+ */
+export function createLampFlames(wicks, { width = 0.028, height = 0.06, brightness = 1, seed = 3 } = {}) {
+  const rnd = rng(seed * 104729 + 7);
+  const base = new THREE.PlaneGeometry(1, 1);
+  const geo = new THREE.InstancedBufferGeometry();
+  geo.index = base.index;
+  geo.setAttribute('position', base.attributes.position);
+  geo.setAttribute('uv', base.attributes.uv);
+  const a = new Float32Array(wicks.length * 4);
+  wicks.forEach((w, i) => a.set([w[0], w[1], w[2], rnd()], i * 4));
+  geo.setAttribute('aWick', new THREE.InstancedBufferAttribute(a, 4));
+  geo.instanceCount = wicks.length;
+  geo.boundingSphere = new THREE.Box3().setFromArray(wicks.flat()).getBoundingSphere(new THREE.Sphere());
+  geo.boundingSphere.radius += height * 2;
+  const uniforms = {
+    uTime: { value: 0 },
+    uWidth: { value: width },
+    uHeight: { value: height },
+    uBrightness: { value: brightness },
+  };
+  const mat = new THREE.ShaderMaterial({
+    name: 'lamp-flames',
+    uniforms: { ...uniforms, ...fogUniforms() },
+    fog: true,
+    vertexShader: LAMP_VERT,
+    fragmentShader: LAMP_FRAG,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'lamp-flames';
+  mesh.renderOrder = 2;
+  const tOffset = rnd() * 100;
+  return {
+    mesh,
+    uniforms,
+    update(time) {
+      uniforms.uTime.value = (time + tOffset) % 3600;
+    },
+    dispose() {
+      base.dispose();
+      geo.dispose();
+      mat.dispose();
+    },
+  };
+}

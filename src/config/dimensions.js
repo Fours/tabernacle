@@ -159,6 +159,25 @@ export const LAVER = {
   spouts: 4, // small bronze spouts around the basin (not in text)
 };
 
+// Menorah (Ex 25:31-40; 37:17-24). The text gives no height; rabbinic tradition (Menachot 28b)
+// gives 18 handbreadths = 3 cubits and the vertical layout below (in handbreadths, from the
+// floor). Placement on the south side of the Holy Place (26:35; 40:24); branches spread E-W.
+export const MENORAH = {
+  x: -8, // cubits (about 2/5 of the way in from the entrance; not in text)
+  z: 2.5, // south of center
+  hb: 1 / 6, // handbreadth in cubits
+  height: 18, // hb, top of the lamps' seats
+  base: 3, // hb: tripod base with its flower
+  lowerCup: 5, // hb: the shaft's lowest cup with knob and flower (Menachot 28b)
+  branchKnobs: [8.5, 10.5, 12.5], // hb: a knob under each pair of branches (25:35)
+  armRadii: [6, 4, 2], // hb: semicircular arms (centered on the shaft), outer to inner
+  armCenter: 14.5, // hb: height of the arms' arc centers; arms rise vertically above it
+  topCups: 15, // hb: three cups, knob and flower at the top of the shaft and every branch
+  shaftRadius: 0.24, // hb (not in text)
+  armRadius: 0.2, // hb (not in text)
+  colliderRadius: 0.5, // cubits: three circles along the branch span (not in text)
+};
+
 // Non-biblical: human / player values, in meters.
 export const PLAYER = {
   eyeHeight: 1.6,

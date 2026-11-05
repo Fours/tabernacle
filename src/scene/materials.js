@@ -314,10 +314,10 @@ function goldOverlayTexture() {
   g.fillRect(0, 0, w, h);
   let seed = 41;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  // Vertical burnish streaks.
+  // Vertical burnish streaks, faint (stronger ones read as wood grain under the menorah).
   for (let i = 0; i < 70; i++) {
     const x = rnd() * w;
-    g.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.05 + rnd() * 0.12})` : `rgba(90,70,40,${0.04 + rnd() * 0.08})`;
+    g.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.025 + rnd() * 0.06})` : `rgba(90,70,40,${0.015 + rnd() * 0.03})`;
     g.fillRect(x, 0, 1 + rnd() * 4, h);
   }
   // Hammer marks.
