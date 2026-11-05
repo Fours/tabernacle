@@ -119,7 +119,7 @@ sound; daytime.
   passes, console clean, budgets met.
   **Carry-over notes:**
 
-- [ ] **Step 5: Altar grate and molded horns** — model: Opus / effort: medium
+- [x] **Step 5: Altar grate and molded horns** — model: Opus / effort: medium
   **Goal:** Replace the visible firewood on top of the altar with a bronze grate (heavy bronze
   bars in a lattice) at the top of the altar. The fire (`altarFire.js`) burns up through the
   grate; the wood beneath isn't rendered (a hot glow showing through the gaps is fine). Rebuild

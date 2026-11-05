@@ -39,12 +39,20 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   user's direction, replacing the earlier geometric design): a running blue vine with
   palmettes, hanging lilies and pomegranates (blue, purple, scarlet, after Ex 28:33), and
   rosette borders. No figures. It repeats every 2.5 cubits, so it survives being gathered.
-- 2026-11-05: The altar is hollow, with walls 0.35 cubit thick. It is filled with earth to
-  0.45 cubit below the rim as a hearth (rabbinic). `altar.userData.hearth = {x, y, z, size}` is
-  in world meters.
-- 2026-11-05: The horns are 1 cubit tall (rabbinic), blunt and curved. Each has a 0.3-cubit
-  base and 0.09-cubit tip. They are a separate mesh that casts no shadow — otherwise they throw
-  long wedge shadows.
+
+## Bronze altar & laver
+
+- 2026-11-05: The altar is hollow, with walls 0.35 cubit thick. A heavy cast bronze grate
+  (8 × 8 square bars, 0.2 cubit wide, 0.62 pitch; not in the text — the Ex 27:4 network stays
+  the exterior one) sits 0.18 cubit below the rim and holds the fire. Beneath it, 0.9 cubit
+  below the rim, is a glowing ember bed (coals only, no visible wood) that shows through the
+  gaps. The grate's heat tint is baked per vertex with an emissive glow on its undersides; it
+  casts no shadow. `altar.userData.hearth = {x, y, bedY, z, size}` in world meters: `y` is the
+  grate top, `bedY` the ember bed.
+- 2026-11-05: The horns are 1 cubit tall (rabbinic), blunt and curved, "of one piece" with the
+  altar (Ex 27:2): each rises from a 0.85-cubit square foot flush with a cast rim lip, with a
+  concave fillet over its lower 38% blending square to round, then tapers and leans out. Lip
+  and horns are one merged mesh (`altar-top`) that casts no shadow (otherwise wedge shadows).
 - 2026-11-05: The ledge top is at 2.25 cubits and projects 0.6. The bronze network hangs from
   the ledge edge down to 1.5 cubits (halfway up the altar). The carrying poles run E–W on the
   north and south sides and stick out 1.5 cubits past the rings.
@@ -114,13 +122,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Fire & lighting
 
-- 2026-11-05: The altar fire is a 3-layer log-cabin stack of charred logs on a coal bed (the
-  *ma'arakhah*), with more logs leaning against it. The logs use the acacia texture; the
-  Mishnah's wood types (Tamid 2) aren't modelled.
+- 2026-11-05: The altar fire burns up through the grate; its base is 0.13 m below the grate
+  top. The wood of the *ma'arakhah* is not rendered; `firewood.js` now only builds the coal
+  bed (layers 0, leaners 0, 260 coals, glow 7).
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
-  1.2 m above the hearth, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
+  1.04 m above the rim, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
   light reach the far side of the courtyard.
-  - An unshadowed 14 cd fill light sits 3.2 m above the fire.
+  - An unshadowed 14 cd fill light sits 3.0 m above the rim.
   - The altar bronze uses `shadowSide = DoubleSide`, which fixes a light leak along its base.
   - `addFireBounce` fakes firelight bouncing off the sand onto the altar's walls.
 - 2026-11-05: There are 10 torches, positions in `TORCHES`. 8 have non-shadow 28 cd point
