@@ -99,7 +99,7 @@ gate looking out over the tents), `smoke` (close side view of the incense altar'
   ≤ 3 draws for the laver; build passes, console clean, frame time/draws within budget.
   **Carry-over notes:**
 
-- [ ] **Step 2: Four staked coverings** — model: Opus / effort: medium
+- [x] **Step 2: Four staked coverings** — model: Opus / effort: medium
   **Goal:** Rebuild the coverings so the layers step outward on the N, S and W sides: the
   goat hair (hiding the linen beneath it entirely) slants from the roof edge down to its own
   row of bronze stakes with cords, then the ram skins and tachash above it reach less far, each

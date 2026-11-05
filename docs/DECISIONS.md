@@ -101,8 +101,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   sacred palms with lilies, an almond-blossom row (echoing Ex 25:33), rosette dividers and
   lotus-and-bud friezes. Nothing sits on the centre split.
 - 2026-11-05: Goat-hair covering:
-  - The side hem is at 1.55 cubits, not 1, so the gold boards show above the sockets.
-  - The back hem is at 0.15 cubit.
+  - The side and back hems: see the slanted coverings below.
   - The doubled sixth curtain is a 2-cubit flap over the front.
   - The clasp line (50 bronze clasps) is at x ≈ −21 cubits.
 - 2026-11-05: The inner linen covering is modelled only as the ceiling seen from inside: a sheet
@@ -116,9 +115,19 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The gathered door screen casts shadows. Exterior point lights reach 50% at the
   doorway, fading out over 2 m inside (`EXT_SPILL`), so the altar's shadowed light spills
   softly through the open door instead of stopping at a hard line.
-- 2026-11-05: The ram skins (red) and tachash cover the roof only. The ram skins droop about
-  1 cubit over the edges; the tachash is inset 0.6 cubit.
-- 2026-11-05: The tent has 18 bronze pins with cords (Ex 35:18). They don't collide.
+- 2026-11-05: At the user's direction the coverings on the N, S and W sides are pulled out at a
+  slant to stakes instead of hanging straight down. The goat-hair hem is 4.5 cubits out at
+  1.5 high on the sides and 2.6 out at 0.8 high at the back, so roof plus two slants ≈ the
+  30-cubit curtains (Ex 26:13). The goat hair hides the linen outside (Ex 26). Ram skins and
+  tachash lie on it (offsets 0.12 and 0.24 cubit) and reach 64% and 32% of its slant, so goat
+  hair, ram skins and tachash show as three stepped bands. At the front the ram skins droop
+  0.7 cubit and the tachash has a 0.12 lip. Under the slants the outside of the boards and
+  bars is visible.
+- 2026-11-05: Each visible layer has its own row of bronze stakes and cords (Ex 35:18; 38:20),
+  67 in all: 9.5 / 7.75 / 6.5 cubits out on the sides, 6 / 4.8 / 3.8 at the back, every
+  4 cubits offset ±1.33 between layers; radial stakes at the back corners, diagonal ones at
+  the front ends. Hems scallop between stakes. Stakes and cords merge into the bronze and rope
+  meshes. Colliders (`tabernacle.js`) cover the footprint out to the goat-hair stakes.
 
 ## Interior furnishings
 
