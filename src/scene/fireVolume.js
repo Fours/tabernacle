@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, fogUniforms, createNoiseTexture, noise1 } from './fireCommon.js';
+import { FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, fogUniforms, createNoiseTexture, noise1 } from './fireCommon.js';
 
 // The body of a fire (createFlames, used by createFire): a raymarched volume of flame inside a
 // tight cylinder round the burning bed, one draw per fire.
@@ -60,7 +60,6 @@ uniform float uBrightness;
 uniform float uCore;
 uniform float uLevel;
 uniform vec2 uWind;
-uniform sampler3D uNoise;
 uniform vec3 uCam;       // camera position in the fire's frame (m)
 uniform vec3 uShape;     // foot radius, bounding radius, bounding top (m)
 uniform vec3 uSeed;      // per-fire offset into the noise
@@ -74,7 +73,7 @@ uniform float uStep;     // march step in flame heights (by screen size)
 varying vec3 vLocal;
 ${FOG_ADDITIVE_GLSL}
 ${FIRE_RAMP_GLSL}
-float tn(vec3 p) { return texture(uNoise, p).r; }
+${FLAME_GLSL}
 
 bool inBar(vec2 xz) {
   if (max(abs(xz.x), abs(xz.y)) > uGrateR) return false;
@@ -97,21 +96,18 @@ vec2 flame(vec3 p, float T) {
   if (r0 > envR * 1.55 + 0.05 || v > 1.45) return vec2(0.0);
   // Buoyant frame: g is concave in height, so a pattern scrolling uniformly in g rises slowly at
   // the bed and accelerates (and stretches) as it climbs.
-  float g = sqrt(max(q.y, 0.0) + 0.05);
+  float g = flameRise(q.y);
   // Large, slow eddies bend the tongues side to side, more so higher up.
   // (A fire only a few pixels tall skips the warp and the fine noise: sub-pixel detail would
   // only shimmer.)
   vec2 xz = q.xz;
   float nF = 0.5;
   if (uFlow.w > 0.0) {
-    vec3 wq = vec3(q.x * 0.8, g * 0.5 - T * 0.33, q.z * 0.8) + uSeed;
-    vec2 warp = vec2(tn(wq), tn(wq + vec3(0.43, 0.17, 0.61))) - 0.5;
-    xz += warp * (0.12 + 0.3 * v) * uFlow.w;
-    nF = mix(0.5, tn(vec3(xz.x * 4.1, (g - T * 1.3) * 1.5, xz.y * 4.1) + uSeed.yzx), uFlow.w);
+    xz = flameWarp(xz, g, v, T, uSeed, uFlow.w);
+    nF = flameFine(xz, g, T, uSeed, uFlow.w);
   }
   // Tongues: upward-stretched cells rising with the flow; fine fast turbulence near the bed.
-  float nT = tn(vec3(xz.x * 1.73, (g - T * 0.78) * 0.55, xz.y * 1.73) + uSeed.zxy);
-  float n = (mix(nF, nT, smoothstep(0.0, 0.6, v) * 0.5 + 0.35) - 0.5) * 3.2 * uFlow.y;
+  float n = flameMix(nF, flameTongue(xz, g, T, uSeed), v) * uFlow.y;
   float prof = 1.0 - length(xz) / envR; // 1 on the axis, 0 at the envelope
   // Heat: hot over the middle of the bed, cooling with height; the noise erodes it more and
   // more as it rises, so the body splits into tongues and their tips into flamelets.
@@ -121,9 +117,7 @@ vec2 flame(vec3 p, float T) {
   // Soft fade well inside the bounding cylinder (never a cut edge).
   heat -= smoothstep(uShape.y * 0.8, uShape.y, length(p.xz)) + smoothstep(0.85, 1.0, p.y / uShape.z);
   if (heat <= 0.0) return vec2(0.0);
-  float dens = smoothstep(0.0, 0.2, heat);
-  float temp = clamp(0.36 + 0.55 * heat - 0.15 * v, 0.0, 1.0);
-  return vec2(dens, temp);
+  return flameShade(heat, v);
 }
 
 void main() {

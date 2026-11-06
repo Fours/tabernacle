@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PILLAR_OF_FIRE as P, m } from '../config/dimensions.js';
-import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, rng, randAttribute, createNoiseTexture } from './fireCommon.js';
+import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, HASH_GLSL, fogUniforms, rng, randAttribute, createNoiseTexture } from './fireCommon.js';
 
 // The pillar of fire over the tent by night (Num 9:15-16): a tall column of slowly churning fire
 // standing in the sky above the Holy of Holies, and above it a long shaft of yellowish light
@@ -10,24 +10,32 @@ import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, 
 // 1. The volume: a closed, flared cylinder (back faces only, so it still draws when the camera
 //    is close) bounds the effect. For the fire column its fragment shader intersects the view
 //    ray with an inner cylinder around the axis (rays that miss skip the march) and raymarches
-//    that segment in 6-28 steps (~0.35 m apart, jittered per pixel with interleaved gradient
-//    noise, which is stable over time so it never crawls). Each step samples a tiling 3D value
-//    noise texture (64^3, `createNoiseTexture` in fireCommon.js). The column is one coherent
-//    body: its radius follows the decided envelope (a soft point at the foot, then narrowing steadily to ~45% at the
-//    top), and the noise only displaces its surface (slow billows rolling up it, upward-stretched
-//    tongues at the rim) and modulates the brightness inside, so there are no holes. Temperature
-//    is highest along the axis and drives the shared blackbody ramp (HDR core blooms). Mostly
-//    emissive: absorption is weak (it only deepens the rim) and the volume dims the sky behind
-//    it a little (premultiplied alpha). Over its upper 60% brightness and density fade, the
-//    profile flattens so it keeps its width while fading, and the colour drifts to the shaft's
-//    yellow, handing over to the shaft without a neck.
+//    that segment in steps of ~2.5 px (0.1-0.5 m by distance, at most MAX_STEPS), jittered per
+//    pixel with interleaved gradient noise (stable over time, so it never crawls). Samples beyond
+//    the tongues' reach leap toward it (empty space costs a few steps) and the march stops once
+//    the column is nearly opaque. The column speaks the altar's flame language (FLAME_GLSL in
+//    fireCommon.js, the tiling 64^3 noise texture): its slowly rolling surface (at ~70% of the
+//    decided envelope: a soft point at the foot, then narrowing steadily to ~45% at the top) is
+//    the "bed" of a mass of altar-like flames ~5 m tall and a few tenths of a meter across. Heat
+//    is high inside (one coherent body) and eroded by the noise toward and beyond the surface,
+//    so the surface breaks into tongues licking up the rim, rising in a buoyant frame, with fine
+//    fast turbulence at the foot; two tongue layers with staggered life cycles make tongues
+//    form, break up and burn out. Heat → density and temperature as for the altar (shared
+//    blackbody ramp, HDR core blooms); emission and absorption follow the density, so thick
+//    flame settles on its ramp colour, edges stay translucent and the column dims the sky behind
+//    it a little (premultiplied alpha). Over its upper 60% brightness, density and absorption
+//    fade and the colour drifts to the shaft's yellow, handing over to the shaft without a neck.
 //    The shaft above stays analytic (closest approach of the ray to the axis, Gaussian across,
 //    slow rippling streaks), below bloom's threshold.
-// 2. Embers: a sparse swirl of large embers spiralling slowly up around the column (one
+// 2. Embers: a swirl of 480 small embers spiralling slowly up around the column (one
 //    instanced draw, placed in the vertex shader from time).
 //
 // Fog: half the scene's fog, faded to black. Full fog would bury the shaft from the courtyard
 // (60-80 m away, ~50% fog), none would make the column's foot look pasted on.
+
+const MAX_STEPS = 96;
+const REACH = 1.0; // m: how far tongues can lick outside the column's envelope
+const viewport = new THREE.Vector4();
 
 const VERT = /* glsl */ `
 varying vec3 vWorld;
@@ -43,7 +51,6 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform float uTime;
-uniform sampler3D uNoise;
 uniform vec3 uBase;          // world position of the column's foot (m)
 uniform float uColH;         // column height (m)
 uniform float uColR;         // column radius scale (m)
@@ -53,8 +60,11 @@ uniform float uShaftR;       // shaft radius at its foot (m)
 uniform float uShaftSpread;  // radius gained per meter
 uniform vec2 uBound;         // bounding radius at the foot and at the top (m)
 uniform float uColGain;
-uniform float uEmission;     // per meter at full density
-uniform float uExtinction;   // per meter at full density
+uniform vec2 uOptics;        // emission, absorption per meter at full density
+uniform vec3 uFlame;         // flame height of the tongues' noise (m), heat depth scale (m), raggedness
+uniform vec2 uHeat;          // heat at the surface, gained per unit of depth
+uniform float uReach;        // how far tongues can lick outside the envelope (m)
+uniform float uPix;          // meters per pixel per meter of distance (2 tan(fov/2) / viewport px)
 uniform float uOcclusion;    // how much the column dims what's behind it
 uniform float uShaftGain;
 uniform float uFogMix;
@@ -62,7 +72,7 @@ varying vec3 vWorld;
 ${NOISE_GLSL}
 ${FOG_ADDITIVE_GLSL}
 ${FIRE_RAMP_GLSL}
-float tn(vec3 p) { return texture(uNoise, p).r; }
+${FLAME_GLSL}
 
 // Radius of the column's envelope at height y: the foot tapers almost to a point over its lowest
 // ~4.5 m; above that it narrows slowly and steadily to ~45% at its top (no shoulder).
@@ -77,49 +87,63 @@ vec2 axisSway(float y, float T) {
               0.16 * sin(y * 0.29 + T * 0.31 + 1.3));
 }
 
-// Density (0..1), temperature (0..1) and brightness (0..1, the long fade toward the shaft) at p
-// (relative to the foot, m). The noise displaces the column's surface (billows rolling up it,
-// upward-stretched tongues at its rim) instead of carving holes in it, so the body stays one
-// coherent glowing mass with a hot core along the axis.
-vec3 fireField(vec3 p, float T) {
+const vec3 SEED_W = vec3(0.11, 0.53, 0.29);
+const vec3 SEED_A = vec3(0.67, 0.21, 0.83);
+const vec3 SEED_B = vec3(0.39, 0.91, 0.47);
+
+// Density (0..1), temperature (0..1) and brightness (the long fade toward the shaft) at p
+// (relative to the foot, swayed onto the axis, m), r = distance from the axis. The column is a
+// mass of altar-like flames: the heat is that of the altar's flame field (FLAME_GLSL), its
+// "bed" being the column's slowly rolling surface. Deep inside it stays hot (one coherent body);
+// at the surface the tongue noise erodes it into tongues that lick upward along the rim, pinch
+// off and burn out, with fine fast turbulence at the foot.
+vec3 fireField(vec3 p, float r, float T, float detail) {
   float y = p.y;
-  p.xz -= axisSway(y, T);
   float R = envelope(y);
-  float r = length(p.xz);
-  if (r > R * 1.5 + 0.3) return vec3(0.0);
-  // Slow twist with height and time: the billows roll gently around the axis as they rise.
-  float ang = y * 0.05 + T * 0.06;
-  float ca = cos(ang), sa = sin(ang);
-  vec2 rxz = mat2(ca, sa, -sa, ca) * p.xz;
-  vec3 q = vec3(rxz.x, y, rxz.y);
-  // Gentle domain warp (large, slow eddies), only for the noise lookups.
-  vec3 wq = q * vec3(0.05, 0.025, 0.05) - vec3(0.0, T * 0.012, 0.0);
-  q += (vec3(tn(wq), tn(wq + vec3(0.37, 0.61, 0.73)), tn(wq + vec3(0.71, 0.17, 0.43))) - 0.5) * 2.4;
-  // Billows rising (~1.2 and ~1.7 m/s) and upward-stretched tongues rising faster (~3 m/s).
-  float nb = 0.6 * tn(q * vec3(0.06, 0.045, 0.06) - vec3(0.0, T * 0.055, 0.0))
-           + 0.4 * tn(q * 0.13 + vec3(0.5, 0.3 - T * 0.22, 0.2));
-  float nt = tn(q * vec3(0.22, 0.055, 0.22) + vec3(0.13, -T * 0.17, 0.71));
-  float nf = tn(q * 0.32 + vec3(0.2, 0.4 - T * 0.45, 0.4));
-  float rim = smoothstep(0.35, 1.0, r / R);
-  // Surface displacement (fraction of the radius): billows everywhere, tongues near the rim.
-  float disp = (nb - 0.5) * 0.55 + (nt - 0.5) * 0.5 * rim + (nf - 0.5) * 0.15;
-  float e = clamp(1.0 - r / R + disp, 0.0, 1.0); // ~1 on the axis, 0 at the (rolling) surface
-  // The foot narrows to a soft point.
+  float Hf = uFlame.x;
+  // Slow large rolls of the surface (about +-15% of the radius) rising up the column.
+  float nb = tn(vec3(p.x * 0.045, y * 0.03 - T * 0.05, p.z * 0.045));
   float foot = smoothstep(0.0, 4.5, y);
-  float up = smoothstep(uColH * 0.4, uColH, y);
-  float dens = smoothstep(0.0, 0.3, e) * (0.8 + 0.4 * (nb - 0.5)) * smoothstep(-0.3, 1.2, y)
-    * mix(0.6, 1.0, foot) * (1.0 - smoothstep(uColH * 0.5, uColH * 1.02, y));
-  // Hot continuous core, gently cooler billow seams, deeper orange-red only at the very rim.
-  float temp = 0.22 + 0.7 * e + (nb - 0.5) * 0.9 + (nf - 0.5) * 0.25;
+  // Depth inside the rolling surface (in units of the heat's depth scale, smaller at the point).
+  // The flames' mean surface lies at 70% of the envelope; tongues lick out to about its edge.
+  float depth = (R * (0.7 + (nb - 0.5) * 0.2) - r) / (uFlame.y * mix(0.25, 1.0, foot));
+  float tip = clamp(0.55 - depth, 0.0, 1.0); // like the altar's height up the flame: the rim is its tips
+  float v = foot * (0.45 + 0.55 * tip); // fine at the foot, tongues on the rim
+  // Buoyant frame in flame heights: sqrt over the lowest flame height (features leave the
+  // foot slowly and accelerate), then linear (the same rise speed all the way up).
+  float yh = y / Hf;
+  float g = yh < 1.0 ? flameRise(yh) : 1.0247 + (yh - 1.0) * 0.488;
+  // A slow twist with height: the noise tile (~2 m across) never lines up down the column.
+  float ang = y * 0.06;
+  vec2 xz = mat2(cos(ang), sin(ang), -sin(ang), cos(ang)) * p.xz / Hf;
+  float nF = 0.5;
+  if (detail > 0.0) {
+    xz = flameWarp(xz, g, v, T, SEED_W, detail);
+    nF = flameFine(xz, g, T, SEED_W, detail);
+  }
+  // Two layers of tongues with staggered life cycles (each fades out and is reseeded while
+  // the other carries the fire), the phase varying over the column so they never pulse
+  // together: tongues are born, rise, break up and burn out instead of scrolling for ever.
+  float ph = T * 0.45 + y * 0.045 + nb * 2.0;
+  float wA = 1.0 - abs(2.0 * fract(ph) - 1.0), wB = 1.0 - wA;
+  vec3 oA = fract(vec3(0.37, 0.71, 0.13) * floor(ph));
+  vec3 oB = fract(vec3(0.59, 0.23, 0.87) * floor(ph + 0.5));
+  float nT = ((flameTongue(xz, g, T, SEED_A + oA) - 0.5) * wA + (flameTongue(xz, g, T, SEED_B + oB) - 0.5) * wB)
+    * inversesqrt(wA * wA + wB * wB) + 0.5;
+  float n = flameMix(nF, nT, v) * uFlame.z;
+  // Heat: hot inside, eroded by the noise more and more toward and beyond the rim.
+  float heat = uHeat.x + uHeat.y * min(depth, 1.2) + n * (0.4 + 0.6 * tip);
+  heat -= (1.0 - smoothstep(0.0, 2.5, y)) * 0.6; // the foot's very point is cooler
+  heat -= smoothstep(0.4, 1.0, (r - R * 1.15) / uReach); // soft fade before the march's reach
+  if (heat <= 0.0) return vec3(0.0);
+  vec2 f = flameShade(heat, tip);
+  float dens = f.x * (1.0 - smoothstep(uColH * 0.5, uColH * 1.02, y));
   // Higher up the profile flattens (the rim stays hot), so the column keeps its width as it fades.
-  temp += up * 0.35 * (1.0 - e);
-  temp = clamp(temp - (1.0 - smoothstep(0.0, 3.5, y)) * 0.2, 0.0, 1.0);
+  float up = smoothstep(uColH * 0.4, uColH, y);
+  float temp = clamp(f.y + up * 0.2 * tip, 0.0, 1.0);
   // Brightness per meter grows as the column narrows (so it doesn't dim just by thinning) and
   // falls over the upper 60% toward the shaft's level.
-  float narrow = narrowing(y);
-  float bright = mix(1.0, 0.35, smoothstep(uColH * 0.4, uColH, y)) / narrow;
-  // Rolling billows: brighter swelling cells and dimmer seams between them, inside the body.
-  bright *= 0.45 + 1.1 * smoothstep(0.3, 0.7, nb);
+  float bright = mix(1.0, 0.35, up) / narrowing(y);
   return vec3(dens, temp, bright);
 }
 
@@ -152,24 +176,33 @@ void main() {
     t0 = max(t0, 0.0);
     t1 = min(t1, tEnd);
     if (t1 > t0) {
-      float len = t1 - t0;
-      float n = clamp(ceil(len / 0.35), 6.0, 28.0);
-      float dt = len / n;
+      // Level of detail by distance: steps of ~2.5 px (0.1-0.5 m); the warp and the fine
+      // noise fade out as a flame height shrinks below ~45 px (they would only shimmer).
+      float pix = uPix * max(t0, 1.0);
+      float dt = clamp(2.5 * pix, 0.1, 0.5);
+      float detail = smoothstep(15.0, 45.0, uFlame.x / pix);
       // Interleaved gradient noise: per-pixel jitter, stable over time.
       float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
       float t = t0 + dt * ign;
-      for (int i = 0; i < 28; i++) {
-        if (float(i) >= n || tr < 0.03) break;
+      for (int i = 0; i < ${MAX_STEPS}; i++) {
+        if (t >= t1 || tr < 0.03) break;
         vec3 p = o + d * t;
-        vec3 f = fireField(p, T);
+        p.xz -= axisSway(p.y, T);
+        float r = length(p.xz);
+        // Empty space: leap toward the reach of the tongues (the envelope's slope is < 0.6).
+        float gap = r - envelope(p.y) * 1.15 - uReach;
+        if (gap > 0.0) { t += max(gap * 0.75, dt); continue; }
+        vec3 f = fireField(p, r, T, detail);
         if (f.x > 0.002) {
-          // Emission and absorption: the fire is mostly emissive, absorption only deepens the
-          // rim a little, so the core shows through as one luminous body.
-          float od = f.x * dt;
+          // Emission and absorption both follow the density (as in the altar's flames), so
+          // thick flame settles on its ramp colour and the edges stay translucent. Higher up
+          // the column thins optically, glowing into the shaft.
           float rise = smoothstep(uColH * 0.3, uColH, p.y);
+          float h = min(dt, t1 - t);
+          float od = f.x * h;
           vec3 em = mix(fireRampCore(f.y, 1.0), vec3(1.3, 0.88, 0.31), 0.7 * rise) * f.z;
-          col += tr * od * uEmission * em;
-          tr *= exp(-od * uExtinction);
+          col += tr * od * uOptics.x * em;
+          tr *= exp(-od * uOptics.y * mix(1.0, 0.3, rise));
         }
         t += dt;
       }
@@ -323,7 +356,7 @@ export function createPillarOfFire() {
   group.position.copy(base);
 
   const H = P.columnHeight + P.shaftHeight;
-  const marchR = 3.0 * P.columnRadius + 0.5; // envelope (1.9 colR) × 1.5 + 0.3, plus the axis sway
+  const marchR = 1.9 * P.columnRadius * 1.15 + REACH + 0.4; // envelope × 1.15 + the tongues' reach, plus the axis sway
   const bound = new THREE.Vector2(
     Math.max(marchR, 2.5 * P.shaftRadius) + 0.6,
     2.4 * (P.shaftRadius + P.shaftSpread * H),
@@ -344,8 +377,11 @@ export function createPillarOfFire() {
     uShaftSpread: { value: P.shaftSpread },
     uBound: { value: bound },
     uColGain: { value: 1.3 },
-    uEmission: { value: 0.4 },
-    uExtinction: { value: 0.35 },
+    uOptics: { value: new THREE.Vector2(0.8, 2.2) },
+    uFlame: { value: new THREE.Vector3(5.0, 0.7, 1.0) },
+    uReach: { value: REACH },
+    uHeat: { value: new THREE.Vector2(0.2, 0.5) },
+    uPix: { value: 0.001 },
     uOcclusion: { value: 0.35 },
     uShaftGain: { value: 0.5 },
     uFogMix: { value: 0.5 },
@@ -373,6 +409,12 @@ export function createPillarOfFire() {
   mesh.castShadow = false;
   mesh.receiveShadow = false;
   mesh.renderOrder = 10; // after the other fires (it's mostly sky-backed)
+  // Meters per pixel per meter of distance, for the march's level of detail.
+  mesh.onBeforeRender = (renderer, scene, camera) => {
+    renderer.getCurrentViewport(viewport);
+    const fy = camera.isPerspectiveCamera ? Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) : 1;
+    uniforms.uPix.value = (2 * fy) / Math.max(viewport.w, 1);
+  };
   group.add(mesh);
 
   const embers = createEmbers(480, 71);

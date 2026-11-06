@@ -90,13 +90,13 @@ src/
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; re-exports the pieces below
-    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1, createNoiseTexture: tiling 64³ 3D noise)
+    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL: the flame language of fireVolume.js and the pillar, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1, createNoiseTexture: tiling 64³ 3D noise)
     fireVolume.js       createFlames: a fire's flame body, raymarched in a tight cylinder (buoyant advected 3D noise, temperature ramp, optional grate)
     fireFlames.js       createLampFlames (oil-lamp flames)
     fireParticles.js    a fire's smoke puffs, sparks, embers and ash in one instanced draw (createFireParticles)
     fireSmoke.js        createIncenseSmoke: the incense altar's thin ribbon thread
     torches.js          torch posts, wrapped heads, small fires and lights
-    pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
+    pillarOfFire.js     pillar of fire over the Holy of Holies: a mass of altar-like flames (FLAME_GLSL) + light shaft (one volumetric draw), embers, its light
     tabernacle.js       boards, sockets, bars, door beam + screen (south half drawn across, north tied back)
     tentCoverings.js    goat hair drape, ram skins, tachash, clasps
     laver.js            bronze basin on a stand

@@ -515,22 +515,35 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the tent the interior mask sets the hue, so the wear shows as darkening and roughness. No
   textures or extra draws; about +0.35 ms at `holyplace`.
 - 2026-11-05: The pillar of fire is two draws: a raymarched volume and an embers swirl. A
-  flared bounding cylinder (back faces only) marches the column inside a 3.0×radius+0.5 m
-  cylinder, 6–28 steps ~0.35 m apart, jittered with time-stable interleaved gradient noise,
-  through a 64³ tiling value-noise 3D texture built once. The noise only displaces the
-  column's surface (slow billows rolling up, upward-stretched tongues at the rim, a gentle
-  ~1.2 m warp of the lookups) and modulates brightness inside; it never cuts holes, so the
-  column is one coherent body with a hot core along its axis, coloured by the shared
-  blackbody ramp (`FIRE_RAMP_GLSL` in `fireCommon.js`). Mostly emissive (emission 0.4/m,
-  absorption 0.35/m; it dims the sky behind by up to 35%). The envelope tapers to a soft point
+  flared bounding cylinder (back faces only) marches the column inside an envelope×1.15 +
+  1.0 m + 0.4 m cylinder, in steps of ~2.5 px (0.1–0.5 m by distance, at most 96), jittered
+  with time-stable interleaved gradient noise; samples beyond the tongues' reach leap 0.75×
+  the gap toward it, and the march stops at 97% opacity. Revised the same day (fire plan
+  Step 4): the column is a towering mass of altar-sized flames rather than a few giant
+  billows. It uses the altar's flame language (`FLAME_GLSL` in `fireCommon.js`: buoyant
+  frame, warp, fine noise, tongue cells, heat → density/temperature), with a 5 m flame height
+  (tongue cells ~0.36 m across, 1.5–2 m tall). Its "bed" is a slowly rolling surface at 70%
+  of the envelope (±10%); heat = 0.2 + 0.5 × depth (depth in 0.7 m units, a quarter of that
+  at the point, capped) + noise, eroded more toward and beyond the rim, so the body stays
+  coherent and hot inside while its surface breaks into tongues licking up the rim, with
+  fine fast turbulence at the foot (the buoyant frame is sqrt over the lowest flame height,
+  then linear: tongues rise ~3 m/s). Two tongue layers with staggered life cycles (phase
+  0.45/s, varying over the column, reseeded at zero weight, variance-renormalised) make
+  tongues form, break up and burn out instead of scrolling; a slow twist (0.06 rad/m) keeps
+  the 2 m noise tile from lining up. Emission 0.8/m and absorption 2.2/m both follow
+  density, as in the altar, so the flame settles on its ramp colour and edges stay
+  translucent (it dims the sky behind by up to 35%). The envelope tapers to a soft point
   over the lowest 4.5 m, then narrows linearly to 45% at the top; brightness per metre is
   divided by that narrowing, then falls to 35% from 40% to 100% of the height; density fades
-  from 50% to 102% and the colour drifts 70% toward the shaft's yellow, so it hands over to
-  the shaft with no neck. Billows ~1.2–1.7 m/s, tongues ~3 m/s, a slow twist. The shaft stays
-  analytic (closest approach, Gaussian across, slow ripple, gain 0.5, capped ×3 along the
-  path) and fades in from half the column's height. Both get half the scene fog (`uFogMix`
-  0.5) and a 4% dither. 480 small embers (0.025–0.06 m, a tenth up to 0.11 m, with per-ember radius, spin and drift variety) spiral up around the column in one instanced draw.
-  Cost (throttled) ~+0.45 ms at `firepillarfoot`, ~+0.2 ms at `gate`.
+  from 50% to 102%, absorption to 30% and the colour drifts 70% toward the shaft's yellow, so
+  it hands over to the shaft with no neck. The warp and fine noise fade out as a flame height
+  drops from 45 to 15 px. The shaft stays analytic (closest approach, Gaussian across, slow
+  ripple, gain 0.5, capped ×3 along the path) and fades in from half the column's height.
+  Both get half the scene fog (`uFogMix` 0.5) and a 4% dither. 480 small embers
+  (0.025–0.06 m, a tenth up to 0.11 m, with per-ember radius, spin and drift variety) spiral
+  up around the column in one instanced draw. Cost of the altar-like flames (throttled,
+  same-session A/B): +0.7 ms at `firepillarfoot` (7.27 → 7.97), +0.3 ms at `firepillar`
+  (10.27 → 10.56), draws unchanged.
 
 ## Camera & controls
 

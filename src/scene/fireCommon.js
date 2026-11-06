@@ -62,6 +62,39 @@ vec3 fireRampCore(float t, float core) {
 }
 `;
 
+// The flame language shared by the altar/torch flame volume (fireVolume.js) and the pillar of
+// fire: lookups into the tiling 3D noise (createNoiseTexture), in units of a flame height.
+// - flameRise: the buoyant frame. Noise is sampled at g = sqrt(height) and scrolled in g, so
+//   features rise slowly at the bed, accelerate upward and stretch as they climb.
+// - flameWarp: large, slow eddies bending the tongues side to side (more so higher, v = 0..1
+//   up the flame), faded out by `detail` (0..1, by screen size).
+// - flameFine: fine, fast turbulence; flameTongue: upward-stretched tongue cells rising with
+//   the flow; flameMix: fine noise dominating low, tongues higher, centred and scaled (about
+//   ±1.6) to erode the heat.
+// - flameShade: heat → density and temperature (the input of FIRE_RAMP_GLSL).
+export const FLAME_GLSL = /* glsl */ `
+uniform sampler3D uNoise;
+float tn(vec3 p) { return texture(uNoise, p).r; }
+float flameRise(float y) { return sqrt(max(y, 0.0) + 0.05); }
+vec2 flameWarp(vec2 xz, float g, float v, float T, vec3 seed, float detail) {
+  vec3 wq = vec3(xz.x * 0.8, g * 0.5 - T * 0.33, xz.y * 0.8) + seed;
+  vec2 warp = vec2(tn(wq), tn(wq + vec3(0.43, 0.17, 0.61))) - 0.5;
+  return xz + warp * (0.12 + 0.3 * v) * detail;
+}
+float flameFine(vec2 xz, float g, float T, vec3 seed, float detail) {
+  return mix(0.5, tn(vec3(xz.x * 4.1, (g - T * 1.3) * 1.5, xz.y * 4.1) + seed.yzx), detail);
+}
+float flameTongue(vec2 xz, float g, float T, vec3 seed) {
+  return tn(vec3(xz.x * 1.73, (g - T * 0.78) * 0.55, xz.y * 1.73) + seed.zxy);
+}
+float flameMix(float nF, float nT, float v) {
+  return (mix(nF, nT, smoothstep(0.0, 0.6, v) * 0.5 + 0.35) - 0.5) * 3.2;
+}
+vec2 flameShade(float heat, float v) {
+  return vec2(smoothstep(0.0, 0.2, heat), clamp(0.36 + 0.55 * heat - 0.15 * v, 0.0, 1.0));
+}
+`;
+
 export const HASH_GLSL = /* glsl */ `
 float h11(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 `;
