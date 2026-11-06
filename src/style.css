@@ -155,7 +155,7 @@ body {
 }
 
 .fp-verse {
-  margin: 48px 0 0 0;
+  margin: 90px 0 0 0;
   max-width: min(560px, 86vw);
   text-align: center;
   font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
@@ -178,7 +178,6 @@ body {
 }
 
 .fp-start {
-  margin: 0;
   font: italic 17px/1 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   letter-spacing: 0.12em;
   color: #ecd29e;
