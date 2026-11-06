@@ -96,7 +96,7 @@ export const PRESETS = {
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {
-    pos: [m(hx + 15), eye, 0],
+    pos: [m(hx + 15) + 6, eye, 0],
     target: [m(hx), eye, 0],
   },
 };
