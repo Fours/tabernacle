@@ -27,9 +27,15 @@ export function createAltarFire(hearth) {
     height: 1.8,
     flameSize: hearth.size * 0.6,
     flames: 14,
-    embers: 140,
-    smoke: 22,
-    smokeHeight: 5,
+    sparks: 90,
+    embers: 24,
+    ash: 50,
+    smoke: 56,
+    smokeHeight: 6,
+    smokeSize: 1.3,
+    smokeBase: 0.75,
+    smokeOpacity: 0.26,
+    smokeGlow: 2.0,
     // Decay 1.5 (not the physical 2) with a lower intensity: a big fire is a large source, so
     // the near rim/horns shouldn't blow out while the far courtyard stays lit.
     intensity: 105,

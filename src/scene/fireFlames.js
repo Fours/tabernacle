@@ -77,7 +77,7 @@ vec3 fireRamp(float t) {
   vec3 c = mix(vec3(0.14, 0.01, 0.0), vec3(0.7, 0.085, 0.005), smoothstep(0.0, 0.3, t));
   c = mix(c, vec3(1.3, 0.34, 0.03), smoothstep(0.25, 0.6, t));
   c = mix(c, vec3(1.7, 0.7, 0.1), smoothstep(0.55, 0.85, t));
-  return mix(c, vec3(2.3, 1.4, 0.45) * uCore, smoothstep(0.88, 1.0, t));
+  return mix(c, vec3(2.2, 1.25, 0.36) * uCore, smoothstep(0.88, 1.0, t));
 }
 void main() {
   float x = vUv.x; // -1..1 across the sheet

@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { rng, noise1 } from './fireCommon.js';
 import { createFlames } from './fireFlames.js';
-import { createEmbers, createSmokePuffs } from './fireSmoke.js';
+import { createFireParticles } from './fireParticles.js';
 
-// Reusable GPU-animated fire: flame sheets, embers and smoke (3 draw calls) plus a flickering
-// warm PointLight. All particle motion is computed in the shaders from a time uniform, so the
-// per-frame JS cost is a few uniform writes and no allocations.
+// Reusable GPU-animated fire: flame sheets plus sparks, embers, ash and smoke (2 draw calls)
+// and a flickering warm PointLight. All particle motion is computed in the shaders from a time
+// uniform, so the per-frame JS cost is a few uniform writes and no allocations.
 //
 // Used by the altar (large, shadow-casting) and the torches (small, no shadows). The pieces live
-// in fireCommon.js (shared GLSL + helpers), fireFlames.js and fireSmoke.js; this module is the
-// public entry and re-exports what other modules use.
+// in fireCommon.js (shared GLSL + helpers), fireFlames.js, fireParticles.js and fireSmoke.js
+// (the incense smoke); this module is the public entry and re-exports what other modules use.
 
 export { NOISE_GLSL, FOG_ADDITIVE_GLSL } from './fireCommon.js';
 export { createLampFlames } from './fireFlames.js';
@@ -24,10 +24,18 @@ export { createIncenseSmoke } from './fireSmoke.js';
  * @param {number} [o.flameSize]       Width of a flame sheet (m); default 1.4 × radius.
  * @param {number} [o.flames=6]        Flame sheet count (fireFlames.js).
  * @param {number} [o.core=1]          Brightness of the yellow-white core relative to the body.
- * @param {number} [o.embers=80]       Ember (spark) count; 0 disables.
+ * @param {number} [o.sparks=60]       Fast spark streaks; about a third fly in bursts.
+ * @param {number} [o.bursts]          Burst groups the bursting sparks share; default sparks / 12.
+ * @param {number} [o.embers=10]       Slow, long-lived drifting embers.
+ * @param {number} [o.ash=0]           Pale ash flecks drifting down around the fire.
+ * @param {number} [o.sparkSize]       Spark streak width (m); default max(6 mm, 0.02 × radius).
  * @param {number} [o.smoke=16]        Smoke puff count; 0 disables.
  * @param {number} [o.smokeHeight]     How high smoke rises (m); default 3.5 × height.
  * @param {number} [o.smokeOpacity=0.3]
+ * @param {number} [o.smokeSize=1.2]   Puff size at birth relative to the radius (grows 4×).
+ * @param {number} [o.smokeBase=0.8]   Where puffs start, as a fraction of the flame height.
+ * @param {number} [o.smokeGlow=1.2]   How strongly the fire lights the smoke from below.
+ * @param {number[]} [o.smokeAmbient]  Unlit smoke colour (linear RGB).
  * @param {number} [o.brightness=1]    Flame/ember sprite brightness.
  * @param {number} [o.intensity=60]    PointLight intensity (candela); 0 = no light.
  * @param {number} [o.lightColor=0xff8a3a]
@@ -53,10 +61,18 @@ export function createFire(o = {}) {
     flameSize = radius * 1.4,
     flames = 6,
     core = 1,
-    embers = 80,
+    sparks = 60,
+    bursts = Math.max(1, Math.round(sparks / 12)),
+    embers = 10,
+    ash = 0,
+    sparkSize,
     smoke = 16,
     smokeHeight = height * 3.5,
     smokeOpacity = 0.3,
+    smokeSize,
+    smokeBase,
+    smokeGlow,
+    smokeAmbient,
     brightness = 1,
     intensity = 60,
     lightColor = 0xff8a3a,
@@ -93,15 +109,13 @@ export function createFire(o = {}) {
   const flameParts = createFlames(flames, u, rnd, { bounds, core });
   group.add(flameParts.object);
   disposables.push(...flameParts.disposables);
-  if (embers > 0) {
-    const e = createEmbers(embers, u, rnd, { radius, height, bounds });
-    group.add(e.object);
-    disposables.push(...e.disposables);
-  }
-  if (smoke > 0) {
-    const s = createSmokePuffs(smoke, u, rnd, { radius, height, smokeHeight, smokeOpacity, bounds });
-    group.add(s.object);
-    disposables.push(...s.disposables);
+  if (sparks + embers + ash + smoke > 0) {
+    const p = createFireParticles(u, rnd, {
+      radius, height, sparks, bursts, embers, ash, smoke, sparkSize, smokeHeight, smokeOpacity,
+      smokeSize, smokeBase, smokeGlow, smokeAmbient, lightY: lightOffset[1],
+    });
+    group.add(p.object);
+    disposables.push(...p.disposables);
   }
 
   // ---- Light --------------------------------------------------------------------------

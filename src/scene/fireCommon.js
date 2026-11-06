@@ -67,20 +67,6 @@ export function randAttribute(count, rnd) {
   return a;
 }
 
-/** Instanced camera-facing quads (one draw call). */
-export function quadParticles(count, rnd, bounds) {
-  const base = new THREE.PlaneGeometry(1, 1);
-  const geo = new THREE.InstancedBufferGeometry();
-  geo.index = base.index;
-  geo.setAttribute('position', base.attributes.position);
-  geo.setAttribute('uv', base.attributes.uv);
-  geo.setAttribute('aRand', new THREE.InstancedBufferAttribute(randAttribute(count, rnd), 4));
-  geo.instanceCount = count;
-  geo.boundingSphere = bounds.clone();
-  geo.boundingBox = null;
-  return geo;
-}
-
 // Smooth 1D value noise in [-1, 1] for the light flicker.
 const hash1 = (n) => {
   const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
