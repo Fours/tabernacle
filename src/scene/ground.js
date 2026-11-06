@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { WORLD_NOISE_GLSL } from './materials.js';
 import { AO, AO_PARS_GLSL, aoApplyGlsl, bindAOUniforms } from './ao.js';
-import { GROUND_HEIGHT_GLSL } from './terrain.js';
+import { GROUND_GRID, reliefHeight } from './terrain.js';
 import { ALTAR, LAVER, TABERNACLE, COURTYARD, m } from '../config/dimensions.js';
 
 const TILE = 2; // meters covered by one sand texture tile
@@ -162,20 +162,7 @@ function sandMaterial() {
     shader.uniforms.uAoGroundTex = AO.uAoGroundTex;
     shader.uniforms.uAoGroundRect = AO.uAoGroundRect;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vSandPos;\n${GROUND_HEIGHT_GLSL}`)
-      // Relief (terrain.js): displace the flat grid and take the normal from the height field.
-      .replace(
-        '#include <beginnormal_vertex>',
-        `vec2 sandXZ = (modelMatrix * vec4(position, 1.0)).xz;
-vec3 objectNormal;
-{
-  const float e = 0.75;
-  float hx = groundHeight(sandXZ + vec2(e, 0.0)) - groundHeight(sandXZ - vec2(e, 0.0));
-  float hz = groundHeight(sandXZ + vec2(0.0, e)) - groundHeight(sandXZ - vec2(0.0, e));
-  objectNormal = normalize(vec3(-hx / (2.0 * e), 1.0, -hz / (2.0 * e)));
-}`,
-      )
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.y += groundHeight(sandXZ);')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vSandPos;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvSandPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vSandPos;\n${WORLD_NOISE_GLSL}\n${TROD_GLSL}\n${AO_PARS_GLSL}
@@ -265,15 +252,51 @@ roughnessFactor = mix(roughnessFactor, 0.13, sandSpark);`,
 }`,
       );
   };
-  mat.customProgramCacheKey = () => 'sand-v3';
+  mat.customProgramCacheKey = () => 'sand-v4';
   return mat;
+}
+
+/**
+ * The sand mesh on the relief: terrain.js GROUND_GRID (graded: 4 m cells near the centre,
+ * coarser out in the fog), heights and normals from the analytic relief, same triangulation
+ * that terrain.js groundHeight() interpolates. ~5k vertices: every triangle edge costs some
+ * quad overshading of the (heavy) sand shader, so the grid is kept coarse.
+ */
+function reliefGeometry() {
+  const { xs, n, h } = GROUND_GRID;
+  const pos = new Float32Array(n * n * 3), nrm = new Float32Array(n * n * 3), uv = new Float32Array(n * n * 2);
+  const e = 0.75;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const k = j * n + i, x = xs[i], z = xs[j];
+      pos.set([x, h[k], z], k * 3);
+      const hx = (reliefHeight(x + e, z) - reliefHeight(x - e, z)) / (2 * e);
+      const hz = (reliefHeight(x, z + e) - reliefHeight(x, z - e)) / (2 * e);
+      const l = Math.hypot(hx, 1, hz);
+      nrm.set([-hx / l, 1 / l, -hz / l], k * 3);
+      uv.set([x / 600 + 0.5, 0.5 - z / 600], k * 2); // as PlaneGeometry(600, 600) laid flat
+    }
+  }
+  const idx = [];
+  for (let j = 0; j < n - 1; j++) {
+    for (let i = 0; i < n - 1; i++) {
+      const a = j * n + i, b = a + 1, c = a + n, d = c + 1; // a = (x0, z0), b = (x1, z0), c = (x0, z1)
+      idx.push(a, c, b, b, c, d);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeBoundingSphere();
+  return geo;
 }
 
 export function createGround() {
   const group = new THREE.Group();
   group.name = 'ground';
-  // 2 m grid: the relief's shortest waves are ~19 m, so the mesh follows groundHeight() to ~1 cm.
-  const geo = new THREE.PlaneGeometry(600, 600, 300, 300).rotateX(-Math.PI / 2);
+  const geo = reliefGeometry();
   const mesh = new THREE.Mesh(geo, sandMaterial());
   mesh.receiveShadow = true;
   group.add(mesh);

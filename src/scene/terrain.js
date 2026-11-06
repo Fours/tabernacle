@@ -1,10 +1,12 @@
 import { COURTYARD as C, CAMP, m } from '../config/dimensions.js';
 
 // Ground relief: gentle dunes and swales (a few tens of cm) away from the court. One height
-// field, written twice: `groundHeight(x, z)` in JS (player eye height, scatter, camp tents,
-// anything standing on the sand) and `GROUND_HEIGHT_GLSL` (the sand mesh is displaced in its
-// vertex shader). Both are the same sum of sines, so they agree to float precision; no hashes,
-// whose JS and GLSL versions would drift apart.
+// field: `reliefHeight(x, z)` (a sum of warped sines) and its GLSL twin `GROUND_HEIGHT_GLSL`
+// (same sines, so they agree to float precision; no hashes, whose JS and GLSL versions would
+// drift apart). The sand mesh is that field sampled on GROUND_GRID (baked once; displacing a
+// dense mesh in the vertex shader cost ~1.4 ms a frame), and `groundHeight(x, z)` is the mesh's
+// own interpolation of the grid: use it for anything that stands on the sand (eye height,
+// scatter, camp tents, torches) so it meets the rendered ground exactly.
 //
 // The relief is 0 in the court and up to `TERRAIN.start` m outside the hangings (the pegs, the
 // torches and the gate approach stand on level ground), grows to full by `TERRAIN.full` m, and
@@ -23,8 +25,8 @@ export const TERRAIN = {
     [0.92, 0.38, 46, 0.2, 0.3],
     [0.6, -0.8, 31, 0.11, 1.9],
     [0.2, 0.98, 67, 0.15, 4.1],
-    [-0.85, 0.53, 19, 0.05, 2.6],
-    [0.97, -0.24, 23, 0.05, 5.2],
+    [-0.85, 0.53, 26, 0.05, 2.6],
+    [0.97, -0.24, 29, 0.05, 5.2],
   ],
   warp: 5, // m of domain warp so the crests wander instead of running dead straight
 };
@@ -68,10 +70,57 @@ function dunes(x, z) {
   return h * amp;
 }
 
-/** Ground height (m) at world (x, z). 0 in the court; gentle dunes away from it. */
-export function groundHeight(x, z) {
+/** Analytic relief height (m) at world (x, z): 0 in the court, gentle dunes away from it. */
+export function reliefHeight(x, z) {
   const k = reliefMask(x, z);
   return k > 0 ? k * dunes(x, z) : 0;
+}
+
+// The sand mesh's grid (ground.js builds it from this): reliefHeight sampled on a graded grid,
+// 4 m cells out to 80 m from the centre, 8 m to 160 m, 28 m to the edge (300 m), where the fog
+// has long hidden the ground. Each cell is split along its (x1, z0)-(x0, z1) diagonal.
+function gridAxis() {
+  const a = [0];
+  for (let x = 0; x < 300 - 1e-6;) {
+    x = Math.min(300, x + (x < 80 - 1e-6 ? 4 : x < 160 - 1e-6 ? 8 : 28));
+    a.push(x);
+  }
+  return [...a.slice(1).reverse().map((v) => -v), ...a];
+}
+export const GROUND_GRID = (() => {
+  const xs = gridAxis();
+  const n = xs.length;
+  const h = new Float32Array(n * n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) h[j * n + i] = reliefHeight(xs[i], xs[j]);
+  return { xs, n, h };
+})();
+
+/** Index of the grid cell containing v (binary search; clamped to the grid). */
+function cellOf(xs, v) {
+  let lo = 0, hi = xs.length - 2;
+  if (v <= xs[0]) return 0;
+  if (v >= xs[hi]) return hi;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (xs[mid] <= v) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/**
+ * Height (m) of the sand surface as rendered at world (x, z): the mesh's own linear
+ * interpolation of the grid, so whatever stands on the ground (eye height, scatter, camp
+ * tents, torches) meets it exactly. 0 in the court.
+ */
+export function groundHeight(x, z) {
+  if (courtDistance(x, z) < TERRAIN.start) return 0;
+  const { xs, n, h } = GROUND_GRID;
+  const i = cellOf(xs, x), j = cellOf(xs, z);
+  const u = Math.min(Math.max((x - xs[i]) / (xs[i + 1] - xs[i]), 0), 1);
+  const w = Math.min(Math.max((z - xs[j]) / (xs[j + 1] - xs[j]), 0), 1);
+  const h00 = h[j * n + i], h10 = h[j * n + i + 1], h01 = h[(j + 1) * n + i], h11 = h[(j + 1) * n + i + 1];
+  return u + w <= 1 ? h00 + u * (h10 - h00) + w * (h01 - h00) : h11 + (1 - u) * (h01 - h11) + (1 - w) * (h10 - h11);
 }
 
 const f = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
@@ -82,7 +131,10 @@ const streetGlsl = CAMP.streets
   .map((st) => `  open = min(open, smoothstep(${f(CAMP.streetHalf - 1)}, ${f(CAMP.streetHalf + 3)}, abs(d - ${f(st)})));`)
   .join('\n');
 
-/** GLSL twin of groundHeight: `float groundHeight(vec2 p)` with p = world (x, z). */
+/**
+ * GLSL twin of reliefHeight: `float groundHeight(vec2 p)` with p = world (x, z). The rendered
+ * sand is a coarse sampling of it, within ~6 cm (use the JS groundHeight to stand things on it).
+ */
 export const GROUND_HEIGHT_GLSL = /* glsl */ `
 float tgCourtDistance(vec2 p) {
   return length(max(abs(p) - vec2(${f(HX)}, ${f(HZ)}), 0.0));

@@ -74,7 +74,7 @@ src/
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
   scene/
     ground.js           procedural sand on the relief: cool night tone, grain sparkle, trodden paths + footprints, isTrodden
-    terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes from ~10 m outside the court, lanes kept near-level
+    terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes (sand mesh baked in ground.js) from ~10 m outside the court, lanes kept near-level
     dustMotes.js        dust drifting in the firelight round the altar and lit torches (1 instanced draw, lit by the atmosphere's glow sources)
     groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
