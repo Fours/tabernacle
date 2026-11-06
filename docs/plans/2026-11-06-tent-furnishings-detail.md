@@ -109,7 +109,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
   frame band sits at pole height, so the poles hide much of it at eye height. Free camera: set
   `rig.controls.target` and `camera.position`, then `controls.update()`.
 
-- [ ] **Step 3: Floral relief on the altar of incense** — model: Opus / effort: medium
+- [x] **Step 3: Floral relief on the altar of incense** — model: Opus / effort: medium
   **Goal:** Using `scene/ornament.js`, add gold relief to the incense altar, merged into its
   gold mesh: framed recessed panels on all four sides (a central rosette or palmette with
   almond-leaf vines, related to but distinct from the ark and table), a profiled crown with
@@ -142,7 +142,11 @@ the linen ceiling's loops (Ex 26:4); new lights.
   **Carry-over notes:** `addGoldWear(mat, opts)` (metalWear.js) takes local-space masks in
   meters: `boxes` (ground = grime on the relief's background, contact = inner corners), `crevice`,
   `handling` capsules, `dust` on up-facing surfaces, `low`, and `soot {center, radius, height,
-  strength, color}` (compiled but not yet tuned visually). Follow `tableGold()` in showbread.js
+  strength, color}` (compiled but not yet tuned visually). Step 3 exports `incenseGroundBoxes(d)` from
+  incenseOrnament.js → `{ body, crownBand, plinthBand }` ({min, max}, altar-local m) for the
+  `boxes` option; `d` is `ORN` in incenseAltar.js (not exported; call from inside). Panel frames
+  stand 5 mm proud, so a 3 mm ground band darkens only the field.
+  Original note: Follow `tableGold()` in showbread.js
   (GOLD.clone + addGoldPatina re-applied, disposed in userData.dispose). Lower metalness where
   matter (soot, ash, dust) should read as matter, or the interior mask recolours it to gold.
 
