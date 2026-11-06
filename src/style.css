@@ -18,46 +18,175 @@ body {
   height: 100vh;
 }
 
-.fp-hint {
+/* Title and controls overlay (camera/firstPerson.js): at the start and after Esc. */
+.fp-intro {
   position: fixed;
-  left: 50%;
-  bottom: 32px;
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: 10;
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 6px 18px;
-  max-width: 90vw;
-  padding: 10px 18px;
-  border-radius: 8px;
-  background: rgba(8, 10, 16, 0.7);
-  border: 1px solid rgba(232, 226, 208, 0.18);
+  padding: 0 24px;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(10, 8, 6, 0.55), rgba(4, 4, 7, 0.86) 75%),
+    rgba(4, 4, 7, 0.25);
   color: #e8e2d0;
-  font: 14px/1.4 system-ui, sans-serif;
   cursor: pointer;
   user-select: none;
+  transition: opacity 0.45s ease, visibility 0.45s;
 }
 
-.fp-hint strong {
-  font-weight: 600;
-  color: #ffd9a0;
+.fp-intro.hidden {
+  opacity: 0;
+  visibility: hidden;
 }
 
-.fp-hint kbd {
+.fp-intro__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Puts the title in the top third of the screen. */
+  padding-top: max(8vh, calc(33vh - 110px));
+}
+
+.fp-title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  font-weight: 400;
+  color: #ecd29e;
+  text-shadow: 0 0 24px rgba(255, 170, 70, 0.35), 0 2px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1;
+}
+
+.fp-title__the {
+  font-size: clamp(18px, 2.4vw, 30px);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.15em;
+  color: #d8c091;
+}
+
+.fp-title__main {
+  font-size: clamp(40px, 6.4vw, 84px);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  /* Letter-spacing adds space after the last letter; balance it so the word stays centred. */
+  margin-right: -0.14em;
+}
+
+.fp-title__cap {
+  font-size: 1.32em;
+  letter-spacing: 0.06em;
+}
+
+.fp-rule {
+  display: flex;
+  align-items: center;
+  width: min(360px, 70vw);
+  margin: 26px 0 30px;
+}
+
+.fp-rule::before,
+.fp-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(236, 210, 158, 0.55));
+}
+
+.fp-rule::after {
+  background: linear-gradient(90deg, rgba(236, 210, 158, 0.55), transparent);
+}
+
+.fp-rule span {
+  width: 7px;
+  height: 7px;
+  margin: 0 12px;
+  border: 1px solid rgba(236, 210, 158, 0.75);
+  transform: rotate(45deg);
+}
+
+.fp-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 22px;
+  margin: 0;
+  align-items: center;
+  font: 15px/1.3 system-ui, sans-serif;
+}
+
+.fp-controls dt {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.fp-controls dd {
+  margin: 0;
+  color: #cfc7b3;
+  letter-spacing: 0.04em;
+}
+
+.fp-controls i {
+  margin: 0 6px;
+  font-style: italic;
+  font-family: 'Iowan Old Style', Palatino, Georgia, serif;
+  color: rgba(232, 226, 208, 0.55);
+}
+
+.fp-controls kbd {
   display: inline-block;
-  min-width: 1.5em;
-  margin: 0 2px;
-  padding: 1px 5px;
-  border: 1px solid rgba(232, 226, 208, 0.4);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  font: 12px ui-monospace, monospace;
+  min-width: 26px;
+  padding: 3px 6px;
+  border: 1px solid rgba(236, 210, 158, 0.4);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+  color: #f0e6cc;
+  font: 12px/1.4 ui-monospace, monospace;
   text-align: center;
 }
 
-.fp-hint.hidden {
-  display: none;
+.fp-controls kbd.wide {
+  min-width: 58px;
+}
+
+.fp-verse {
+  margin: 48px 0 0 0;
+  max-width: min(560px, 86vw);
+  text-align: center;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+}
+
+.fp-verse blockquote {
+  margin: 0;
+  font-size: clamp(17px, 1.6vw, 21px);
+  line-height: 1.5;
+  font-style: italic;
+  color: #e3d6b8;
+}
+
+.fp-verse figcaption {
+  margin-top: 10px;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(236, 210, 158, 0.75);
+}
+
+.fp-start {
+  margin: 0;
+  font: italic 17px/1 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  letter-spacing: 0.12em;
+  color: #ecd29e;
+  animation: fp-start-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fp-start-pulse {
+  50% { opacity: 0.45; }
 }
 
 .debug-readout {

@@ -24,24 +24,65 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
   const keys = { f: false, b: false, l: false, r: false, run: false };
   const pos = { x: 0, z: 0 };
 
-  const hint = document.createElement('div');
-  hint.className = 'fp-hint';
-  const HINT_HTML =
-    '<strong>Click to look around</strong>' +
-    '<span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows walk</span>' +
-    '<span><kbd>Shift</kbd> run</span>' +
-    '<span><kbd>Esc</kbd> release mouse</span>';
-  hint.innerHTML = HINT_HTML;
-  document.body.appendChild(hint);
-  // Request pointer lock ourselves so failures (e.g. embedded/iframe browsers) are handled
-  // gracefully instead of logging errors; keyboard walking still works without lock.
+  // Title and controls overlay: shown at the start and whenever the pointer is released (Esc).
+  // Clicking it (or the canvas) locks the pointer and fades it out.
+  const intro = document.createElement('div');
+  intro.className = 'fp-intro';
+  intro.innerHTML = `
+    <div class="fp-intro__inner">
+      <h1 class="fp-title">
+        <span class="fp-title__the">The</span>
+        <span class="fp-title__main"><span class="fp-title__cap">T</span>abernacle</span>
+      </h1>
+      <div class="fp-rule" aria-hidden="true"><span></span></div>
+      <dl class="fp-controls">
+        <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><i>or</i><kbd>&uarr;</kbd><kbd>&larr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></dt><dd>Walk</dd>
+        <dt><kbd class="wide">Mouse</kbd></dt><dd>Look around</dd>
+        <dt><kbd class="wide">Shift</kbd></dt><dd>Run</dd>
+        <dt><kbd class="wide">Esc</kbd></dt><dd>Release the mouse</dd>
+      </dl>
+      <div class="fp-rule" aria-hidden="true"><span></span></div>
+      <p class="fp-start">Click to enter</p>
+      <figure class="fp-verse">
+        <blockquote>&ldquo;Enter his gates with thanksgiving, and his courts with praise!&rdquo;</blockquote>
+        <figcaption>Psalm 100:4</figcaption>
+      </figure>
+    </div>`;
+  document.body.appendChild(intro);
+  const startLine = intro.querySelector('.fp-start');
+  // While the overlay is up the player can't move: held keys are released and new presses ignored.
+  let introShown = true;
+  const showIntro = () => {
+    introShown = true;
+    intro.classList.remove('hidden');
+    for (const k in keys) keys[k] = false;
+  };
+  const hideIntro = () => {
+    introShown = false;
+    intro.classList.add('hidden');
+  };
+
+  // Request pointer lock ourselves so failures are handled gracefully instead of logging
+  // errors. Two kinds: right after Esc the browser refuses a new lock for about a second (try
+  // again), and embedded browsers never allow it (then walk with the keys, no mouse look).
   const doc = domElement.ownerDocument;
   if (controls._onPointerlockError) doc.removeEventListener('pointerlockerror', controls._onPointerlockError);
+  let everLocked = false;
+  let lockUnavailable = false;
   const onLockError = () => {
-    hint.innerHTML = '<strong>Mouse look unavailable here</strong><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows still walk</span>';
+    if (everLocked) {
+      startLine.textContent = 'Click again to enter';
+    } else {
+      lockUnavailable = true;
+      startLine.textContent = 'Mouse look is unavailable here. Click to walk with the keys';
+    }
   };
   doc.addEventListener('pointerlockerror', onLockError);
   const requestLock = () => {
+    if (lockUnavailable) {
+      hideIntro();
+      return;
+    }
     try {
       const p = domElement.requestPointerLock();
       if (p && p.catch) p.catch(onLockError);
@@ -49,18 +90,24 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
       onLockError();
     }
   };
-  hint.addEventListener('click', requestLock);
+  intro.addEventListener('click', requestLock);
   domElement.addEventListener('click', requestLock);
-  controls.addEventListener('lock', () => hint.classList.add('hidden'));
-  controls.addEventListener('unlock', () => {
-    hint.innerHTML = HINT_HTML;
-    hint.classList.remove('hidden');
+  controls.addEventListener('lock', () => {
+    everLocked = true;
+    startLine.textContent = 'Click to enter';
+    hideIntro();
   });
+  controls.addEventListener('unlock', showIntro);
+  // Without pointer lock, Esc still brings the overlay back.
+  const onEsc = (e) => {
+    if (e.code === 'Escape' && !controls.isLocked) showIntro();
+  };
+  window.addEventListener('keydown', onEsc);
 
   const onKey = (down) => (e) => {
     const k = KEYMAP[e.code];
     if (k) {
-      keys[k] = down;
+      if (!(down && introShown)) keys[k] = down;
       e.preventDefault();
     }
   };
@@ -147,9 +194,10 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('blur', onBlur);
       doc.removeEventListener('pointerlockerror', onLockError);
+      window.removeEventListener('keydown', onEsc);
       domElement.removeEventListener('click', requestLock);
       controls.dispose();
-      hint.remove();
+      intro.remove();
     },
   };
 }
