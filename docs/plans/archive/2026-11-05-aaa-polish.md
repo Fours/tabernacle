@@ -1,6 +1,6 @@
 # Plan: AAA polish pass
 
-**Status:** active
+**Status:** complete
 **Goal:** The night scene reads like a finished, high-end game. The altar fire and the pillar of
 fire look like real, turbulent fire with rich colour, sparks and smoke instead of soft sprites
 and a blurry streak. Light behaves like light at night: it glows in the haze, objects sit on
@@ -242,7 +242,7 @@ biblical dimensions or layout.
   sky has no banding. Lint, build, clean console; budget.
   **Carry-over notes:** Done (1cf1e29, 1 round; 0 draws, ~+0.2 ms at `sky`). Ridges are in the sky shader (no mesh). Some peaks read a little pyramidal at `horizon` (optional).
 
-- [ ] **Step 10: Interior atmosphere and final pass** — model: Opus / effort: medium
+- [x] **Step 10: Interior atmosphere and final pass** — model: Opus / effort: medium
   **Goal:** Finish the inside and tie the whole plan together. (a) Interior: a warm haze in
   the Holy Place that glows around the menorah (analytic, from Step 5's approach), incense
   haze gathering faintly under the ceiling, dust motes in the lamplight, and the Holy of
@@ -261,3 +261,33 @@ biblical dimensions or layout.
   renders without errors; DECISIONS has the new baseline (`gate` under ~14 ms throttled at
   2048×1536 or the overrun explained); AGENTS.md is current. Lint, build, clean console.
   **Carry-over notes:** **PRIORITY (from Steps 5/9):** at `?view=camp` (58 m up) the whole far ground and camp area reads pale grey, almost like snow — the ground haze (colour fog × 3.5, `render/atmosphere.js`) accumulates along long downward rays and lifts dark sand to a bright grey. The camp should read as a dark night plain with the court's firelight as the bright focus (as before Step 5); fix in the haze integration (e.g. cap haze optical depth / brightness for steep downward or long rays, or darken the haze colour away from the lights) without losing the ground haze at eye height (`gate`, `campwalk`, `horizon`). (from Step 8) the unlit far wall at `holyplace` still reads coppery; the board bevels pick up edge chromatic-aberration fringes near the frame edges (consider lowering CA a touch). (from Step 7) from outside (`ground`, `pillar`) the hangings' transmitted glow reads fairly uniform peach; the folds/weave could show more (e.g. modulate transmission by the fold normal / weave texture), without going back to dull grey. Wind-driven shadows were not visually checked. (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.
+
+## Outcomes
+
+| Step | Rounds | Sub-agent tokens | Result |
+|---|---|---|---|
+| 1 Post chain | 1 | 139k | Mip-chain bloom, GPU eye adaptation (+inside key), filmic grade, lens, CAS; +0.1 ms |
+| 2 Flames | 1 | 152k | Noise-driven flame sheets with blackbody ramp; white blob gone; 0 draws |
+| 3 Sparks/smoke | 1 | 194k | Streak sparks, embers, ash and lit smoke in one draw per fire |
+| 4 Pillar of fire | 2 | 240k | Raymarched coherent column + ember swirl; round 1 lost the height and looked torn |
+| 5 Haze and glow | 1 | 199k | Ground haze, analytic glow of fires in the air, dust motes; +2.3 ms throttled |
+| 6 AO | 1 | 222k | Baked ground contact AO, room and crease AO; 0 draws, +0.15 ms |
+| 7 Cloth | 1 | 190k | Transmission, Charlie sheen, vertex wind with matching shadows |
+| 8 Ground/materials | 1 | 261k | Baked dune relief + groundHeight, trodden paths, sparkle, metal/wood/board-gold wear |
+| 9 Horizon/sky | 1 | 193k | Ridges in the sky shader (0 draws), airglow, Milky Way, cirrus over the shaft, meteors |
+| 10 Interior/final | 2 (split) | 383k | Carry-over fixes; interior haze, menorah glow, incense layer; darker plain; baseline; docs |
+
+Final: `gate` 122 draws (+6 vs. before the plan), ~12.4 ms throttled at 2048×1536 (under the
+~14 ms target).
+
+## Lessons learned
+
+- Shared look systems first (post chain before fire) paid off: no step had to re-tune bloom.
+- Atmosphere changes must be checked from high views too (`camp`, `top`), not only eye height;
+  the Step 5 haze regression was only caught at Step 9.
+- Ask sub-agents to name the decided proportions explicitly in their own screenshots: the
+  pillar's first round met "rolling structure" but lost the decided 24 m height.
+- Large final steps (interior + carry-overs + docs) are better split into two sub-agents.
+- The hidden pane's GPU flipped modes all day (6–20 ms throttled); A/B timings within one
+  session were the only trustworthy measure.
+- Sub-agents should restore any viewport emulation they set.
