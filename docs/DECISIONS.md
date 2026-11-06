@@ -563,28 +563,37 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
-## Performance baseline (2026-11-05, after the AAA polish plan)
+## Performance baseline (2026-11-05, after the fire plan)
 
 - Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on, as AGENTS.md
   describes (5 warm-up renders, then 40 `fx.render()` calls closed by a 1-pixel `readPixels`;
-  the better of two runs). The GPU on this machine flips between a fast mode (`gate` well
-  under 1 ms) and a throttled mode, sometimes mid-run; compare only like with like in one
-  session. These numbers are the throttled mode.
+  the better of two runs, which agreed to 0.1 ms). The GPU on this machine flips between a fast
+  mode (`gate` well under 1 ms) and a throttled mode, sometimes mid-run; compare only like with
+  like in one session. These numbers are the throttled mode.
 
   | Preset | Draws | ms |
   |---|---|---|
-  | `gate` | 122 | 12.4 |
-  | `iso` | 122 | 13.0 |
-  | `tent` | 106 | 11.2 |
-  | `firepillar` | 115 | 10.9 |
-  | `firepillarfoot` | 92 | 7.8 |
-  | `holyplace` | 104 | 11.1 |
-  | `holyofholies` | 90 | 10.3 |
-  | `camp` | 122 | 11.7 |
-  | `campwalk` | 82 | 10.1 |
-  | `horizon` | 78 | 9.6 |
+  | `gate` | 122 | 12.2 |
+  | `iso` | 122 | 12.5 |
+  | `tent` | 106 | 10.6 |
+  | `firepillar` | 115 | 10.6 |
+  | `firepillarfoot` | 92 | 8.0 |
+  | `holyplace` | 104 | 10.2 |
+  | `holyofholies` | 90 | 9.6 |
+  | `camp` | 122 | 11.4 |
+  | `campwalk` | 82 | 9.5 |
+  | `horizon` | 78 | 9.1 |
+  | `fire` | 111 | 11.1 |
+  | `fireclose` | 108 | 10.8 |
+  | `torch` | 117 | 11.5 |
 
-- Against the plan's budget (`gate` under ~14 ms throttled): met. Before the plan (the previous
+- The fire plan's cost (same-session A/B in throttled mode): Step 1 raymarched altar flames
+  ~+1.2 ms at `fire`, ~+0.3 ms at `gate`; Step 2 torch flames ~0 (level of detail by projected
+  height); Step 3 pillar embers ~0; Step 4 pillar column +0.7 ms at `firepillarfoot`, +0.3 ms at
+  `firepillar`. Draws unchanged throughout. The totals above match the previous baseline's draws
+  and are within ~0.2 ms of its times (the other presets drifted slightly down, so the rows are
+  not a clean A/B).
+- Against the AAA polish plan's budget (`gate` under ~14 ms throttled): met. Before that plan (the earlier
   baseline) `gate` drew 116 (+6 over the plan, within its ~6 per step), `iso` 116 (+6), `tent`
   99 (+7), `firepillar` 109 (+6), `holyplace` 97 (+7), `holyofholies` 86 (+4), `camp` 116 (+6),
   `campwalk` 77 (+5).
