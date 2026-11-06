@@ -127,7 +127,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
   build, clean console; frame time at `incense` within budget.
   **Carry-over notes:**
 
-- [ ] **Step 4: Worn, sooted gold on the altar of incense** — model: Sonnet / effort: high
+- [x] **Step 4: Worn, sooted gold on the altar of incense** — model: Sonnet / effort: high
   **Goal:** Apply the Step 2 wear helper to the incense altar's own gold copy, tuned for an
   altar burned on twice a day (Ex 30:7–8): soot and resin darkening on the top round the
   firepan and up the inner faces of the crown and horns, fading in streaks down the sides;
