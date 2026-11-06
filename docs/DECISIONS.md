@@ -649,6 +649,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Performance baseline (2026-11-05, after the fire plan)
 
+- 2026-11-06, after the tent furnishings plan (ornament, wear, mercy seat, hem rings): draws
+  `gate` 123, `iso` 123, `tent` 107, `firepillar` 116, `firepillarfoot` 93, `holyplace` 105,
+  `holyofholies` 91, `camp` 123, `campwalk` 82, `horizon` 78, `fire` 112, `fireclose` 109,
+  `torch` 118, `table` 95, `incense` 96 (+1 for the hem rings, which are in nearly every view).
+  Per-step A/B costs were +0.07 to +0.25 ms each. One end-of-plan run in the throttled mode
+  (not a clean A/B with the table below): `gate` 12.9, `tent` 11.6, `holyplace` 11.4,
+  `holyofholies` 10.4, `table` 10.7, `incense` 10.9, `camp` 11.9 ms.
+
 - Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on, as AGENTS.md
   describes (5 warm-up renders, then 40 `fx.render()` calls closed by a 1-pixel `readPixels`;
   the better of two runs, which agreed to 0.1 ms). The GPU on this machine flips between a fast

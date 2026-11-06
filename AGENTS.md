@@ -192,8 +192,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
   from the altar's south-east horn, on the flames), `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
   the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW),
-  `hemtie` (eye height ~1.5 m from a goat-hair cord tie on the north side: silver ring, patch,
-  loop and knot, with a ram-skin tie above)
+  `hemtie` (close, ~0.5 m from a goat-hair cord tie on the north side: silver ring, patch,
+  loop and knot)
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `smoke` (the
   incense altar's smoke from the side), `ark`, `mercyseat` (close above the lid from the east: the blood
   between the cherubim), `holyofholies`

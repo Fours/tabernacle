@@ -1,6 +1,6 @@
 # Plan: Ornament, wear and hem rings for the tent and its furnishings
 
-**Status:** active
+**Status:** complete
 **Goal:** The table of showbread and the altar of incense carry gold floral relief in the same
 style as the ark's ornament, and their gold looks handled and used: tarnish, dirt and grime
 where hands, bread, coals and resin have been, the way the bronze altar looks "lived-in". The
@@ -168,7 +168,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
   console; frame time at `holyofholies` within budget.
   **Carry-over notes:**
 
-- [ ] **Step 6: Silver rings at the coverings' tie points** — model: Opus / effort: medium
+- [x] **Step 6: Silver rings at the coverings' tie points** — model: Opus / effort: medium
   **Goal:** At each of the 67 cord tie points on the goat hair, ram skin and tachash hems
   (including the diagonal front-end cords), add a reinforcing patch on the hem, a silver ring
   set through it in the cloth's plane, and the cord looped through the ring with a small knot
@@ -188,3 +188,27 @@ the linen ceiling's loops (Ex 26:4); new lights.
   cloth visibly (check two `uWindTime` values); draws +1 at most at `tent`, `coverings`,
   `gate`; lint, build, clean console; frame time at `tent` within budget.
   **Carry-over notes:**
+
+## Outcomes
+
+| Step | Rounds | Sub-agent tokens | Result |
+|---|---|---|---|
+| 1 Table relief | 1 | ~141k | Helpers moved to `ornament.js` (ark identical); `showbreadOrnament.js` +84.6k tris, ~26 ms, +0.17 ms at `table` |
+| 2 Table wear | 1 | ~137k | `addGoldWear` (boxes, crevice, handling, dust, low, soot); table's own gold, +0.2 ms |
+| 3 Incense altar relief | 1 | ~150k | `incenseOrnament.js` +94k tris, faces built once and copied (~12 ms), +0.23 ms |
+| 4 Incense altar wear | 1 | ~127k | Soot round the firepan with streaks, panel grime, ash, smudges; +0.25 ms |
+| 5 Mercy seat blood | 1 | ~120k | Object-space mask in the ark's gold, 22 drops + 6 flecks, more east; +0.07 ms, new `mercyseat` |
+| 6 Hem rings | 1 | ~141k | 65 silver rings (1 merged draw), patches, cord loops and knots; wind fades to 0 at ties; `hemtie` (moved closer by the orchestrator) |
+
+## Lessons learned
+
+- Matter on gold (dust, soot, blood) must drop below the interior mask's metal threshold or it is
+  recoloured to gold; but fully dielectric matter goes black in the Holy of Holies, which is lit
+  mostly by reflections, so ~0.4 metalness is the useful middle.
+- Building a repeated face's relief once and copying it cut the incense ornament's build time by
+  more than half; do the same for any symmetric ornament.
+- Grime masks from local-space boxes (the relief's ground) beat curvature cues on flat box corners.
+- The plan's tie count (67) was wrong (65); have a builder count from code before a plan quotes
+  numbers.
+- Check a new close-up preset's framing yourself; the builder's `hemtie` showed the ties too small.
+
