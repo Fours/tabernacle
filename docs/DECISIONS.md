@@ -300,6 +300,18 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   `main.js`). No colliders; receives shadows, casts none. `userData.removeWhere` lets later
   modules clear scatter (the camp).
   About +0.6–0.7 ms at `gate`.
+- 2026-11-05: Ground relief (`scene/terrain.js`): gentle warped-sine dunes, ~12 cm rms and at
+  most ~0.5 m, starting 10 m outside the hangings and full by 40 m, kept to 30% along the
+  camp's lanes, the gate approach and the streets; the court is level (y = 0). The mesh is
+  baked on a graded grid (4/8/28 m cells). `groundHeight(x, z)` is that mesh's exact
+  interpolation; everything standing outside the court uses it (scatter, tent instance y at the
+  lowest ground under the cloth, torches, the 1.6 m eye). Vertex-shader displacement was
+  rejected (~1.4 ms at `camp`).
+- 2026-11-05: Trodden ground: the priests' round (gate → altar → laver → tent door) and rings
+  round the altar and laver are darker, compacted and ripple-free, with faint footprints, and
+  the scatter is cleared off them (`isTrodden`). The night sand albedo is desaturated toward a
+  cool grey-beige; the firelight supplies the warmth. Quartz grain glints: one world-anchored
+  facet per 7 mm cell, faded before a cell gets smaller than a pixel.
 - 2026-11-05: Camp of Israel (`scene/camp.js`, 6 instanced draws, ~4,500 tents, no lights).
   Bands are measured from the court rectangle. Levites in rows facing the court at 10–30 m:
   Moses, Aaron and the priests east, Gershon west, Kohath south, Merari north (Num 3:23–38).
@@ -416,6 +428,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - The goat-hair texture tile spans 2 curtains × 4 cubits.
   - The skin textures tile every 8×8 cubits.
   - The tachash is dark brown leather.
+- 2026-11-05: Metal and wood wear (`scene/metalWear.js`), procedural in world/object space,
+  no textures or draws. Bronze is hammered with edge wear and verdigris; the altar is sooted on
+  its upper walls and horns. Silver is tarnished in hollows and polished on high spots. Acacia
+  has grain and checks. The board gold has bevels, joints, sheet overlaps every 1.35 m with
+  nails, a hammered surface and 1.2× reflectance, so the interior mask's gold re-colouring reads
+  as beaten gold, not brown wood. Clones are re-patched where they are made.
 - 2026-11-05: Gold patina (`addGoldPatina` in materials.js): one shared shader patch with 3D
   world-space noise (the 2D projected noise streaks): tarnish patches, grime near the floor,
   under overhangs and in concave creases (screen-space curvature), smudges at hand height
@@ -480,3 +498,5 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - Step 5 atmosphere (throttled mode, `?haze=0` A/B in one session): +2.3 ms at `gate` on a
   ~18 ms baseline (glow loop ~0.4, haze noise ~0.4, the rest per-fragment haze math), +2 ms at
   `camp`; +1 draw (dust). Steps 1–4 together added ~+0.5 ms and +2 draws at `gate`.
+- Step 8 (ground and materials, A/B in one session): `gate` +0.14 ms, `camp` +0.60 ms,
+  `holyplace` +0.26 ms, 0 draws.
