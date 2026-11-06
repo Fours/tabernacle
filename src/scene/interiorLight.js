@@ -84,6 +84,8 @@ const GOLD_LUM = (() => {
 })();
 
 const PARS = /* glsl */ `
+#define IL_MASK
+#define IL_VEIL_X ${f(BOX.veilX)}
 uniform vec3 uIlSource;
 uniform vec3 uIlAmbient;
 uniform float uIlFalloff;

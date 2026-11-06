@@ -27,6 +27,7 @@ import { createPostFX } from './render/postfx.js';
 import { createNightEnvironment } from './render/environment.js';
 import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
 import { createDustMotes } from './scene/dustMotes.js';
+import { WIND, updateWind } from './scene/cloth.js';
 
 const params = getParams();
 // Ground haze and the fires' glow in the air live in the fog chunks (render/atmosphere.js);
@@ -84,6 +85,9 @@ for (const g of elements) {
 // Contact AO on the sand: every element's footprints baked into one texture (scene/ao.js).
 const groundAO = bakeGroundAO(elements.flatMap((g) => g.userData.aoShapes || []));
 AO.uAoOn.value = params.ao ? 1 : 0;
+// Wind on the cloth (scene/cloth.js): one shared time, direction and strength.
+WIND.uWindStrength.value = params.wind ? 1 : 0;
+updaters.push(updateWind);
 const sky = createSky({ fogColor: FOG_COLOR, atmosphere: params.haze });
 scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
@@ -227,7 +231,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO,
+  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

@@ -6,6 +6,7 @@ import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './mater
 import { createLinenTexture } from './textiles.js';
 import { createEmbroideredScreenTextures } from './embroidery.js';
 import { addGatheredDrape, clothGeometry } from './drape.js';
+import { addCloth, addWindShadow, pushWind } from './cloth.js';
 import { aoBox, aoCircle, aoSegment, addBoxAO } from './ao.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
@@ -48,6 +49,11 @@ const TIE_Y = m(C.gateTieHeight);
 // v coordinate of the gate texture's plain purple border band (canvas rows 74-81 of 512):
 // the tie-back cords sample it so they share the gate material.
 const TIE_TEX_V = 1 - 77.5 / 512;
+// Wind billow amplitude (m) of a hanging at mid-span and mid-height (cloth.js); none at the
+// hooks, the pillars and the pegged hem.
+const HANG_WIND = 0.045;
+// The gate drapes' hems below the tie (drape.js).
+const DRAPE_WIND = 0.03;
 
 function pillarGeometries() {
   // Bronze socket: square block with a stepped top and a collar around the shaft foot.
@@ -114,7 +120,7 @@ function walls() {
 function addClothSpan(buf, wall, s0, s1, uvFn) {
   const len = s1 - s0;
   const cols = Math.max(4, Math.round(len / 0.045));
-  const rows = 6;
+  const rows = 10;
   const sag = m(C.hangingSag);
   const [cx, cz] = wall.c, [ax, az] = wall.a, [nx, nz] = wall.n;
   const base = buf.pos.length / 3;
@@ -132,6 +138,11 @@ function addClothSpan(buf, wall, s0, s1, uvFn) {
       buf.pos.push(cx + ax * s + nx * off, y, cz + az * s + nz * off);
       const [uu, vv] = uvFn(s, 1 - t);
       buf.uv.push(uu, vv);
+      // Wind: sin(pi u) sin(pi t) billow and its gradient (along the wall and in height).
+      const st = Math.sin(Math.PI * t);
+      const dws = ((HANG_WIND * Math.PI) / len) * Math.cos(Math.PI * u) * st;
+      const dwy = -((HANG_WIND * Math.PI) / HANG_H) * bell * Math.cos(Math.PI * t);
+      pushWind(buf, [nx, 0, nz], HANG_WIND * bell * st, [ax * dws, dwy, az * dws]);
     }
   }
   for (let j = 0; j < rows; j++) {
@@ -181,8 +192,8 @@ export function createCourtyard() {
   group.add(sockets, shafts, capitals);
 
   // ---- Hangings, gate screen, fillets, hooks ---------------------------------------------
-  const linenBuf = { pos: [], uv: [], idx: [] };
-  const gateBuf = { pos: [], uv: [], idx: [] };
+  const linenBuf = { pos: [], uv: [], idx: [], wind: [], windG: [] };
+  const gateBuf = { pos: [], uv: [], idx: [], wind: [], windG: [] };
   const fillets = []; // [x0,z0,x1,z1]
   const hookMats = [];
   const hx = m(C.length / 2), hz = m(C.width / 2);
@@ -214,7 +225,7 @@ export function createCourtyard() {
       for (const sp of [-GATE_OPEN, GATE_OPEN]) {
         // One middle panel drawn aside: gathered against the post at sp, tied back (drape.js).
         const [al, off] = addGatheredDrape(gateBuf, w, sp, gateUV, {
-          hangTop: HANG_TOP, hangH: HANG_H, tieY: TIE_Y, clothOffset: CLOTH_OFFSET, tieTexV: TIE_TEX_V,
+          hangTop: HANG_TOP, hangH: HANG_H, tieY: TIE_Y, clothOffset: CLOTH_OFFSET, tieTexV: TIE_TEX_V, windAmp: DRAPE_WIND,
         });
         const [px, pz] = at(sp - Math.sign(sp) * al);
         colliders.push(circle(px + nx * off, pz + nz * off, 0.17)); // gathered cloth
@@ -271,8 +282,11 @@ export function createCourtyard() {
   linen.bumpScale = 0.6;
   // Slightly uneven bleaching between panels, and desert dust soaking up the lower hem.
   addMacroVariation(linen, { scale: 0.18, amount: 0.07, dust: 0.3, dustHeight: 0.7, tint: [1.0, 0.97, 0.92] });
+  // Fine linen: firelight shows through it; a soft fibre sheen; billows in the wind.
+  addCloth(linen, { transmission: 0.35, sheen: 0.35, sheenRoughness: 0.5, wind: true });
   const hangings = new THREE.Mesh(clothGeometry(linenBuf), linen);
   hangings.name = 'hangings';
+  addWindShadow(hangings);
   hangings.castShadow = hangings.receiveShadow = true;
   group.add(hangings);
 
@@ -286,8 +300,11 @@ export function createCourtyard() {
     side: THREE.DoubleSide,
   });
   addMacroVariation(gateMat, { scale: 0.2, amount: 0.05, dust: 0.3, dustHeight: 0.7 });
+  // Embroidered linen, denser than the plain hangings: a little less light through it.
+  addCloth(gateMat, { transmission: 0.3, sheen: 0.3, sheenRoughness: 0.5, wind: true });
   const gate = new THREE.Mesh(clothGeometry(gateBuf), gateMat);
   gate.name = 'gate-screen'; // non-colliding (Decisions log)
+  addWindShadow(gate);
   gate.castShadow = gate.receiveShadow = true;
   group.add(gate);
 

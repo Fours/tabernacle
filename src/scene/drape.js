@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pushWind, windAttributes } from './cloth.js';
 
 // Gathered, tied-back drapes: a hanging drawn aside to one side of an opening, gathered in
 // vertical pleats, cinched by a cord and flaring out below it. Shared by the courtyard gate
@@ -16,6 +17,7 @@ export function clothGeometry(buf) {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(buf.uv, 2));
   g.setIndex(buf.idx);
   g.computeVertexNormals();
+  if (buf.wind) windAttributes(g, buf.wind, buf.windG);
   return g;
 }
 
@@ -39,6 +41,7 @@ const GATE_SHAPE = {
   cordR: 0.011,
   tasselLen: 0.3,
   collider: [0.09, -0.01], // tie collider centre: along, offset relative to clothOffset
+  windAmp: 0.03, // wind flutter (m) at the hem's leading edge (cloth.js); none above the tie
 };
 
 /**
@@ -93,6 +96,17 @@ export function addGatheredDrape(buf, wall, sp, uvFn, opts) {
       buf.pos.push(cx + ax * s + nx * off, y, cz + az * s + nz * off);
       const [uu, vv] = uvFn(sp + dir * u * clothW, 1 - v);
       buf.uv.push(uu, vv);
+      // Wind: the flared part below the tie flutters, most at the hem's leading edge, none at
+      // the post. Gradient: in height and along the wall (W per unit u).
+      if (v > vt) {
+        const k = (v - vt) / (1 - vt);
+        const fu = smooth(0, 0.15, u) * (0.5 + 0.5 * u);
+        const fu1 = smooth(0, 0.15, Math.min(1, u + 0.01)) * (0.5 + 0.5 * Math.min(1, u + 0.01));
+        const w = o.windAmp * Math.pow(k, 1.5) * fu;
+        const dwy = (-o.windAmp * 1.5 * Math.sqrt(k) * fu) / ((1 - vt) * hangH);
+        const dwa = (o.windAmp * Math.pow(k, 1.5) * (fu1 - fu)) / (0.01 * Math.max(W, 0.1));
+        pushWind(buf, [nx, 0, nz], w, [ax * dir * dwa, dwy, az * dir * dwa]);
+      } else pushWind(buf);
     }
   }
   for (let j = 0; j < rows; j++) {
@@ -123,6 +137,7 @@ export function addGatheredDrape(buf, wall, sp, uvFn, opts) {
     for (let k = 0; k < p.count; k++) {
       buf.pos.push(p.getX(k), p.getY(k), p.getZ(k));
       buf.uv.push(0.3 + 0.4 * (k / p.count), o.tieTexV);
+      pushWind(buf);
     }
     for (const ix of g.index.array) buf.idx.push(b0 + ix);
     g.dispose();

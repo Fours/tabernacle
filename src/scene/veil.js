@@ -4,6 +4,7 @@ import { part } from './bronzeParts.js';
 import { createLinenTexture } from './textiles.js';
 import { createCherubimTexture } from './cherubimWeave.js';
 import { roofSag } from './tentCoverings.js';
+import { addCloth } from './cloth.js';
 
 // The veil (Ex 26:31-33; 36:35-36) between the Holy Place and the Holy of Holies: a curtain
 // woven with cherubim, hung on gold hooks from 4 gold-overlaid acacia pillars on silver
@@ -64,6 +65,9 @@ function clothMesh() {
     roughness: 0.88,
     side: THREE.DoubleSide,
   });
+  // Heavy, densely woven: only a little of the menorah's light through it (seen from the Holy
+  // of Holies); fibre sheen. No wind inside the tent.
+  addCloth(mat, { transmission: 0.2, sheen: 0.3 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'veil';
   mesh.receiveShadow = true;

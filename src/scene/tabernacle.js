@@ -7,7 +7,8 @@ import { part, merge } from './bronzeParts.js';
 import { createEmbroideredScreenTextures } from './embroidery.js';
 import { createCoverings, createLinenCeiling } from './tentCoverings.js';
 import { createVeil } from './veil.js';
-import { addGatheredDrape, clothGeometry } from './drape.js';
+import { addGatheredDrape, clothGeometry, smooth } from './drape.js';
+import { addCloth, addWindShadow, pushWind } from './cloth.js';
 
 // Tabernacle tent (Ex 26; 36:8-38): boards, bars, entrance, plus the interior shell (linen
 // ceiling, veil). The door stands open: no entrance pillars (see DOOR below). Dimensions in cubits from dimensions.js.
@@ -152,7 +153,11 @@ const DOOR_SHAPE = {
   cordR: 0.013,
   tasselLen: 0.36,
   collider: [0.14, 0],
+  windAmp: 0.025, // the tied-back half's hem (drape.js, cloth.js)
 };
+// Wind on the drawn half (m): none at the hooks or the wall edge, most low on the free edge.
+const DOOR_WIND = 0.035;
+const doorWindW = (u, t) => DOOR_WIND * (1 - (1 - t) * (1 - t)) * smooth(0, 0.2, u) * (0.6 + 0.4 * u);
 
 /** Gold parts for the door: the beam, hooks under it holding the gathered cloth, tie staples. */
 function doorGoldParts() {
@@ -209,6 +214,11 @@ function addHangingHalf(buf, sp, uvFn) {
       buf.pos.push(cx - fold, y, z);
       const [uu, vv] = uvFn(z, 1 - t);
       buf.uv.push(uu, vv);
+      // Wind along −x (the cloth's normal); gradient by finite differences in u (along z) and t.
+      const w = doorWindW(u, t), e = 0.005;
+      const dwz = (doorWindW(u + e, t) - w) / (e * (zMid - zWall));
+      const dwy = (doorWindW(u, t + e) - w) / (-e * hangH);
+      pushWind(buf, [-1, 0, 0], w, [0, dwy, dwz]);
     }
   }
   for (let j = 0; j < rows; j++) {
@@ -221,7 +231,7 @@ function addHangingHalf(buf, sp, uvFn) {
 
 /** The embroidered door screen, split in the middle: one half drawn across, one tied back. */
 function doorScreen() {
-  const buf = { pos: [], uv: [], idx: [] };
+  const buf = { pos: [], uv: [], idx: [], wind: [], windG: [] };
   const W = 2 * DOOR.half;
   // u runs left to right as seen from outside (east): +z -> -z, as before the split.
   const uvFn = (s, vv) => [(DOOR.half - s) / W, vv];
@@ -245,8 +255,11 @@ function doorScreen() {
     roughness: 0.9,
     side: THREE.DoubleSide,
   });
+  // Embroidered linen: firelight (and, from the court, the menorah) through it; sheen; wind.
+  addCloth(mat, { transmission: 0.3, sheen: 0.3, sheenRoughness: 0.5, wind: true });
   const mesh = new THREE.Mesh(clothGeometry(buf), mat);
   mesh.name = 'door-screen';
+  addWindShadow(mesh);
   mesh.castShadow = mesh.receiveShadow = true;
   return { mesh, ties };
 }

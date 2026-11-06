@@ -24,6 +24,8 @@ export function getParams() {
     haze: p.get('haze') !== '0',
     // `?ao=0` turns off the contact, room and crease ambient occlusion (scene/ao.js).
     ao: p.get('ao') !== '0',
+    // `?wind=0` stills the cloth (scene/cloth.js).
+    wind: p.get('wind') !== '0',
     // Tone mapping override for comparison: aces | agx | neutral | none.
     tm: p.get('tm') || null,
     // Exposure override (number).

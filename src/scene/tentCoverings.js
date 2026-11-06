@@ -3,6 +3,7 @@ import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { createGoatHairTexture, createSkinTexture, createLinenTexture } from './textiles.js';
 import { createCherubimTexture } from './cherubimWeave.js';
 import { addMacroVariation } from './materials.js';
+import { addCloth, addWindShadow, windAttributes } from './cloth.js';
 import { part } from './bronzeParts.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -82,6 +83,8 @@ export function createLinenCeiling() {
     roughness: 0.9,
   });
   addMacroVariation(mat, { scale: 0.5, amount: 0.08 });
+  // Fibre sheen only: no light behind it reaches through the coverings above.
+  addCloth(mat, { transmission: 0, sheen: 0.2 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'linen-ceiling';
   mesh.receiveShadow = true;
@@ -181,6 +184,8 @@ const STAKE_TILT = THREE.MathUtils.degToRad(20); // top leans away from the tent
 // Texture tiles (cubits): goat hair spans 2 curtains × 4 cubits; skins 8 × 8 cubits.
 const HAIR_TILE = { curtains: 2, heightCubits: 4 };
 const SKIN_TILE = 8;
+// Wind ripple (m) at the coverings' hems and the front flaps' lower edge (cloth.js).
+const HEM_WIND = 0.014;
 
 /**
  * Build the goat-hair, ram-skin and tachash coverings with their stakes and cords.
@@ -286,10 +291,12 @@ export function createCoverings() {
   // ---- One layer's geometry ----------------------------------------------------------------
   const buildLayer = (li, dropRows, uv) => {
     const L = layers[li], d = L.gap;
-    const pos = [], uvs = [], idx = [];
-    const push = (p, u) => {
+    const pos = [], uvs = [], idx = [], wts = [];
+    // w: wind ripple amplitude (m) at the vertex (cloth.js), along the cloth's normal.
+    const push = (p, u, w = 0) => {
       pos.push(m(p.x), m(p.y), m(p.z));
       uvs.push(...u);
+      wts.push(w);
     };
     // Roof grid.
     const nx = Math.round(xE - xW), nz = Math.round((rect.zS - rect.zN) / 0.5);
@@ -322,7 +329,9 @@ export function createCoverings() {
       const Q = hemQ(li, smp, sl);
       for (let k = 0; k <= ARC + dropRows; k++) {
         const q = k <= ARC ? (sl.arc * k) / ARC : sl.arc + ((Q - sl.arc) * (k - ARC)) / dropRows;
-        push(pointAt(smp, sl, q, d), uv(smp.x + smp.nx * q, smp.z + smp.nz * q));
+        // Ripple over the last ~1.5 cubits above the layer's own hem (layers stay apart).
+        const r = Math.max(0, 1 - (Q - q) / 1.5);
+        push(pointAt(smp, sl, q, d), uv(smp.x + smp.nx * q, smp.z + smp.nz * q), HEM_WIND * r * r);
       }
     }
     strip(samples.length, ARC + dropRows + 1, base);
@@ -345,7 +354,8 @@ export function createCoverings() {
           y = yG - R - drop * t;
           q = (R * Math.PI) / 2 + drop * t;
         }
-        push({ x: xE + o, y, z }, uv(xE + q, z));
+        const tf = k > ARC ? (k - ARC) / FROWS : 0;
+        push({ x: xE + o, y, z }, uv(xE + q, z), HEM_WIND * tf * tf);
       }
     }
     strip(FRONT_N + 1, ARC + FROWS + 1, base);
@@ -354,7 +364,13 @@ export function createCoverings() {
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(idx);
     geo.computeVertexNormals();
-    return geo;
+    const nrm = geo.attributes.normal.array;
+    const wind = new Float32Array(wts.length * 4);
+    wts.forEach((w, k) => {
+      wind.set([nrm[3 * k], nrm[3 * k + 1], nrm[3 * k + 2], w], 4 * k);
+    });
+    // The ripple's amplitude gradient is left out (small next to the wave's own).
+    return windAttributes(geo, wind, new Float32Array(wts.length * 3));
   };
 
   // ---- Goat hair ---------------------------------------------------------------------------
@@ -374,10 +390,13 @@ export function createCoverings() {
   });
   // Weathering over the whole covering (breaks up the repeat).
   addMacroVariation(hairMat, { scale: 0.35, amount: 0.22, dust: 0.0, tint: [1.15, 1.05, 0.95] });
+  // Dense, dark goat hair: a wool sheen, hardly any light through it; hems ripple.
+  addCloth(hairMat, { transmission: 0.04, sheen: 0.3, sheenRoughness: 0.6, wind: true });
   const goatGeo = buildLayer(0, 26, (x, z) => [matU(x) / (G.curtainWidth * HAIR_TILE.curtains), matV(z) / HAIR_TILE.heightCubits]);
   const goatMesh = new THREE.Mesh(goatGeo, hairMat);
   goatMesh.name = 'goat-hair-covering';
   goatMesh.castShadow = goatMesh.receiveShadow = true;
+  addWindShadow(goatMesh);
   group.add(goatMesh);
 
   // ---- Ram skins dyed red, then tachash ----------------------------------------------------
@@ -392,6 +411,8 @@ export function createCoverings() {
     mat.bumpMap = mat.map;
     mat.bumpScale = 0.5;
     addMacroVariation(mat, { scale: 0.4, amount: look.macro });
+    // Skins: no light through them, no fibre sheen; the hems ripple with the goat hair's.
+    addCloth(mat, { transmission: 0, sheen: 0, wind: true });
     const mesh = new THREE.Mesh(buildLayer(li, rows, (x, z) => [x / SKIN_TILE, z / SKIN_TILE]), mat);
     mesh.name = name;
     mesh.receiveShadow = true;
