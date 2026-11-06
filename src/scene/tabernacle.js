@@ -302,6 +302,8 @@ export function createTabernacle() {
     ...veil.colliders,
   ];
   group.userData.colliders = colliders;
+  // Ground kept free of rocks and scrub: the whole tent, floor included, out to its stakes.
+  group.userData.groundKeepOut = [boxAB(x0, xF, z0, z1)];
   // Interior meshes main.js hides while the camera is outside the tent.
   group.userData.interior = [veil.mesh];
   return group;

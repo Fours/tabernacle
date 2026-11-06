@@ -255,10 +255,15 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the vertex shader), dry grass tufts and blades, broom and wormwood shrubs (25–65 cm) with a
   gentle wind sway. Density by distance from the court: full within 15 m, 0.3 at 45 m, 0.04 at
   90 m, none past 170 m; pebbles and blades only within ~40 m; far rocks use a 20-triangle
-  mesh; blades and twigs halve past ~35–40 m from the camera. The court is trodden (~28
-  pebbles near its hangings). Kept clear: a 3.7-cubit peg band outside the pillar line, the
-  east lane |z| < 11 cubits to the edge, 1.5 m around the west torches. No colliders; receives
-  shadows, casts none. `userData.removeWhere` lets later modules clear scatter (the camp).
+  mesh; blades and twigs halve past ~35–40 m from the camera. The court is covered like
+  the ground outside it (2026-11-05, at the user's request: no bare ground anywhere the player
+  walks; tune down if too dense). The gate approach and the camp's lanes are scattered like
+  the rest of the ground, only clear of tents (a bare lane read as a lighter strip of
+  different ground). Kept clear: 0.5 m inside the pillar line out to a 3.7-cubit peg band
+  outside it, 1.5 m around the torches, inside every collider, the whole tent footprint (floor
+  included, out to its stakes) and the altar's utensils (`userData.groundKeepOut`, cleared in
+  `main.js`). No colliders; receives shadows, casts none. `userData.removeWhere` lets later
+  modules clear scatter (the camp).
   About +0.6–0.7 ms at `gate`.
 - 2026-11-05: Camp of Israel (`scene/camp.js`, 6 instanced draws, ~4,500 tents, no lights).
   Bands are measured from the court rectangle. Levites in rows facing the court at 10–30 m:

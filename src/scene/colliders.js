@@ -100,6 +100,22 @@ function resolveOne(pos, r, c) {
   return false;
 }
 
+/** True if a circle (x, z, r) overlaps collider c (grids test their nearby colliders). */
+export function overlaps(c, x, z, r = 0) {
+  if (c.type === 'grid') return c.near(x, z).some((g) => overlaps(g, x, z, r));
+  if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < r + c.r;
+  let dx, dz;
+  if (c.type === 'obb') {
+    const lx = (x - c.x) * c.c - (z - c.z) * c.s, lz = (x - c.x) * c.s + (z - c.z) * c.c;
+    dx = Math.max(Math.abs(lx) - c.hx, 0);
+    dz = Math.max(Math.abs(lz) - c.hz, 0);
+  } else {
+    dx = Math.max(c.minX - x, x - c.maxX, 0);
+    dz = Math.max(c.minZ - z, z - c.maxZ, 0);
+  }
+  return dx * dx + dz * dz < r * r || (dx === 0 && dz === 0);
+}
+
 /**
  * Push a circle (player) at pos {x,z} with radius r out of all colliders.
  * Mutates pos. Iterates a few times so corners resolve cleanly.

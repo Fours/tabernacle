@@ -361,5 +361,7 @@ export function createAltar() {
     box(m(A.x), m(A.z), oL, oW), // body + ledge + net
     ...[-1, 1].map((sz) => box(m(A.x), m(A.z) + sz * poleZ, 2 * poleHalf, 2 * poleR + 0.06)), // carrying poles
   ];
+  // Ground kept free of rocks and scrub: the utensils lying south of the altar.
+  group.userData.groundKeepOut = [box(m(A.x - 0.4), m(A.z + U.offsetZ), m(5.2), m(2.6))];
   return group;
 }

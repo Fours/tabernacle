@@ -15,6 +15,7 @@ import { createShowbread } from './scene/showbread.js';
 import { createIncenseAltar } from './scene/incenseAltar.js';
 import { createArk } from './scene/ark.js';
 import { createPillarOfFire } from './scene/pillarOfFire.js';
+import { overlaps } from './scene/colliders.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { TABERNACLE as T, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
@@ -64,6 +65,9 @@ const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
 groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
 const elements = [createGround(), groundScatter, camp, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
 const colliders = [];
+// No rocks or scrub inside anything solid, under the tent, or on the altar's utensils.
+const keepOut = elements.flatMap((g) => [...(g === camp ? [] : g.userData.colliders || []), ...(g.userData.groundKeepOut || [])]);
+groundScatter.userData.removeWhere((x, z, r) => keepOut.some((c) => overlaps(c, x, z, r + 0.05)));
 // Animated elements expose `userData.update(dt, time)`; called once per frame.
 const updaters = [];
 for (const g of elements) {

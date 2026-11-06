@@ -9,10 +9,10 @@ import { COURTYARD as C, TORCHES, m } from '../config/dimensions.js';
 //
 // Placement is clumped: clump centres are sampled by a seeded noise mask and a density that
 // falls off with distance from the courtyard (dense within ~55 m, thin by 130 m, none past
-// ~190 m where the fog has swallowed the ground). The court itself is trodden: only a few
-// pebbles near its hangings. Kept clear: the hangings, pegs and cords band, the gate lane
-// running east, and the west torches. Step 9 (camp) clears scatter under its tents with
-// `group.userData.removeWhere((x, z, r) => bool)`.
+// ~190 m where the fog has swallowed the ground). The court is covered like the ground outside
+// it, and so are the open lanes through the camp. Kept clear here: the hangings, pegs and
+// cords band, and the torches. main.js then clears scatter inside colliders, under the tent and the camp's tents,
+// and on the altar's utensils with `group.userData.removeWhere((x, z, r) => bool)`.
 
 const HX = m(C.length / 2);
 const HZ = m(C.width / 2);
@@ -20,8 +20,8 @@ const HZ = m(C.width / 2);
 export const SCATTER_KEEP_OUT = {
   // Outside the pillar line: the pegs stand C.pegDistance out (leaning away); plus a margin.
   band: m(C.pegDistance + 0.7),
-  // The gate approach: |z| < laneHalf for x > HX - 1, all the way east (artistic license).
-  laneHalf: m(C.gateWidth / 2 + 1),
+  // Inside the pillar line: clear of the sockets and the hanging's hem (meters).
+  inner: 0.5,
   torchClear: 1.5, // around the torch posts outside the lane
   far: 170, // nothing beyond this distance from the courtyard
 };
@@ -33,10 +33,12 @@ export function courtDistance(x, z) {
   return Math.hypot(Math.max(Math.abs(x) - HX, 0), Math.max(Math.abs(z) - HZ, 0));
 }
 
-/** True if a scatter item of radius r at (x, z) outside the court is clear of the keep-outs. */
+/** True if a scatter item of radius r at (x, z) is clear of the keep-outs. */
 export function isScatterClear(x, z, r = 0) {
-  if (Math.abs(x) < HX + K.band + r && Math.abs(z) < HZ + K.band + r) return false;
-  if (x > HX - 1 && Math.abs(z) < K.laneHalf + r) return false;
+  // The ring from just inside the pillar line out past the pegs.
+  const ax = Math.abs(x), az = Math.abs(z);
+  const inCourt = ax < HX - K.inner - r && az < HZ - K.inner - r;
+  if (ax < HX + K.band + r && az < HZ + K.band + r && !inCourt) return false;
   for (const [tx, tz] of TORCH_XZ) if (Math.hypot(x - tx, z - tz) < K.torchClear + r) return false;
   return Math.abs(x) < 299 - r && Math.abs(z) < 299 - r;
 }
@@ -418,23 +420,6 @@ export function createGroundScatter({ seed = 1907, exclude = null } = {}) {
     const roll = rnd(), size = 0.03 + Math.pow(rnd(), 2.5) * 0.06, kind = rnd() < 0.5 ? 'flint' : 'lime';
     if (d < 40 && roll < 0.8 * density(d) && clear(x, z, size)) addStone(x, z, size, kind);
   }
-  // Inside the court (trodden): only a few small stones close to the hangings, clear of the
-  // pillar sockets, the inner torches and the gate.
-  const innerTorches = TORCH_XZ.filter(([tx, tz]) => Math.abs(tx) < HX && Math.abs(tz) < HZ);
-  const SP = m(C.pillarSpacing);
-  for (let i = 0, placed = 0; i < 400 && placed < 28; i++) {
-    const side = Math.floor(rnd() * 4), u = rnd() * 2 - 1, inset = 0.35 + rnd() * 1.2;
-    let x, z, along;
-    if (side < 2) { x = u * (HX - 0.4); z = (side ? 1 : -1) * (HZ - inset); along = x + HX; }
-    else { z = u * (HZ - 0.4); x = (side === 2 ? 1 : -1) * (HX - inset); along = z + HZ; }
-    if (side === 2 && Math.abs(z) < m(C.gateWidth / 2 + 2)) continue; // the gate
-    const off = Math.abs(along - Math.round(along / SP) * SP);
-    if (off < 0.55) continue; // pillar sockets
-    if (innerTorches.some(([tx, tz]) => Math.hypot(x - tx, z - tz) < 1)) continue;
-    addStone(x, z, 0.02 + Math.pow(rnd(), 2) * 0.05, rnd() < 0.5 ? 'flint' : 'lime');
-    placed++;
-  }
-
   // ---- Build the instanced meshes ---------------------------------------------------------
   const group = new THREE.Group();
   group.name = 'groundScatter';
