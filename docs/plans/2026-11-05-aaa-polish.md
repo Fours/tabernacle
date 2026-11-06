@@ -135,7 +135,7 @@ biblical dimensions or layout.
   clean console.
   **Carry-over notes:** Done (0ab4b7c, 99b5075; 2 rounds — the first lost the column's height and looked torn).
 
-- [ ] **Step 5: Night atmosphere — haze and glow** — model: Opus / effort: medium
+- [x] **Step 5: Night atmosphere — haze and glow** — model: Opus / effort: medium
   **Goal:** Make the air visible. (a) Height fog: a thin, ground-hugging haze layer (denser in
   the first ~1.5 m, slowly drifting noise) on top of the existing `FogExp2`, applied through
   the fog chunks so every material (custom shaders included) gets it. (b) Analytic
@@ -154,7 +154,7 @@ biblical dimensions or layout.
   glow in the air, the ground haze is visible but doesn't hide the scatter near the player,
   and nothing pops when walking (`rig.simulate`). Custom shaders (fire, smoke, pillar, sky,
   laver water, scatter) match the new fog. Lint, build, clean console; budget.
-  **Carry-over notes:** (from Step 3) at `fire` the altar smoke just above the flame tips reads as a bright, opaque puffy ball; make its lower part thinner and more transparent (smoke params in altarFire.js / fireParticles.js) while touching the fog. No depth texture exists in the post chain (soft particles would need one).
+  **Carry-over notes:** Done (1ac709f, 1 round; +2.3 ms throttled, slightly over the per-step budget, accepted). The altar smoke is now very faint at `fire`.
 
 - [ ] **Step 6: Grounding — contact and baked AO** — model: Opus / effort: medium
   **Goal:** Make everything sit on the ground and in its corners. (a) Soft contact-AO blobs on
@@ -260,4 +260,4 @@ biblical dimensions or layout.
   has a soft warm atmosphere without washing out the woven ceiling and veil; every preset
   renders without errors; DECISIONS has the new baseline (`gate` under ~14 ms throttled at
   2048×1536 or the overrun explained); AGENTS.md is current. Lint, build, clean console.
-  **Carry-over notes:**
+  **Carry-over notes:** (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.

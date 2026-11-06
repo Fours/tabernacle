@@ -216,6 +216,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   soft-particle depth fade (no depth texture); the puffs start above the rim instead.
 - 2026-11-05: The flame ramp's yellow-white core stop is (2.2, 1.25, 0.36) × core, so the lower
   centre isn't hot-white.
+- 2026-11-05: Dust motes (`scene/dustMotes.js`) drift in the firelight round the altar (700)
+  and each lit torch (120): one instanced additive draw, lit by I/d² from the atmosphere's glow
+  sources, faded beyond 16 m. The altar smoke thickens only over the first 30% of a puff's life
+  (opacity 0.2, fire glow 1.4) so it doesn't read as an opaque ball over the flames.
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
   1.04 m above the rim, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
   light reach the far side of the courtyard.
@@ -333,8 +337,16 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   about as bright as the firelit court (log2 L −4.06 vs −4.4 at `gate`), so luminance alone
   would lower the exposure inside; the key makes the eye open up after stepping in, while the
   clamp keeps the Holy of Holies dark (×1.23 at most) and the court from washing out.
-- 2026-11-05: Night haze is `FogExp2(0x0b0f1c, 0.012)`. Additive fire sprites fade to black in
-  fog; smoke uses the normal fog mix.
+- 2026-11-05: Night haze is `FogExp2(0x0b0f1c, 0.012)` plus, through replaced fog chunks
+  (`render/atmosphere.js`), a ground-hugging haze (0.05/m at the ground, falling off 1.3/m
+  with height, drifting noise, colour fog × 3.5) and the glow of the fires in the air:
+  closed-form point-source in-scattering along each view ray for the altar, the six torches
+  and the pillar of fire (base air 0.003/m plus local haze, Henyey-Greenstein g 0.6, per-source
+  reach 8 / 3 / 25 m, gains 0.5 / 0.5 / 0.8 of each light's candela; without the reach the 1/h
+  tails turned the sky brown). The tent's interior box is cut out of every ray. Additive
+  sprites fade to black by the same fog amount; smoke uses the full fog. The sky dome applies
+  the same haze and glows (`atmoSky`), so the horizon closes in the haze colour. `?haze=0`
+  gives plain FogExp2.
 - 2026-11-05: The night environment is generated in `render/environment.js` (intensity 0.35):
   cool sky with a warm band at the horizon, so metals pick up warm reflections.
 - 2026-11-05: Ambient occlusion is skipped. GTAO needs a second scene render (about 85 more
@@ -438,3 +450,6 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - The camp (Step 9, throttled mode, same session, camp hidden vs shown): +0.1 ms at `gate`,
   +0.2–0.3 ms at `camp`; ~4,500 tents, ~119k triangles; ~11 ms to build plus ~12 ms to clear
   the ground scatter under it at load.
+- Step 5 atmosphere (throttled mode, `?haze=0` A/B in one session): +2.3 ms at `gate` on a
+  ~18 ms baseline (glow loop ~0.4, haze noise ~0.4, the rest per-fragment haze math), +2 ms at
+  `camp`; +1 draw (dust). Steps 1–4 together added ~+0.5 ms and +2 draws at `gate`.
