@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TORCHES, m } from '../config/dimensions.js';
 import { ACACIA } from './materials.js';
 import { createFire } from './fire.js';
@@ -6,9 +7,9 @@ import { circle } from './colliders.js';
 import { groundHeight } from './terrain.js';
 import { aoCircle } from './ao.js';
 
-// Period torches: a wooden post set in a small cairn of stones, topped by a head of cloth
-// wrapped around a tow core and soaked in pitch. Posts, heads and cairns are instanced
-// (3 draw calls for all torches); each torch adds a small fire (2 draws) and, for most, a
+// Period torches: a wooden post set in a mound of heaped earth, topped by a head of cloth
+// wrapped around a tow core and soaked in pitch. Posts and heads are instanced and the
+// mounds merged (3 draw calls for all torches); each torch adds a small fire (2 draws) and, for most, a
 // warm non-shadow point light.
 
 /**
@@ -108,6 +109,90 @@ float tNoise(vec3 p) {
   return { material, uniforms };
 }
 
+/** Seeded 0..1 random (mulberry32). */
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Earth heaped round the post (meters, local, origin on the ground at the post): a smooth,
+ * low bell (~0.5 m radius, ~0.18 m high) with a long toe that meets the sand at zero slope,
+ * so it grows out of the ground, and a gentle lopsided swell. Indexed polar grid (smooth
+ * normals).
+ */
+function moundGeometry(rnd) {
+  const R = 0.5, H = 0.18, RINGS = 16, SEG = 40;
+  const ph = [rnd() * 6.3, rnd() * 6.3, rnd() * 6.3];
+  const pos = [], idx = [];
+  const height = (t, a) => {
+    // Bell with a long, flat toe: (1 - t^2)^2 has zero slope at the rim.
+    const bell = Math.pow(Math.max(0, 1 - t * t), 2);
+    const swell = 1 + 0.12 * Math.sin(a * 2 + ph[0]) + 0.06 * Math.sin(a * 3 + ph[1] + t * 3);
+    return H * bell * swell - 0.004; // the rim tucks just under the sand
+  };
+  pos.push(0, height(0, 0), 0);
+  for (let i = 1; i <= RINGS; i++) {
+    const t = i / RINGS;
+    for (let j = 0; j < SEG; j++) {
+      const a = (j / SEG) * Math.PI * 2;
+      const r = R * t * (1 + 0.08 * t * Math.sin(a * 2 + ph[1]) + 0.05 * t * Math.sin(a * 3 + ph[2]));
+      pos.push(Math.cos(a) * r, height(t, a), Math.sin(a) * r);
+    }
+  }
+  for (let j = 0; j < SEG; j++) idx.push(0, 1 + ((j + 1) % SEG), 1 + j);
+  for (let i = 1; i < RINGS; i++) {
+    const r0 = 1 + (i - 1) * SEG, r1 = 1 + i * SEG;
+    for (let j = 0; j < SEG; j++) {
+      const j1 = (j + 1) % SEG;
+      idx.push(r0 + j, r0 + j1, r1 + j, r0 + j1, r1 + j1, r1 + j);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  return g;
+}
+
+/**
+ * All torch mounds as one mesh in world space, with the ground's own UVs (as its 600 m relief
+ * plane, ground.js), so it can wear the sand material itself and match the ground exactly at
+ * its edge: colour, grain, ripples, tone patches and baked contact AO.
+ */
+function moundsMesh(placements) {
+  const rnd = seeded(11);
+  const parts = placements.map(({ x, y, z, rot, sx, sy, sz }) => {
+    const g = moundGeometry(rnd);
+    g.scale(sx, sy, sz);
+    g.rotateY(rot);
+    // Height of the heaped earth above the ground, for the mound's darker, browner earth.
+    const lp = g.attributes.position;
+    const hgt = new Float32Array(lp.count);
+    for (let i = 0; i < lp.count; i++) hgt[i] = Math.max(0, lp.getY(i));
+    g.setAttribute('aMound', new THREE.BufferAttribute(hgt, 1));
+    g.translate(x, y, z);
+    const p = g.attributes.position;
+    const uv = new Float32Array(p.count * 2);
+    for (let i = 0; i < p.count; i++) uv.set([p.getX(i) / 600 + 0.5, 0.5 - p.getZ(i) / 600], i * 2);
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    return g;
+  });
+  const geo = mergeGeometries(parts);
+  for (const g of parts) g.dispose();
+  geo.computeVertexNormals();
+  // Placeholder until main.js hands over the ground's sand material (userData.useGroundMaterial).
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x9a8566, roughness: 1 }));
+  mesh.name = 'torch-mounds';
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 export function createTorches() {
   const group = new THREE.Group();
   group.name = 'torches';
@@ -115,21 +200,18 @@ export function createTorches() {
   const H = TORCHES.postHeight;
 
   const postGeo = new THREE.CylinderGeometry(0.04, 0.06, H, 8);
-  postGeo.translate(0, H / 2 - 0.1, 0); // set 10 cm into the ground/cairn
+  postGeo.translate(0, H / 2 - 0.1, 0); // set 10 cm into the ground/mound
   const headH = 0.26;
   const headY = H - 0.2; // bottom of the wrap
   const headGeo = headGeometry(headH);
   headGeo.translate(0, headY, 0);
-  const cairnGeo = new THREE.CylinderGeometry(0.17, 0.3, 0.28, 7);
-  cairnGeo.translate(0, 0.1, 0);
 
   const wrap = charredWrapMaterial(headY, headH);
   const wrapMat = wrap.material;
-  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6d655a, roughness: 1, flatShading: true });
 
   const posts = new THREE.InstancedMesh(postGeo, ACACIA, list.length);
   const heads = new THREE.InstancedMesh(headGeo, wrapMat, list.length);
-  const cairns = new THREE.InstancedMesh(cairnGeo, stoneMat, list.length);
+  const mounds = [];
   const mat = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const s = new THREE.Vector3(1, 1, 1);
@@ -144,13 +226,12 @@ export function createTorches() {
     mat.compose(p, q.identity(), s);
     posts.setMatrixAt(i, mat);
     heads.setMatrixAt(i, mat);
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), i * 1.3);
-    s.set(1 + 0.1 * Math.sin(i * 2.1), 1, 1 + 0.1 * Math.cos(i * 1.7));
-    mat.compose(p, q, s);
-    cairns.setMatrixAt(i, mat);
-    s.set(1, 1, 1);
-    colliders.push(circle(x, z, 0.3));
-    aoShapes.push(aoCircle(x, z, 0.28, 0.3, 0.55), aoCircle(x, z, 0.06, 0.8, 0.12)); // cairn, post
+    mounds.push({
+      x, y: gy, z, rot: i * 1.3,
+      sx: 1 + 0.08 * Math.sin(i * 2.1), sy: 1 + 0.08 * Math.sin(i * 3.3), sz: 1 + 0.08 * Math.cos(i * 1.7),
+    });
+    colliders.push(circle(x, z, 0.4));
+    aoShapes.push(aoCircle(x, z, 0.06, 0.8, 0.12)); // post (the mound wears the ground's AO)
 
     const fire = createFire({
       radius: 0.08,
@@ -188,11 +269,45 @@ export function createTorches() {
     group.add(fire.group);
     fires.push(fire);
   });
-  for (const mesh of [posts, heads, cairns]) {
+  for (const mesh of [posts, heads]) {
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
     group.add(mesh);
   }
+  const moundMesh = moundsMesh(mounds);
+  group.add(moundMesh);
+  /**
+   * main.js: give the mounds a copy of the ground's sand material, so they match the ground at
+   * their edge, darkening toward heaped, browner earth higher up. Call it before
+   * applyInteriorMask/applyAtmosphere: the copy chains the sand patch as it is now, and those
+   * then patch both materials once each.
+   */
+  group.userData.useGroundMaterial = (sand) => {
+    const base = sand.onBeforeCompile;
+    const baseKey = sand.customProgramCacheKey.bind(sand);
+    const earth = sand.clone();
+    earth.name = 'torch-mound';
+    earth.onBeforeCompile = (shader, renderer) => {
+      base(shader, renderer);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute float aMound;\nvarying float vMound;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMound = aMound;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vMound;')
+        .replace(
+          '#include <roughnessmap_fragment>',
+          `{
+  // Heaped earth: the plain sand at the toe, darker and browner up the mound (dug, damper soil).
+  float mk = smoothstep(0.0, 0.15, vMound);
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.78, 0.7, 0.62), mk);
+}
+#include <roughnessmap_fragment>`,
+        );
+    };
+    earth.customProgramCacheKey = () => `${baseKey()}|torch-mound-v1`;
+    moundMesh.material.dispose();
+    moundMesh.material = earth;
+  };
 
   group.userData.fires = fires;
   group.userData.colliders = colliders;

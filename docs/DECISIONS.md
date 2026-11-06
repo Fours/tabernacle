@@ -349,6 +349,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   Each torch fire has 8 sparks, 2 embers and a thin dark wisp (16 small puffs, 1.6 m high).
 - 2026-11-05: Each torch is a 2.4 m wooden post in a stone cairn, with a charred,
   pitch-soaked cloth wrap on top and glowing HDR cracks.
+- 2026-11-06: The torch base is a mound of heaped earth round the post (~0.5 m radius, ~0.18 m
+  high, a smooth bell whose toe meets the sand at zero slope, slightly lopsided), no stones.
+  All six are one merged world-space mesh with the ground's own UVs, wearing a copy of the
+  sand material (`torch-mound`, made in `torches.userData.useGroundMaterial` before the
+  interior/atmosphere patches) that darkens toward browner, damper earth with height
+  (`aMound`), so the mound matches the ground exactly at its edge. One draw (as the instanced
+  cairns were); collider 0.4 m. (Replaced a heap of stones, then an earth mound with rocks.)
 - 2026-11-05: The menorah has one warm point light (0xffc080, 8 cd, decay 1.6, no shadow),
   0.3 m above and 0.35 m north of the lamps. Its 7 flames are one instanced emissive draw
   (`createLampFlames` in fire.js), not `createFire`, with a soft halo (`halo` 0.5).

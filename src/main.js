@@ -71,7 +71,9 @@ const groundScatter = createGroundScatter(); // rocks and scrub
 const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
 groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
 groundScatter.userData.removeWhere(isTrodden); // the court's trodden paths are worn bare
-const elements = [createGround(), groundScatter, camp, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
+const ground = createGround();
+torches.userData.useGroundMaterial(ground.userData.material);
+const elements = [ground, groundScatter, camp, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
 const colliders = [];
 // No rocks or scrub inside anything solid, under the tent, or on the altar's utensils.
 const keepOut = elements.flatMap((g) => [...(g === camp ? [] : g.userData.colliders || []), ...(g.userData.groundKeepOut || [])]);

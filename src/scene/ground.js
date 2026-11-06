@@ -311,5 +311,6 @@ export function createGround() {
   mesh.receiveShadow = true;
   group.add(mesh);
   group.userData.colliders = [];
+  group.userData.material = mesh.material; // shared with the torch mounds (torches.js)
   return group;
 }
