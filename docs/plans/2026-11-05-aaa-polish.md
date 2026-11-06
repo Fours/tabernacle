@@ -223,7 +223,7 @@ biblical dimensions or layout.
   build, clean console; budget.
   **Carry-over notes:** Done (bfa2ca1, 139d549, ca609f7, 1 round). `CAMP` moved to dimensions.js; ground height comes from `terrain.js` (`groundHeight`); the GLSL twin is exported but unused.
 
-- [ ] **Step 9: Horizon ridges and sky** — model: Opus / effort: medium
+- [x] **Step 9: Horizon ridges and sky** — model: Opus / effort: medium
   **Goal:** Close the horizon and refine the sky. (a) Distant granite ridges (the wilderness
   of Sinai): a ring of low, layered silhouettes several km out (one draw, procedural height
   profile, 2–3 depth layers by colour), dark and hazy with a faint cool rim from the
@@ -240,7 +240,7 @@ biblical dimensions or layout.
   **Accept when:** at `horizon`, `ground`, `campwalk`, `firepillarfar`, `sky`, `camp` the
   ridges read as distant mountains, never intersect the camp or show their ring edge, and the
   sky has no banding. Lint, build, clean console; budget.
-  **Carry-over notes:** (from Step 8) ground beyond the court has relief now — ridges must sit beyond the ground mesh edge and use the haze colour; `terrain.js` has `groundHeight`.
+  **Carry-over notes:** Done (1cf1e29, 1 round; 0 draws, ~+0.2 ms at `sky`). Ridges are in the sky shader (no mesh). Some peaks read a little pyramidal at `horizon` (optional).
 
 - [ ] **Step 10: Interior atmosphere and final pass** — model: Opus / effort: medium
   **Goal:** Finish the inside and tie the whole plan together. (a) Interior: a warm haze in
@@ -260,4 +260,4 @@ biblical dimensions or layout.
   has a soft warm atmosphere without washing out the woven ceiling and veil; every preset
   renders without errors; DECISIONS has the new baseline (`gate` under ~14 ms throttled at
   2048×1536 or the overrun explained); AGENTS.md is current. Lint, build, clean console.
-  **Carry-over notes:** (from Step 8) the unlit far wall at `holyplace` still reads coppery; the board bevels pick up edge chromatic-aberration fringes near the frame edges (consider lowering CA a touch). (from Step 7) from outside (`ground`, `pillar`) the hangings' transmitted glow reads fairly uniform peach; the folds/weave could show more (e.g. modulate transmission by the fold normal / weave texture), without going back to dull grey. Wind-driven shadows were not visually checked. (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.
+  **Carry-over notes:** **PRIORITY (from Steps 5/9):** at `?view=camp` (58 m up) the whole far ground and camp area reads pale grey, almost like snow — the ground haze (colour fog × 3.5, `render/atmosphere.js`) accumulates along long downward rays and lifts dark sand to a bright grey. The camp should read as a dark night plain with the court's firelight as the bright focus (as before Step 5); fix in the haze integration (e.g. cap haze optical depth / brightness for steep downward or long rays, or darken the haze colour away from the lights) without losing the ground haze at eye height (`gate`, `campwalk`, `horizon`). (from Step 8) the unlit far wall at `holyplace` still reads coppery; the board bevels pick up edge chromatic-aberration fringes near the frame edges (consider lowering CA a touch). (from Step 7) from outside (`ground`, `pillar`) the hangings' transmitted glow reads fairly uniform peach; the folds/weave could show more (e.g. modulate transmission by the fold normal / weave texture), without going back to dull grey. Wind-driven shadows were not visually checked. (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.

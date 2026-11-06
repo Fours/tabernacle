@@ -22,7 +22,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   tapers almost to a point over ~4.5 m. Above that it narrows very slowly (to ~45% at its top)
   and fades out over its upper 60%, its color drifting to the shaft's yellow, so it hands over
   smoothly to a thin (0.55 m) yellowish shaft 150 m tall, fading gradually as if reaching the
-  clouds.
+  clouds: a thin high haze (faint cirrus streaks ~152 m up over its axis, analytic in the sky
+  shader) is lit warmly where the shaft ends.
 - 2026-11-05: The tent door stands open too (same reason). Ex 26:37's 5 entrance pillars are
   left out; a gold-overlaid acacia beam between the front boards (underside at 9.5 cubits,
   0.5 × 0.5 cubit; not in the text) carries the screen.
@@ -312,6 +313,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the scatter is cleared off them (`isTrodden`). The night sand albedo is desaturated toward a
   cool grey-beige; the firelight supplies the warmth. Quartz grain glints: one world-anchored
   facet per 7 mm cell, faded before a cell gets smaller than a pixel.
+- 2026-11-05: Distant granite ridges close the horizon (the wilderness of Sinai, Num 1:1; a
+  reconstruction), `scene/horizon.js`. They are composited in the sky shader with no draw of
+  their own, so they follow the camera and never meet the ground or the camp. Three layers at
+  3.6, 6.5 and 11 km, heights 35–170, 110–400 and 260–880 m (~1–5° above the horizon), tested
+  against (H − camera height)/D so they sink from high views. Ridged noise on a circle gives
+  massifs, saddles and foothills with angular crests; tones 0.27/0.42/0.64 × the horizon colour
+  (near to far), each dissolving into it toward its foot; faint moon-fill, a cool crest rim and
+  a trace of the pillar's light on the nearest layer.
 - 2026-11-05: Camp of Israel (`scene/camp.js`, 6 instanced draws, ~4,500 tents, no lights).
   Bands are measured from the court rectangle. Levites in rows facing the court at 10–30 m:
   Moses, Aaron and the priests east, Gershon west, Kohath south, Merari north (Num 3:23–38).
@@ -385,6 +394,15 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   - Star sizes are capped so none reads as oversized: largest layer rBase 0.034, gain 2.4; mid
     layer 0.040, 1.8 (the earlier 0.060/3.2 stars looked too big).
   - The horizon and everything below it use the fog color.
+  - Drawn after the opaque meshes (renderOrder 1000) with a depth test, so its shader only runs
+    where the sky shows (otherwise ~+3 ms at `gate`).
+  - Airglow: a faint green-olive band peaking ~8° up. Milky Way: warm bulge, the Great Rift and
+    fine dust lanes, cool-to-warm drift, faint pink patches.
+  - Meteors: one per 30 s slot, starting at k·30 + fract(k·0.618034)·12 s, 0.8 s, faint;
+    `?skyt=<s>` pins the sky clock (e.g. `?view=sky&skyt=340.03`).
+  - Below the horizon `atmoSky` stops the haze where the ray would meet the flat desert, so the
+    sky beyond the 300 m ground mesh matches the fogged far ground.
+  - The finish pass adds a ±1 LSB static dither against banding.
 - 2026-11-05: The embroidered screens (`createEmbroideredScreenTextures` in textiles.js,
   design `gate`/`door`) are procedural canvas pairs: a colour map with satin, fishbone,
   couched and stem stitches, and a height map (linen weave plus raised stitching) used as
