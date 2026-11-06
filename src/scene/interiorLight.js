@@ -210,7 +210,9 @@ const MAPS_AFTER = /* glsl */ `
     float ilHit = max(min(min(ilT.x, ilT.y), ilT.z), 0.0);
     vec3 ilDir = ilW + ilR * ilHit - uIlProbePos;
     vec3 ilPc = textureLod(uIlProbe, ilDir, material.roughness * uIlProbeLod).rgb;
-    radiance = mix(radiance, ilPc * ilTint * uIlProbeGain, ilPk * uIlProbeMix);
+    // Not tinted again: the probe already sees the gold room, and the metal's F0 is applied
+    // after this, so a further tint would turn gold in shadow coppery red.
+    radiance = mix(radiance, ilPc * uIlProbeGain, ilPk * uIlProbeMix);
   }
   #ifdef IL_GLINT
   // The menorah's glow seen over the veil, as a soft highlight on the ark (west of the veil).
