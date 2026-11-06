@@ -217,8 +217,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   soft-particle depth fade (no depth texture); the puffs start above the rim instead.
 - 2026-11-05: The flame ramp's yellow-white core stop is (2.2, 1.25, 0.36) × core, so the lower
   centre isn't hot-white.
-- 2026-11-05: Dust motes (`scene/dustMotes.js`) drift in the firelight round the altar (700)
-  and each lit torch (120): one instanced additive draw, lit by I/d² from the atmosphere's glow
+- 2026-11-05: Dust motes (`scene/dustMotes.js`) drift in the firelight round the altar (700),
+  each lit torch (120) and the menorah (220, inside the tent lit only by the menorah, outside
+  only by the fires): one instanced additive draw, lit by I/d² from the atmosphere's glow
   sources, faded beyond 16 m. The altar smoke thickens only over the first 30% of a puff's life
   — now the first 15% (`smokeFadeIn` 0.15; torches keep 0.3) at opacity 0.26, fire glow 1.4 — a faint plume just above the flames, not an opaque ball.
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
@@ -314,6 +315,12 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the scatter is cleared off them (`isTrodden`). The night sand albedo is desaturated toward a
   cool grey-beige; the firelight supplies the warmth. Quartz grain glints: one world-anchored
   facet per 7 mm cell, faded before a cell gets smaller than a pixel.
+- 2026-11-05: Away from the court the plain is darker: the sand's albedo falls to (0.32, 0.29,
+  0.25) of itself (a touch warmer) from 4 m to 40 m outside the court's rectangle. From above
+  the camp the moonlit sand read pale, almost snowy, against the near-black tents; now the camp
+  sits on a dark plain and the court's firelight is the bright focus. Eye-height views
+  (`gate`, `corner`, `campwalk`, `ground`) change by under 1% (`horizon` −8%, before eye
+  adaptation). The multiplier is a uniform (`material.userData.far`).
 - 2026-11-05: Distant granite ridges close the horizon (the wilderness of Sinai, Num 1:1; a
   reconstruction), `scene/horizon.js`. They are composited in the sky shader with no draw of
   their own, so they follow the camera and never meet the ground or the camp. Three layers at
@@ -369,6 +376,26 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   sprites fade to black by the same fog amount; smoke uses the full fog. The sky dome applies
   the same haze and glows (`atmoSky`), so the horizon closes in the haze colour. `?haze=0`
   gives plain FogExp2.
+- 2026-11-05: The tent has its own air (`atmoInterior` in `render/atmosphere.js`), applied to
+  the part of each view ray inside the interior box (the part cut out of the outside haze), so
+  rays from outside through the door and the sky seen from inside pick it up with no seam:
+  - Room haze 0.012/m in the room ambient's colour × 0.6 (warm, flickering with the lamps).
+  - The menorah's glow: the seven lamps as one source at their centroid (core 0.3 m, reach
+    3.5 m, the menorah light's 8 cd × 1), scattering 0.022/m, Henyey-Greenstein g 0.35 (smoke
+    and dust scatter more broadly than the night air), same closed form as the fires' glows,
+    over the part of the ray east of the veil only. It has its own uniforms, not one of the 8
+    outside glow slots (all used).
+  - Incense under the ceiling: a layer in the top 0.8 m whose density ramps linearly to
+    0.25/m at the ceiling (closed-form optical depth), × 0.35 near the door rising to × 1 by
+    the incense altar and veil, × slowly drifting noise; colour room ambient × 2.5, so it reads
+    as faintly lit smoke along the ceiling's far end without veiling the woven ceiling.
+  - West of the veil: haze at 15% density and 10% brightness, no menorah glow; the ark's glint
+    is untouched.
+  - Cost +0.2 ms at `gate`, +0.35 ms at `holyplace` (throttled), no draws.
+- 2026-11-05: Above 80 m the fog density falls with the square of the camera's height (the night
+  fog is ground air). Only `top` (270 m) is that high; at 0.012 for 270 m the FogExp2 was
+  ~100% and the plan view showed only the pillar of fire's head on black. `camp` (58 m) and
+  everything below are unchanged.
 - 2026-11-05: The night environment is generated in `render/environment.js` (intensity 0.35):
   cool sky with a warm band at the horizon, so metals pick up warm reflections.
 - 2026-11-05: No screen-space AO (GTAO would need a second scene render, ~85 more draws, and
@@ -497,25 +524,36 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
-## Performance baseline (2026-11-05, after the detail-and-camp plan)
+## Performance baseline (2026-11-05, after the AAA polish plan)
 
-- Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on. The GPU on
-  this machine flips between a fast mode (`gate` ~0.3–0.8 ms per frame) and a throttled mode
-  (~6–9 ms), sometimes mid-run; compare only like with like in one session.
-- Step costs measured within that rule: the reflection probe +0.1–0.4 ms in interior views
-  (one capture of ~60–200 ms at load), the open door +0.15 ms at `gate` (furnishings drawn
-  through it), the pillar volume ≤0.04 ms except +0.4 ms at `firepillar`, the 12th light
-  most of the rest (<1 ms throttled).
-- Draw calls (2026-11-05, after the detail-and-camp plan): `gate` 116, `iso` 116, `tent` 99,
-  `firepillar` 109, `holyplace` 97, `holyofholies` 86, `camp` 116, `campwalk` 77. Before the
-  plan: `gate` 109, `iso` 113, `tent` 88, `firepillar` 98, `holyplace` 86, `holyofholies` 76.
-  The Holy Place furnishings and veil show whenever the camera is east of the tent front. The
-  camp's 6 instanced draws are in every view (its bounding sphere spans the whole ground).
-- The camp (Step 9, throttled mode, same session, camp hidden vs shown): +0.1 ms at `gate`,
-  +0.2–0.3 ms at `camp`; ~4,500 tents, ~119k triangles; ~11 ms to build plus ~12 ms to clear
-  the ground scatter under it at load.
-- Step 5 atmosphere (throttled mode, `?haze=0` A/B in one session): +2.3 ms at `gate` on a
-  ~18 ms baseline (glow loop ~0.4, haze noise ~0.4, the rest per-fragment haze math), +2 ms at
-  `camp`; +1 draw (dust). Steps 1–4 together added ~+0.5 ms and +2 draws at `gate`.
-- Step 8 (ground and materials, A/B in one session): `gate` +0.14 ms, `camp` +0.60 ms,
-  `holyplace` +0.26 ms, 0 draws.
+- Measured at a 2048×1536 canvas (1024×768 CSS at pixel ratio 2), post chain on, as AGENTS.md
+  describes (5 warm-up renders, then 40 `fx.render()` calls closed by a 1-pixel `readPixels`;
+  the better of two runs). The GPU on this machine flips between a fast mode (`gate` well
+  under 1 ms) and a throttled mode, sometimes mid-run; compare only like with like in one
+  session. These numbers are the throttled mode.
+
+  | Preset | Draws | ms |
+  |---|---|---|
+  | `gate` | 122 | 12.4 |
+  | `iso` | 122 | 13.0 |
+  | `tent` | 106 | 11.2 |
+  | `firepillar` | 115 | 10.9 |
+  | `firepillarfoot` | 92 | 7.8 |
+  | `holyplace` | 104 | 11.1 |
+  | `holyofholies` | 90 | 10.3 |
+  | `camp` | 122 | 11.7 |
+  | `campwalk` | 82 | 10.1 |
+  | `horizon` | 78 | 9.6 |
+
+- Against the plan's budget (`gate` under ~14 ms throttled): met. Before the plan (the previous
+  baseline) `gate` drew 116 (+6 over the plan, within its ~6 per step), `iso` 116 (+6), `tent`
+  99 (+7), `firepillar` 109 (+6), `holyplace` 97 (+7), `holyofholies` 86 (+4), `camp` 116 (+6),
+  `campwalk` 77 (+5).
+- Per-step costs (throttled, A/B in one session): Step 5 atmosphere +2.3 ms at `gate` on an
+  ~18 ms baseline of that session (glow loop ~0.4, haze noise ~0.4) and +1 draw (dust); Steps
+  1–4 together ~+0.5 ms and +2 draws; Step 8 `gate` +0.14, `camp` +0.60, `holyplace` +0.26 ms;
+  Step 10 interior air +0.2 ms at `gate`, +0.35 ms at `holyplace`, no draws.
+- Earlier: the reflection probe +0.1–0.4 ms in interior views (one capture of ~60–200 ms at
+  load), the open door +0.15 ms at `gate`, the camp +0.1 ms at `gate` and +0.2–0.3 ms at
+  `camp` (~4,500 tents, ~119k triangles, ~11 ms to build plus ~12 ms to clear the scatter
+  under it at load). The camp's 6 instanced draws are in every view.

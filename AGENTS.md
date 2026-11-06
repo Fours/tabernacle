@@ -9,13 +9,18 @@ A walkable, nighttime 3D reconstruction of the **Tabernacle (Mishkan) of Israel 
 wilderness**, as described in the Torah (Exodus 25–27, 30, 35–40). It runs in the browser with
 Three.js.
 
-- **What's built:** the whole site. The courtyard (59 pillars, linen hangings, an open
-  gate with embroidered drapes tied back), the bronze altar with its perpetual fire, the laver, and the tent with its layered
-  coverings. Inside the tent: the veil, menorah, table of showbread, incense altar, and the ark
-  with its mercy seat and cherubim in the Holy of Holies. The tent door is half open: its south half is drawn across, the north half tied back. There are
-  also 6 torches, the pillar of fire over the Holy of Holies, rocks and scrub on the ground, the
-  camp of Israel around the court (thousands of instanced tents, Num 2–3), post-processing and a
-  starry sky.
+- **What's built:** the whole site. The courtyard (59 pillars, linen hangings that glow where
+  firelight passes through them and stir in the wind, an open gate with embroidered drapes
+  tied back), the bronze altar with its perpetual fire (turbulent GPU flames, sparks, embers
+  and smoke), the laver, and the tent with its layered coverings. Inside the tent: the veil,
+  menorah, table of showbread, incense altar, and the ark with its mercy seat and cherubim in
+  the Holy of Holies, with a faint warm haze, incense under the ceiling and dust in the
+  lamplight. The tent door is half open: its south half is drawn across, the north half tied
+  back. There are also 6 torches, the pillar of fire over the Holy of Holies, sand with gentle
+  relief, trodden paths, rocks and scrub, the camp of Israel around the court (thousands of
+  instanced tents, Num 2–3), distant granite ridges, a starry sky, ground haze with the fires'
+  glow in the air, baked contact AO, and a post chain (bloom, eye adaptation, colour grade,
+  lens touches, sharpening).
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
   walk through objects.
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
@@ -73,9 +78,9 @@ src/
   main.js               renderer, scene assembly, per-frame loop, window.__tabernacle
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
   scene/
-    ground.js           procedural sand on the relief: cool night tone, grain sparkle, trodden paths + footprints, isTrodden
+    ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden
     terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes (sand mesh baked in ground.js) from ~10 m outside the court, lanes kept near-level
-    dustMotes.js        dust drifting in the firelight round the altar and lit torches (1 instanced draw, lit by the atmosphere's glow sources)
+    dustMotes.js        dust drifting in the firelight round the altar, lit torches and menorah (1 instanced draw, lit by the atmosphere's glow sources)
     groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
@@ -85,9 +90,10 @@ src/
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; re-exports the pieces below
-    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL) + helpers (rng, quadParticles, noise1)
+    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1)
     fireFlames.js       flame sheets for createFire (domain-warped noise tongues, temperature ramp); createLampFlames (oil-lamp flames)
-    fireSmoke.js        embers and smoke puffs for createFire; createIncenseSmoke
+    fireParticles.js    a fire's smoke puffs, sparks, embers and ash in one instanced draw (createFireParticles)
+    fireSmoke.js        createIncenseSmoke: the incense altar's thin ribbon thread
     torches.js          torch posts, wrapped heads, small fires and lights
     pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
     tabernacle.js       boards, sockets, bars, door beam + screen (south half drawn across, north tied back)
@@ -101,6 +107,7 @@ src/
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
+    arkOrnament.js      the ark's relief ornament (crown, panels, scrollwork, frieze), merged into its gold mesh
     sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
     horizon.js          distant granite ridges: GLSL composited by the sky shader (3 layers, no draw of their own)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
@@ -120,7 +127,7 @@ src/
     grade.js            GradeShader (shimmer, CA, bloom + lens dirt, exposure, tint, vignette, grain),
                         FinishShader (S-curve, cool black lift, CAS sharpen), lens-dirt texture
     environment.js      generated night environment map
-    atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air (ATMO uniforms, applyAtmosphere)
+    atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
   debug/params.js       URL parameters
   debug/overlay.js      grid, axes, fps/draw-call readout
 ```
@@ -133,11 +140,17 @@ src/
   up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`, `embroidery.js` and `cherubimWeave.js`. Use
   `addMacroVariation` on large tiled surfaces.
-- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 77–116
-  times per frame (`gate` 116, interior views 86–97; the camp adds 6).
+- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 78–122
+  times per frame (`gate`, `iso`, `camp` 122; interior views 90–104; the camp's 6 are in every
+  view). Baseline and frame times: `docs/DECISIONS.md` "Performance baseline".
 - **Light budget:** 8 point lights (altar fire + fill, 4 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
-  materials, and bloom picks up values above 2.0.
+  materials (bloom picks up values above 2.0) and, for light in the air, the atmosphere's glow
+  sources (8 outside slots, all used, plus the menorah inside; `render/atmosphere.js`).
+- **Fog:** every fogged material gets the atmosphere through the replaced fog chunks. Custom
+  `ShaderMaterial`s include the fog chunks (additive ones use `FOG_ADDITIVE_GLSL`) and must be
+  in the scene when `main.js` calls `applyAtmosphere`. Above 80 m the fog thins with height
+  (only `top`).
 - **Interior mask:** `interiorLight.js` patches every `MeshStandardMaterial` so exterior lights,
   sky fill and the env map stay out of the tent and the menorah stays in. New lit materials are
   covered automatically if they're in the scene when `main.js` calls `applyInteriorMask`.
@@ -163,11 +176,12 @@ src/
 | `?wind=0` | Still the cloth (wind strength 0; `scene/cloth.js`) |
 | `?ao=0` | Turn off contact, room and crease ambient occlusion (`window.__tabernacle.ao` holds the strength uniforms) |
 | `?skyt=<s>` | Pin the sky's clock (twinkle, meteors, haze drift); e.g. `?view=sky&skyt=340.03` shows a meteor |
-| `?haze=0` | Plain FogExp2: no ground haze and no glow of the fires in the air (`render/atmosphere.js`) |
+| `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
 
-- **Overview:** `top` (near-orthographic plan), `iso`
+- **Overview:** `top` (near-orthographic plan from 270 m; the pillar of fire's head covers the
+  Holy of Holies), `iso`
 - **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub)
 - **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
@@ -190,8 +204,13 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust, ao, groundAO, wind`. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
-are the haze/glow tuning uniforms (`ATMO`) and `atmosphere.sources[i].gain` each glow's strength. `interior` is the interior
+composer, menorah, interior, updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp,
+fires, atmosphere, dust, ao, groundAO, wind`. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
+are the haze/glow tuning uniforms (`ATMO`; the `uAtmoIn*` ones are the tent's air),
+`atmosphere.sources[i].gain` each glow's strength and `atmosphere.interior` the menorah source
+and the room/incense haze colour factors. `dust.userData.uniforms` tunes the motes. `probe`
+is the gold room's reflection probe (`probe.capture()` re-captures), `sky`, `pillarOfFire`,
+`groundScatter` and `camp` their groups. `interior` is the interior
 light uniforms (`INTERIOR`); `updateInteriorVisibility()` shows or hides the interior meshes by
 camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPosition`, and each frame).
 
@@ -200,12 +219,15 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
   and `rig.setYaw()`. Example: `rig.simulate({f: true}, 3)` walks 4.2 m west from the spawn.
 - **Performance:** the browser pane is usually hidden, which slows `requestAnimationFrame` to
   about 1 fps, so the fps readout is meaningless. Measure frame time by timing N
-  `composer.render()` calls, followed by `renderer.getContext().finish()`, and report draw
-  calls. `renderer.info.autoReset` is false; the loop resets it each frame.
+  `fx.render(t)` calls (the whole post chain), closed by a 1-pixel `readPixels` (waits for
+  the GPU), and report draw calls; `rig.apply(preset)` switches views without a reload. `renderer.info.autoReset` is false; the loop resets it each frame.
 - **Shaders:** check `renderer.info.programs` for programs whose `diagnostics.runnable` is
   false.
 - **Stale frames:** a screenshot of the hidden pane can show a frame from before hot reload.
-  Reload the page, or call `fx.render(t)` to force a fresh frame.
+  Reload the page, or call `fx.render(t)` to force a fresh frame. If screenshots come back
+  as a small image in the top-left corner, set the viewport (`resize_window` 1024×768) and
+  navigate again. After a source edit, wait for the hot reload before navigating, or the
+  navigation can be lost.
 - **Stale console errors:** errors from mid-edit hot reloads can stay in the console. Reload
   before trusting `read_console_messages`.
 - **Post chain:** `fx.uniforms.{bloom, grade, finish, adaptation}` are live tuning handles;
