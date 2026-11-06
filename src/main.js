@@ -124,6 +124,15 @@ const atmosphere = createAtmosphere([
 });
 ATMO.uAtmoHazeColor.value.set(FOG_COLOR).multiplyScalar(3.5); // moonlit mist, a little lighter than the fog
 ATMO.uAtmoFogD.value = scene.fog.density;
+// The night fog is ground air: from far above (only the `top` plan view, 270 m up) a camera looks
+// down through thinning air, so above FOG_CEIL the density falls off with the square of the
+// height and the plan view is not buried in fog. Every other view (camp is 58 m up) is unchanged.
+const FOG_D = scene.fog.density, FOG_CEIL = 80; // m
+updaters.push(() => {
+  const k = Math.min(1, (FOG_CEIL / Math.max(camera.position.y, 1)) ** 2);
+  scene.fog.density = FOG_D * k;
+  ATMO.uAtmoFogD.value = FOG_D * k;
+});
 ATMO.uAtmoOn.value = params.haze ? 1 : 0;
 updaters.push((dt, t) => atmosphere.update(t));
 // Dust in the firelight around the altar, the lit torches and the menorah (one instanced draw).

@@ -156,11 +156,14 @@ function sandMaterial() {
     bumpScale: 1.2,
     roughness: 1,
   });
+  // Albedo of the open plain away from the court (multiplier; see the map_fragment patch).
+  mat.userData.far = { value: new THREE.Color(0.32, 0.29, 0.25) };
   mat.onBeforeCompile = (shader) => {
     bindAOUniforms(shader);
     shader.uniforms.uAoGround = AO.uAoGround;
     shader.uniforms.uAoGroundTex = AO.uAoGroundTex;
     shader.uniforms.uAoGroundRect = AO.uAoGroundRect;
+    shader.uniforms.uSandFar = mat.userData.far;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vSandPos;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvSandPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
@@ -168,7 +171,8 @@ function sandMaterial() {
       .replace('#include <common>', `#include <common>\nvarying vec3 vSandPos;\n${WORLD_NOISE_GLSL}\n${TROD_GLSL}\n${AO_PARS_GLSL}
 uniform float uAoGround;
 uniform sampler2D uAoGroundTex;
-uniform vec4 uAoGroundRect;`)
+uniform vec4 uAoGroundRect;
+uniform vec3 uSandFar;`)
       .replace(
         '#include <map_fragment>',
         `float sandTrod = sandTrodden(vSandPos.xz);
@@ -210,6 +214,12 @@ vec3 sandFacet = vec3(0.0, 1.0, 0.0);
   // Trodden paths: compacted, darker and greyer; footprints a shade darker still.
   diffuseColor.rgb *= mix(vec3(1.0), vec3(0.72, 0.7, 0.69), sandTrod * 0.85);
   diffuseColor.rgb *= 1.0 - 0.24 * sandPrint;
+  // Away from the court the open plain is darker and a touch warmer (less sky-grey): under the
+  // moon and sky fill alone the pale sand would read as snow from above the camp; the court's
+  // firelight stays the bright focus.
+  // Distance from the court's rectangle: full darkening ~40 m out, over the camp.
+  float sandFar = smoothstep(4.0, 40.0, length(max(abs(vSandPos.xz) - vec2(${f3(HX)}, ${f3(HZ)}), 0.0)));
+  diffuseColor.rgb *= mix(vec3(1.0), uSandFar, sandFar);
 }`,
       )
       .replace(
@@ -252,7 +262,7 @@ roughnessFactor = mix(roughnessFactor, 0.13, sandSpark);`,
 }`,
       );
   };
-  mat.customProgramCacheKey = () => 'sand-v4';
+  mat.customProgramCacheKey = () => 'sand-v5';
   return mat;
 }
 
