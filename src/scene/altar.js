@@ -5,6 +5,7 @@ import { aoBox, aoCircle, aoSegment, addBoxAO } from './ao.js';
 import { BRONZE_PLATED, ACACIA, EARTH, addFireBounce } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { addBronzeWear } from './metalWear.js';
 
 /** Lathe of a [radius, height] profile given in cubits (bottom to top, outer then inner). */
 function lathe(profile, segments = 24) {
@@ -353,6 +354,8 @@ export function createAltar() {
   // Firelit sand bounces warm light onto the altar's outer walls (they face away from the
   // flames, so otherwise only the dim night fill reaches them). Flicker via userData.bounce.
   const bounce = { value: 1 };
+  // Hammered, edge-worn plating, sooted toward the top of the walls and the horns.
+  addBronzeWear(BRONZE_PLATED, { strength: 0.02, soot: { center: group.position, radius: [m(A.length / 2) + 0.2, m(A.length / 2) + 0.75], height: [m(A.height) * 0.5, m(A.height) + 0.05] } });
   addFireBounce(BRONZE_PLATED, { center: group.position, inner: 1.0, outer: 4.0, height: 2.4, strength: 2.6, level: bounce });
   group.userData.bounce = bounce;
   // World-space hearth info for the fire (meters): center, grate top (the fire's base), the

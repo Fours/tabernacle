@@ -103,6 +103,7 @@ src/
     ark.js              ark, mercy seat, two hammered cherubim, poles
     sky.js              star dome, Milky Way (no moon)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
+    metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addSilverWear, addWoodGrain, addBoardGold
     textiles.js         shared canvas helpers (seeded, paintWeave, hex, grey); linen, goat hair, skin, tent cloth textures
     embroidery.js       embroidered gate and door screen textures (colour + bump)
     cherubimWeave.js    woven cherubim and garden motifs for the ceiling and veil

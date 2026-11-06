@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { TABERNACLE, m } from '../config/dimensions.js';
+import { addBronzeWear, addSilverWear, addWoodGrain, addBoardGold } from './metalWear.js';
 
 // Shared colors and materials for reuse across scene modules.
 // Step 7 (shaders & materials) is expected to refine these in one place.
@@ -348,6 +350,10 @@ export const SILVER = new THREE.MeshStandardMaterial({
   roughness: 0.42,
   metalness: 0.85,
 });
+// Hammered, edge-worn bronze (pegs, stakes, sockets) and polished-but-tarnished silver
+// (capitals, hooks, fillets, sockets): metalWear.js. Clones are patched where they are made.
+addBronzeWear(BRONZE);
+addSilverWear(SILVER);
 
 /** Patina settings for the furniture gold (GOLD and its clones, e.g. the ark's). */
 export const GOLD_PATINA = { scale: 2.0, tarnish: 0.18 };
@@ -366,6 +372,7 @@ export const ACACIA = new THREE.MeshStandardMaterial({
   map: acaciaGrainTexture(),
   roughness: 0.75,
 });
+addWoodGrain(ACACIA); // torch posts (local y along the post)
 
 export const ROPE = new THREE.MeshStandardMaterial({
   name: 'rope',
@@ -456,3 +463,5 @@ export const GOLD_OVERLAY = new THREE.MeshStandardMaterial({
 });
 // Walls: gentler tarnish and fewer smudges (big flat areas show blotches more than furniture).
 addGoldPatina(GOLD_OVERLAY, { scale: 0.8, tarnish: 0.09, smudge: 0.06, tarnishRough: 0.05 });
+// Board edges, joints, sheet overlaps and a hammered surface (instanced boxes, local x across).
+addBoardGold(GOLD_OVERLAY, { halfWidth: m(TABERNACLE.boardWidth - TABERNACLE.boardGap) / 2 });

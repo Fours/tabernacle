@@ -8,6 +8,7 @@ import { createEmbroideredScreenTextures } from './embroidery.js';
 import { addGatheredDrape, clothGeometry } from './drape.js';
 import { addCloth, addWindShadow, pushWind } from './cloth.js';
 import { aoBox, aoCircle, aoSegment, addBoxAO } from './ao.js';
+import { addBronzeWear, addSilverWear, addWoodGrain } from './metalWear.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
 // hooks and fillets; fine linen hangings hung on the inner side of the pillar line; the
@@ -390,5 +391,9 @@ function pillarMaterials() {
   addBoxAO(socket, [shaftBox], { space: 'local', key: 'pillar-socket' });
   addBoxAO(shaft, [socketBox, flareBox], { space: 'local', key: 'pillar-shaft' });
   addBoxAO(capital, [flareBox], { space: 'local', key: 'pillar-capital' });
+  // Clones drop the shared materials' patches: add the wear again (metalWear.js).
+  addBronzeWear(socket);
+  addWoodGrain(shaft);
+  addSilverWear(capital);
   return { socket, shaft, capital };
 }

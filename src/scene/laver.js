@@ -4,6 +4,7 @@ import { LAVER as L, m } from '../config/dimensions.js';
 import { circle } from './colliders.js';
 import { aoCircle } from './ao.js';
 import { WATER } from './materials.js';
+import { addBronzeWear } from './metalWear.js';
 
 // Laver (Ex 30:17-21; 38:8): bronze basin on a bronze base, for the priests' washing, made from
 // the bronze mirrors of the serving women. The form is a reconstruction (the text gives none):
@@ -463,6 +464,7 @@ export function createLaver() {
     roughness: 1,
     metalness: 1,
   });
+  addBronzeWear(bronze, { hammer: 30, strength: 0.025, verdigris: 0.15 });
   const body = new THREE.Mesh(mergeGeometries(parts), bronze);
   parts.forEach((p) => p.dispose());
   body.name = 'laver-bronze';
