@@ -74,7 +74,7 @@ biblical dimensions or layout.
   **Carry-over notes:** Done (a385d44, 1 round). Throttled `gate` measured 16–19 ms before
   the step on this day's GPU state, so judge budgets as deltas within one session.
 
-- [ ] **Step 2: Flame rendering — altar and torches** — model: Opus / effort: medium
+- [x] **Step 2: Flame rendering — altar and torches** — model: Opus / effort: medium
   **Goal:** Replace the soft additive flame sprites in `createFire` with fire that reads as
   real flame up close. Options for the builder to choose from and justify: a procedural
   flame-tongue texture atlas baked once at load (noise-distorted tongues, 8–16 frames,
@@ -93,7 +93,7 @@ biblical dimensions or layout.
   different `t`) show motion with no visible sprite edges, popping or repeating loop. The
   menorah's lamp flames are unchanged or improved consistently. Light intensities and shadow
   setup unchanged. Lint, build, clean console; budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (a7da940, 41d0870, 1 round). fire.js is split into fireCommon/fireFlames/fireSmoke; `flames` now counts sheets. Under some flicker/exposure states the lower centre at `fire` reads pale peach — Step 3 may tone the core down a touch if smoke/sparks make it look hot-white.
 
 - [ ] **Step 3: Sparks, embers and smoke** — model: Opus / effort: medium
   **Goal:** The altar's secondary effects at AAA quality. Sparks: bright HDR streaks

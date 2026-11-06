@@ -189,6 +189,18 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The altar fire burns up through the grate; its base is 0.13 m below the grate
   top. The wood of the *ma'arakhah* is not rendered; `firewood.js` now only builds the coal
   bed (layers 0, leaners 0, 260 coals, glow 7).
+- 2026-11-05: Altar and torch flames are camera-facing flame sheets (`fireFlames.js`, one
+  instanced draw per fire: 14 at the altar, 4 per torch). Each sheet's shape is computed per
+  pixel from domain-warped, upward-scrolling value noise cut against a tapering envelope, fine
+  and fast at the base, broad and slow at the top. Colour is a blackbody-like HDR ramp (dull
+  red, orange, yellow, a small pale-yellow core, `core` option) with internal streaks. Sheets
+  blend premultiplied "over" (alpha 0.7) rather than additively, so overlaps settle on the ramp
+  colour instead of summing to white. Chosen over a baked flipbook (visible loop, can't follow
+  per-fire wind and flicker) and many sprites (they summed to a white blob). The altar's sheets
+  start 0.13 m under the grate, so the bars cut their bases. ~+0.04 ms, no extra draws.
+- 2026-11-05: Torch flames: radius 0.08, height 0.5, sheet width 0.34, base 0.03 m below the
+  post top so they wrap the burning crown; light offset 0.35 (same height as before). The coal
+  bed's glow follows the flame `level` (0.75 + 0.25·noise + 0.4·level).
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
   1.04 m above the rim, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
   light reach the far side of the courtyard.
