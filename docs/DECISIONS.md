@@ -195,8 +195,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   noise). A cylinder round the bed (radius 1.45 × the flames' base radius, `flameSize` / 2,
   plus half the wind lean; 1.4 × flame height tall) is drawn front faces out (back faces when
   the camera is inside); the ray is clipped to it analytically and marched in up to 56 steps
-  (~0.025 × flame height, interleaved-gradient jitter), skipping the noise outside the flame's
-  envelope and stopping at 98% opacity. The field is fuel-driven: heat highest over the middle
+  (interleaved-gradient jitter), skipping the noise outside the flame's envelope and stopping
+  at 98% opacity. Level of detail by the flame's projected height (px, per draw): the step is
+  clamp(3 / px, 0.025, 0.15) flame heights (full quality from ~120 px up), and the warp and fine
+  noise fade out between 30 and 10 px, so a far torch costs a few samples and doesn't shimmer.
+  On near-vertical rays (|d.y| 0.4–0.9) the core stop is damped up to 45% and the temperature
+  up to 12%, so from straight above (`altartop`) the hearth reads orange-yellow instead of a
+  pale-yellow mass. The field is fuel-driven: heat highest over the middle
   of the bed, falling with height and eroded more and more by noise as it rises, so a
   continuous body splits into tongues whose tips pinch off into flamelets that burn out. The
   noise (the tiling 64³ texture shared with the pillar of fire) is advected in a buoyant frame
@@ -211,8 +216,17 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   0.13 m under the grate). Cost: ~+1.2 ms at `fire`, ~+0.3 ms at `gate` (throttled mode, flame
   meshes on/off in one session); draws unchanged. `createFire`'s `flames` option now only
   reserves its old 4 × flames random draws, so the particles keep their seeds.
-- 2026-11-05: Torch flames: radius 0.08, height 0.5, `flameSize` 0.34 (base radius 0.17), base 0.03 m below the
-  post top so they wrap the burning crown; light offset 0.35 (same height as before). The coal
+- 2026-11-05: Torch flames: radius 0.08, height 0.5, base 0.03 m below the post top so they
+  wrap the burning crown; light offset 0.35 (same height as before). Flame-only options
+  (`createFire` → `createFlames`; the particles don't read them): `flameSize` 0.24 (base radius
+  0.12, hugging the ~0.085 m crown), `flameSolid` [0.075, 0.07] (a solid cylinder for the
+  crown ends the rays, so flames behind the head don't draw over it), `flameSpeed` 1.7 (a
+  small flame flickers faster), `flameRagged` 1.6 (more erosion: torn tongues and flamelets),
+  `flameThickness` 0.7 (optically thinner, more translucent), `flameLean` 4 (the flame leans
+  ~4× the particles' wind drift, gusting ±40% on its own slow noise). Each torch has its own
+  seed (100 + i), so time offset, noise offset and gust phase differ. The light's flicker and
+  the flame share `level`: it drives the light intensity, the flame brightness, its height
+  (±16%) and heat. The coal
   bed's glow follows the flame `level` (0.75 + 0.25·noise + 0.4·level).
 - 2026-11-05: Fire particles (`fireParticles.js`): each fire draws its sparks, embers, ash and
   smoke in one instanced draw with premultiplied blending. Sparks and embers write alpha 0

@@ -26,6 +26,12 @@ export { createIncenseSmoke } from './fireSmoke.js';
  *                                     the particles' (as the old flame sheets did), so changing
  *                                     it reseeds the sparks. Keep it at its call-site values.
  * @param {number} [o.core=1]          Brightness of the yellow-white core relative to the body.
+ * @param {number} [o.flameSpeed=1]    Flame-only: time scale of the flame's motion.
+ * @param {number} [o.flameRagged=1]   Flame-only: how strongly noise tears the flame into tongues.
+ * @param {number} [o.flameLean=1]     Flame-only: lean with the wind relative to the particles'.
+ * @param {number} [o.flameThickness=1] Flame-only: optical thickness (a small flame is thinner).
+ * @param {number[]} [o.flameSolid]    Flame-only: [radius, top] (m) of a solid core the flame
+ *                                     wraps (fireVolume.js createFlames `solid`).
  * @param {number} [o.sparks=60]       Fast spark streaks; about a third fly in bursts.
  * @param {number} [o.bursts]          Burst groups the bursting sparks share; default sparks / 12.
  * @param {number} [o.embers=10]       Slow, long-lived drifting embers.
@@ -65,6 +71,11 @@ export function createFire(o = {}) {
     flameSize = radius * 1.4,
     flames = 6,
     core = 1,
+    flameSpeed = 1,
+    flameRagged = 1,
+    flameLean = 1,
+    flameSolid = null,
+    flameThickness = 1,
     sparks = 60,
     bursts = Math.max(1, Math.round(sparks / 12)),
     embers = 10,
@@ -113,7 +124,10 @@ export function createFire(o = {}) {
   const disposables = [];
 
   const flameSeed = Array.from({ length: flames * 4 }, rnd).slice(0, 3);
-  const flameParts = createFlames(u, { foot: flameSize * 0.5, height, core, grate, seed: flameSeed });
+  const flameParts = createFlames(u, {
+    foot: flameSize * 0.5, height, core, grate, seed: flameSeed,
+    speed: flameSpeed, ragged: flameRagged, lean: flameLean, solid: flameSolid, thickness: flameThickness,
+  });
   group.add(flameParts.object);
   disposables.push(...flameParts.disposables);
   if (sparks + embers + ash + smoke > 0) {

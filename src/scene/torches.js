@@ -155,8 +155,17 @@ export function createTorches() {
     const fire = createFire({
       radius: 0.08,
       height: 0.5,
-      flameSize: 0.34,
       flames: 4,
+      // Flame-only shaping (the particles don't read these): a narrower foot hugging the crown,
+      // which the flame wraps (a solid core ends the rays), faster and more ragged than the
+      // altar's (a small flame flickers faster) and optically thinner (more translucent), and
+      // leaning harder in the wind.
+      flameSize: 0.24,
+      flameThickness: 0.7,
+      flameSolid: [0.075, 0.07],
+      flameSpeed: 1.7,
+      flameRagged: 1.6,
+      flameLean: 4,
       core: 0.8,
       // A few sparks and a thin dark wisp (pitch-soaked wrapping smokes).
       sparks: 8,
