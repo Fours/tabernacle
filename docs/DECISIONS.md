@@ -209,8 +209,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The menorah has one warm point light (0xffc080, 8 cd, decay 1.6, no shadow),
   0.3 m above and 0.35 m north of the lamps. Its 7 flames are one instanced emissive draw
   (`createLampFlames` in fire.js), not `createFire`, with a soft halo (`halo` 0.5).
-- 2026-11-05: Incense coals are emissive 0xff5a14 at ~10 (pulsing) so they reach bloom's 2.0
-  threshold. The smoke has no light.
+- 2026-11-05: Incense coals are emissive 0xff5a14 at ~10 (pulsing) so they reach bloom's
+  threshold (now a soft gate from 1.5 to 2.5; all listed emissives still bloom, the pillar
+  shaft at gain 0.5 stays under it). The smoke has no light.
 - 2026-11-05: Interior light mask (`scene/interiorLight.js`, `applyInteriorMask(scene)` in
   main.js) patches every `MeshStandardMaterial`. A fragment pushed 0.3 m along its normal is
   tested against the tent's interior box. Point lights are classed inside/outside by position
@@ -286,11 +287,25 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 - 2026-11-05: Tone mapping is ACES Filmic, exposure 1.1, sRGB output — AgX washed out the
   firelight.
-- 2026-11-05: Post chain in `render/postfx.js`, in order:
-  1. MSAA half-float render.
-  2. Bloom (threshold 2.0, strength 0.6, radius 0.55).
-  3. Night grade: cool lift in the darks, vignette, grain, heat shimmer above the altar.
-  4. OutputPass.
+- 2026-11-05: Post chain (`render/postfx.js`), in order: 1. MSAA half-float render.
+  2. Mip-chain bloom (`render/bloom.js`): 13-tap prefilter with a Karis average against
+  fireflies, a soft-knee gate (smoothstep 1.5–2.5) that passes the whole colour like
+  UnrealBloomPass's high-pass, then 7 down/up levels (13-tap down, 3×3 tent up, scatter 0.7),
+  strength 1.8. It replaced UnrealBloomPass, whose fixed-weight Gaussian levels gave a halo
+  ring around small hot sources. 3. Eye adaptation (`render/exposure.js`), all on the GPU:
+  64×32 log luminance, then a 1×1 ping-pong pass. 4. Grade (`render/grade.js`, linear HDR):
+  heat shimmer, edge chromatic aberration 0.0025, bloom, procedural lens dirt lit only by the
+  widest bloom level, adapted exposure, warm highlights (0.06), saturation roll-off in the
+  brights (0.18), cool split tone in the darks, vignette, grain. 5. OutputPass (ACES, exposure
+  1.1, sRGB). 6. Finish (display-referred): S-curve (exponent 1.12 around 0.4), cool black lift
+  (0.008, 0.011, 0.02), CAS sharpening 0.35. `?ae=0` holds the exposure at 1; `?lens=0` turns
+  off aberration, dirt and sharpening.
+- 2026-11-05: Eye adaptation target = (−4.4 − log2 L) × 0.3 + key, in stops, eased with tau
+  1.5 s rising / 1.0 s falling. Outside the tent: key 0, clamp −0.25…+0.2 stops. Inside (the
+  camera-inside test in main.js): key +0.35, clamp −0.2…+0.3. The lamplit Holy Place measures
+  about as bright as the firelit court (log2 L −4.06 vs −4.4 at `gate`), so luminance alone
+  would lower the exposure inside; the key makes the eye open up after stepping in, while the
+  clamp keeps the Holy of Holies dark (×1.23 at most) and the court from washing out.
 - 2026-11-05: Night haze is `FogExp2(0x0b0f1c, 0.012)`. Additive fire sprites fade to black in
   fog; smoke uses the normal fog mix.
 - 2026-11-05: The night environment is generated in `render/environment.js` (intensity 0.35):

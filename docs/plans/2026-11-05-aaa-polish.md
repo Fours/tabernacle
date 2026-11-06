@@ -46,7 +46,7 @@ biblical dimensions or layout.
 
 ## Steps
 
-- [ ] **Step 1: Post chain — bloom, grade, eye adaptation, lens** — model: Opus / effort: medium
+- [x] **Step 1: Post chain — bloom, grade, eye adaptation, lens** — model: Opus / effort: medium
   **Goal:** Upgrade `render/postfx.js` so every later step is tuned under the final look.
   (a) A wider, softer, energy-conserving bloom with a soft-knee threshold (custom mip-chain
   bloom or a re-tuned UnrealBloomPass with more levels), so fires get a broad glow and a tight
@@ -71,7 +71,8 @@ biblical dimensions or layout.
   `rig.simulate` shows exposure easing up over ~1–2 s, and back down outside. All emissives
   listed in the plan's bloom assumption still bloom. No NaN black squares. Lint, build, clean
   console; cost within the plan's per-step budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (a385d44, 1 round). Throttled `gate` measured 16–19 ms before
+  the step on this day's GPU state, so judge budgets as deltas within one session.
 
 - [ ] **Step 2: Flame rendering — altar and torches** — model: Opus / effort: medium
   **Goal:** Replace the soft additive flame sprites in `createFire` with fire that reads as
