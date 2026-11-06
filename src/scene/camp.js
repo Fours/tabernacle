@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { COURTYARD as C, m } from '../config/dimensions.js';
+import { COURTYARD as C, CAMP, m } from '../config/dimensions.js';
 import { createTentClothTexture } from './textiles.js';
 import { obb, grid } from './colliders.js';
-import { courtDistance } from './groundScatter.js';
+import { courtDistance, groundHeight } from './terrain.js';
 
 // The camp of Israel around the Tabernacle (Num 2-3), thousands of cheap tents in six draws.
 //
@@ -27,22 +27,6 @@ import { courtDistance } from './groundScatter.js';
 const HX = m(C.length / 2);
 const HZ = m(C.width / 2);
 const TILE = 1.5; // m per texture tile
-
-export const CAMP = {
-  seed: 4011,
-  levite: [10, 30], // band of the Levites' tents (d, m): nearest tents ~10 m outside the hangings
-  tribes: 36, // tribal camps start here (d, m)
-  edge: 286, // nothing beyond |x|, |z| = edge (the ground is ±300 m)
-  diagLane: 9, // |dx - dz| below this is a lane between the four sides
-  eastLane: 7, // the gate's approach: |z| < eastLane for x > HX stays open
-  tribeLane: 3.5, // half width of the lanes between tribes
-  streets: [105, 170, 235], // cross streets in the tribal camps (d, m)
-  streetHalf: 2.5,
-  gap: 0.5, // clear ground kept around each tent's cloth (m, each side)
-  nearLod: 60, // court distance (m) below which tents use the detailed geometry
-  cluster: 24, // family-cluster cells (m)
-  keepClear: [[130, 70, 5]], // free-camera spots at eye height (firepillarfar) [x, z, r]
-};
 
 // Sides: u runs across the side (E/W: u = z; N/S: u = x), tribes in order of increasing u,
 // leader in the middle. Census figures from Num 2.
@@ -549,6 +533,20 @@ function layout(variants) {
 // ---------------------------------------------------------------------------------------
 
 /**
+ * Height of a tent's base on the relief (terrain.js): the lowest ground under its centre and
+ * cloth corners, so no edge floats; the uphill edge sinks a few cm into the sand.
+ */
+function tentBaseY(t) {
+  const { x, z, hx, hz } = t.cloth;
+  const c = Math.cos(t.yaw), s = Math.sin(t.yaw);
+  let y = groundHeight(t.x, t.z);
+  for (const [a, b] of [[hx, hz], [hx, -hz], [-hx, hz], [-hx, -hz]]) {
+    y = Math.min(y, groundHeight(x + a * c + b * s, z - a * s + b * c));
+  }
+  return y;
+}
+
+/**
  * The camp: a Group with six InstancedMeshes (3 variants x near/far LOD), userData.colliders
  * (one grid collider over every tent), userData.covers(x, z, r) (is this point under a tent?
  * for clearing ground scatter), userData.stats.
@@ -585,7 +583,7 @@ export function createCamp() {
       mesh.castShadow = false;
       mesh.receiveShadow = lod === 'near';
       list.forEach((t, i) => {
-        p.set(t.x, 0, t.z);
+        p.set(t.x, tentBaseY(t), t.z);
         q.setFromAxisAngle(Y, t.yaw);
         sc.set(t.s, t.s * t.hs, t.s);
         mtx.compose(p, q, sc);

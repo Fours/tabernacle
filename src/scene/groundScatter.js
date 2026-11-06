@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { COURTYARD as C, TORCHES, m } from '../config/dimensions.js';
+import { courtDistance, groundHeight } from './terrain.js';
+
+export { courtDistance };
 
 // Rocks and low scrub on the desert floor: "the wilderness of Sinai" read as stony steppe, not
 // dunes (DECISIONS.md "World"). Seeded and deterministic; no colliders, no shadows cast.
@@ -11,7 +14,8 @@ import { COURTYARD as C, TORCHES, m } from '../config/dimensions.js';
 // falls off with distance from the courtyard (dense within ~55 m, thin by 130 m, none past
 // ~190 m where the fog has swallowed the ground). The court is covered like the ground outside
 // it, and so are the open lanes through the camp. Kept clear here: the hangings, pegs and
-// cords band, and the torches. main.js then clears scatter inside colliders, under the tent and the camp's tents,
+// cords band, and the torches. Every item stands on the relief (terrain.js groundHeight).
+// main.js then clears scatter inside colliders, under the tent and the camp's tents,
 // and on the altar's utensils with `group.userData.removeWhere((x, z, r) => bool)`.
 
 const HX = m(C.length / 2);
@@ -28,10 +32,6 @@ export const SCATTER_KEEP_OUT = {
 const K = SCATTER_KEEP_OUT;
 const TORCH_XZ = TORCHES.list.map((t) => [m(t.x), m(t.z)]);
 
-/** Distance (m) from (x, z) to the courtyard rectangle (0 inside). */
-export function courtDistance(x, z) {
-  return Math.hypot(Math.max(Math.abs(x) - HX, 0), Math.max(Math.abs(z) - HZ, 0));
-}
 
 /** True if a scatter item of radius r at (x, z) is clear of the keep-outs. */
 export function isScatterClear(x, z, r = 0) {
@@ -438,7 +438,7 @@ export function createGroundScatter({ seed = 1907, exclude = null } = {}) {
     const mesh = meshes[key], list = sets[key];
     const params = mesh.geometry.getAttribute('aParams');
     list.forEach((it, i) => {
-      M.compose(v.set(it.x, it.y, it.z), q.setFromEuler(e.set(it.rx, it.ry, it.rz)), s.set(...it.s));
+      M.compose(v.set(it.x, it.y + groundHeight(it.x, it.z), it.z), q.setFromEuler(e.set(it.rx, it.ry, it.rz)), s.set(...it.s));
       mesh.setMatrixAt(i, M);
       mesh.setColorAt(i, color.setRGB(...it.c));
       if (params) params.setXY(i, it.p[0], it.p[1]);

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { PLAYER } from '../config/dimensions.js';
 import { resolveCircle } from '../scene/colliders.js';
+import { groundHeight } from '../scene/terrain.js';
 
 const KEYMAP = {
   KeyW: 'f', ArrowUp: 'f',
@@ -73,7 +74,7 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
     pos.x = x;
     pos.z = z;
     resolveCircle(pos, PLAYER.radius, colliders);
-    camera.position.set(pos.x, PLAYER.eyeHeight, pos.z);
+    camera.position.set(pos.x, groundHeight(pos.x, pos.z) + PLAYER.eyeHeight, pos.z);
   };
   const reset = () => {
     camera.position.set(...spawn.pos);
@@ -109,7 +110,7 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
       pos.z += dz / n;
       resolveCircle(pos, PLAYER.radius, colliders);
     }
-    camera.position.set(pos.x, PLAYER.eyeHeight, pos.z);
+    camera.position.set(pos.x, groundHeight(pos.x, pos.z) + PLAYER.eyeHeight, pos.z);
     return speed;
   }
 
@@ -135,11 +136,11 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
       const speed = step(dt, keys);
       if (!bob) return;
       // Head bob: two vertical cycles per stride pair, eased by walking state. Purely visual
-      // (camera y only); collision uses the XZ position.
+      // (camera y only); collision uses the XZ position. Eye height is over the relief (terrain.js).
       bobAmt += ((speed > 0 ? 1 : 0) - bobAmt) * Math.min(1, dt * 8);
       bobPhase += speed * dt * PLAYER.bobStride * Math.PI * 2;
       const amp = PLAYER.bobAmplitude * (speed > PLAYER.walkSpeed ? 1.5 : 1);
-      camera.position.y = PLAYER.eyeHeight + Math.sin(bobPhase) * amp * bobAmt;
+      camera.position.y = groundHeight(pos.x, pos.z) + PLAYER.eyeHeight + Math.sin(bobPhase) * amp * bobAmt;
     },
     dispose() {
       window.removeEventListener('keydown', onDown);

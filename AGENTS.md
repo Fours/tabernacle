@@ -71,9 +71,10 @@ Three.js.
 ```
 src/
   main.js               renderer, scene assembly, per-frame loop, window.__tabernacle
-  config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES
+  config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
   scene/
-    ground.js           procedural sand
+    ground.js           procedural sand on the relief: cool night tone, grain sparkle, trodden paths + footprints, isTrodden
+    terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes from ~10 m outside the court, lanes kept near-level
     dustMotes.js        dust drifting in the firelight round the altar and lit torches (1 instanced draw, lit by the atmosphere's glow sources)
     groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
@@ -138,6 +139,9 @@ src/
 - **Interior mask:** `interiorLight.js` patches every `MeshStandardMaterial` so exterior lights,
   sky fill and the env map stay out of the tent and the menorah stays in. New lit materials are
   covered automatically if they're in the scene when `main.js` calls `applyInteriorMask`.
+- **Ground height:** the court and ~10 m round it are level (y = 0); beyond, the sand has gentle
+  relief. Anything standing on the ground out there takes its y from `groundHeight(x, z)`
+  (`terrain.js`); the first-person eye is 1.6 m above it.
 - Dispose of anything you replace. Don't create new objects inside the render loop.
 
 ## URL parameters & presets

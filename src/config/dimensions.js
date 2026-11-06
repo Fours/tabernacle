@@ -329,3 +329,21 @@ export const PILLAR_OF_FIRE = {
   shaftSpread: 0.006, // radius gained per meter of height
   light: { color: 0xffb35a, intensity: 90, decay: 1.6, y: 5 }, // cd; y: m above baseY (~13.5 m, in the fire's body); no shadow
 };
+
+// The camp of Israel around the court (Num 2-3): layout in METERS (scene/camp.js; scene/terrain.js
+// keeps its lanes near-level). d = court distance as camp.js measures it.
+export const CAMP = {
+  seed: 4011,
+  levite: [10, 30], // band of the Levites' tents (d, m): nearest tents ~10 m outside the hangings
+  tribes: 36, // tribal camps start here (d, m)
+  edge: 286, // nothing beyond |x|, |z| = edge (the ground is ±300 m)
+  diagLane: 9, // |dx - dz| below this is a lane between the four sides
+  eastLane: 7, // the gate's approach: |z| < eastLane for x > HX stays open
+  tribeLane: 3.5, // half width of the lanes between tribes
+  streets: [105, 170, 235], // cross streets in the tribal camps (d, m)
+  streetHalf: 2.5,
+  gap: 0.5, // clear ground kept around each tent's cloth (m, each side)
+  nearLod: 60, // court distance (m) below which tents use the detailed geometry
+  cluster: 24, // family-cluster cells (m)
+  keepClear: [[130, 70, 5]], // free-camera spots at eye height (firepillarfar) [x, z, r]
+};

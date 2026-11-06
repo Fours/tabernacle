@@ -3,6 +3,7 @@ import { TORCHES, m } from '../config/dimensions.js';
 import { ACACIA } from './materials.js';
 import { createFire } from './fire.js';
 import { circle } from './colliders.js';
+import { groundHeight } from './terrain.js';
 import { aoCircle } from './ao.js';
 
 // Period torches: a wooden post set in a small cairn of stones, topped by a head of cloth
@@ -138,8 +139,8 @@ export function createTorches() {
   const fires = [];
 
   list.forEach((t, i) => {
-    const x = m(t.x), z = m(t.z);
-    p.set(x, 0, z);
+    const x = m(t.x), z = m(t.z), gy = groundHeight(x, z); // 0 today: torches stand near the court
+    p.set(x, gy, z);
     mat.compose(p, q.identity(), s);
     posts.setMatrixAt(i, mat);
     heads.setMatrixAt(i, mat);
@@ -174,7 +175,7 @@ export function createTorches() {
       wind: [0.03, 0.01],
       seed: 100 + i,
     });
-    fire.group.position.set(x, H - 0.03, z); // flames wrap the burning crown
+    fire.group.position.set(x, gy + H - 0.03, z); // flames wrap the burning crown
     group.add(fire.group);
     fires.push(fire);
   });

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getParams } from './debug/params.js';
-import { createGround } from './scene/ground.js';
+import { createGround, isTrodden } from './scene/ground.js';
 import { createGroundScatter } from './scene/groundScatter.js';
 import { createCamp } from './scene/camp.js';
 import { createCourtyard } from './scene/courtyard.js';
@@ -70,6 +70,7 @@ const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holi
 const groundScatter = createGroundScatter(); // rocks and scrub
 const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
 groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
+groundScatter.userData.removeWhere(isTrodden); // the court's trodden paths are worn bare
 const elements = [createGround(), groundScatter, camp, createCourtyard(), altar, altarFire, tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
 const colliders = [];
 // No rocks or scrub inside anything solid, under the tent, or on the altar's utensils.
