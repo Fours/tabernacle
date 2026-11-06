@@ -122,13 +122,23 @@ if (uClothTrans > 0.0) {
     clBackInt = clIn * mix(uIlHoh, 1.0, smoothstep(IL_VEIL_X - 0.05, IL_VEIL_X + 0.05, clPb.x));
   }
   #endif
-  vec3 clAlb = diffuseColor.rgb * RECIPROCAL_PI * uClothTrans;
+  // Denser or dustier patches of the weave (the texture, the panels' bleaching, the dusty hem)
+  // let less light through: the albedo's variation counts twice, around the base colour's tone.
+  float clRef = max(dot(diffuse, vec3(0.2126, 0.7152, 0.0722)) * 0.85, 1e-3);
+  float clDense = clamp(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)) / clRef, 0.3, 1.6);
+  vec3 clAlb = diffuseColor.rgb * clDense * RECIPROCAL_PI * uClothTrans;
   IncidentLight clL;
   for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
     getPointLightInfo(pointLights[i], geometryPosition, clL);
     float NoL = dot(geometryNormal, clL.direction);
     float back = saturate((0.25 - NoL) / 1.25);
     if (back <= 0.0) continue;
+    // Folds: the cloth glows where it faces the light square-on (a single layer, lit fully) and
+    // darkens in the fold valleys turned away from it (light crossing the cloth at a slant).
+    back = 1.4 * back * back * back;
+    // A little more falloff with distance than the light's own, so the glow pools near the fire.
+    vec3 clD = pointLights[i].position - geometryPosition;
+    back *= clamp(pow(100.0 / max(dot(clD, clD), 1.0), 0.35), 0.0, 1.5);
     float fwd = pow(saturate(dot(-geometryViewDir, clL.direction)), 6.0);
     #ifdef IL_MASK
     float cls = mix(clBackExt, clBackInt, ilLightInside(pointLights[i].position));
@@ -175,7 +185,7 @@ export function addCloth(mat, opts = {}) {
   };
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|cloth-v1-${o.wind ? 'w' : ''}`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|cloth-v2-${o.wind ? 'w' : ''}`;
   mat.needsUpdate = true;
   return mat;
 }
