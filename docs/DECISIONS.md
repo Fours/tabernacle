@@ -529,7 +529,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the shaft with no neck. Billows ~1.2–1.7 m/s, tongues ~3 m/s, a slow twist. The shaft stays
   analytic (closest approach, Gaussian across, slow ripple, gain 0.5, capped ×3 along the
   path) and fades in from half the column's height. Both get half the scene fog (`uFogMix`
-  0.5) and a 4% dither. 56 large embers spiral up around the column in one instanced draw.
+  0.5) and a 4% dither. 480 small embers (0.025–0.06 m, a tenth up to 0.11 m, with per-ember radius, spin and drift variety) spiral up around the column in one instanced draw.
   Cost (throttled) ~+0.45 ms at `firepillarfoot`, ~+0.2 ms at `gate`.
 
 ## Camera & controls

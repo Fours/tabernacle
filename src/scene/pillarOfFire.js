@@ -220,6 +220,7 @@ uniform float uColH;
 uniform float uColR;
 uniform float uViewportH;
 attribute vec4 aRand;
+attribute vec4 aRand2;
 varying vec2 vUv;
 varying float vTemp;
 varying float vI;
@@ -233,12 +234,13 @@ void main() {
   float h2 = h11(floor(cyc) * 1.7 + aRand.w * 23.0);
   float y = mix(0.5, 5.0, h) + age * uColH * mix(0.75, 1.1, aRand.w);
   float foot = mix(0.35, 1.0, smoothstep(0.0, 4.5, y));
-  float r = uColR * mix(1.3, 2.8, h2) * foot * (1.0 + 0.4 * age);
-  float ang = (aRand.z + h) * 6.2831853 + uTime * mix(0.22, 0.45, aRand.w) + y * 0.08;
+  float r = uColR * mix(1.3, 2.8, h2) * foot * (1.0 + 0.4 * age) * mix(0.88, 1.12, aRand2.x);
+  float ang = (aRand.z + h) * 6.2831853 + uTime * mix(0.22, 0.45, aRand.w) * mix(0.94, 1.06, aRand2.y) + y * 0.08;
   vec3 c = vec3(cos(ang) * r, y, sin(ang) * r);
-  c.y += 0.25 * sin(uTime * 1.3 + aRand.x * 20.0);
+  c.y += 0.25 * sin(uTime * 1.3 + aRand.x * 20.0) + 0.4 * sin(uTime * 0.7 + aRand2.z * 6.2831853);
   vec4 mv = modelViewMatrix * vec4(c, 1.0);
-  float size = mix(0.1, 0.24, aRand.x * aRand.x);
+  // Small motes (0.025-0.06 m); about one in ten is a bit larger (0.07-0.11 m).
+  float size = aRand2.w > 0.9 ? mix(0.07, 0.11, (aRand2.w - 0.9) * 10.0) : mix(0.025, 0.06, aRand2.w * 1.111);
   // Keep at least ~1.5 px across (dimming to match) so distant embers don't shimmer.
   float px = size * projectionMatrix[1][1] * 0.5 * uViewportH / max(-mv.z, 0.1);
   float grow = max(1.5 / max(px, 1e-3), 1.0);
@@ -278,6 +280,7 @@ function createEmbers(count, seed) {
   geo.index = base.index;
   geo.setAttribute('position', base.attributes.position);
   geo.setAttribute('aRand', new THREE.InstancedBufferAttribute(randAttribute(count, rng(seed)), 4));
+  geo.setAttribute('aRand2', new THREE.InstancedBufferAttribute(randAttribute(count, rng(seed + 1)), 4));
   geo.instanceCount = count;
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, P.columnHeight * 0.55, 0), P.columnHeight * 0.75);
   const mat = new THREE.ShaderMaterial({
@@ -288,7 +291,7 @@ function createEmbers(count, seed) {
       uColH: { value: P.columnHeight },
       uColR: { value: P.columnRadius },
       uViewportH: { value: 1000 },
-      uBrightness: { value: 2.2 },
+      uBrightness: { value: 2.8 },
       uFogMix: { value: 0.5 },
     },
     vertexShader: EMBER_VERT,
@@ -372,7 +375,7 @@ export function createPillarOfFire() {
   mesh.renderOrder = 10; // after the other fires (it's mostly sky-backed)
   group.add(mesh);
 
-  const embers = createEmbers(56, 71);
+  const embers = createEmbers(480, 71);
   group.add(embers.mesh);
 
   // Warm light in the column: softly lights the roof coverings and the courtyard. Above the
