@@ -150,7 +150,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
   (GOLD.clone + addGoldPatina re-applied, disposed in userData.dispose). Lower metalness where
   matter (soot, ash, dust) should read as matter, or the interior mask recolours it to gold.
 
-- [ ] **Step 5: Blood on the mercy seat** — model: Opus / effort: medium
+- [x] **Step 5: Blood on the mercy seat** — model: Opus / effort: medium
   **Goal:** Add the stain described in the assumptions to the ark's own gold material: a
   dark, dried red-brown splotch in the centre of the mercy seat between the cherubim, with
   irregular edges and slight thickness gloss, plus 15–30 small drops and elongated flecks
