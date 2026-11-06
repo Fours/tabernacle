@@ -255,6 +255,16 @@ window.__tabernacle = {
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 
+// Loading screen (index.html): fade it out over 1 s once the first frames have rendered (the
+// first frame compiles the shaders and captures the reflection probe), then remove it.
+const loader = document.getElementById('loader');
+let framesRendered = 0;
+function hideLoader() {
+  loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+  setTimeout(() => loader.remove(), 1500); // in case transitionend never fires (hidden tab)
+  loader.classList.add('done');
+}
+
 const timer = new THREE.Timer();
 timer.connect(document);
 renderer.setAnimationLoop((time) => {
@@ -269,5 +279,6 @@ renderer.setAnimationLoop((time) => {
   renderer.info.reset();
   fx.setInside(interiorShown === 2);
   fx.render(t);
+  if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);
 });

@@ -5,9 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tabernacle</title>
     <link rel="stylesheet" href="/src/style.css" />
+    <!-- Inline so the loading screen is black from the very first paint. -->
+    <style>
+      html, body { margin: 0; background: #000; }
+      #loader {
+        position: fixed; inset: 0; z-index: 1000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+        background: #000; color: #aaa;
+        font: 13px/1 system-ui, sans-serif; letter-spacing: 0.32em; text-transform: uppercase;
+        transition: opacity 1s ease;
+      }
+      #loader.done { opacity: 0; pointer-events: none; }
+      #loader .spinner {
+        width: 44px; height: 44px; border-radius: 50%;
+        border: 2px solid rgba(201, 168, 106, 0.15); border-top-color: #aaa;
+        animation: loader-spin 1s linear infinite;
+      }
+      #loader .label { animation: loader-pulse 1.6s ease-in-out infinite; }
+      @keyframes loader-spin { to { transform: rotate(360deg); } }
+      @keyframes loader-pulse { 50% { opacity: 0.35; } }
+    </style>
   </head>
   <body>
     <canvas id="scene"></canvas>
+    <div id="loader" role="status" aria-live="polite">
+      <div class="spinner"></div>
+      <div class="label">Loading</div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
