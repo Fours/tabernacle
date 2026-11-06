@@ -156,6 +156,19 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   charred spots, blisters, cracks, docking pits and flour, plus a data map with bump (R) and
   roughness (G). Rim browning is in vertex colours; vertex alpha masks the crust off the
   frankincense. One material, one loaves mesh; ~80 ms at load.
+- 2026-11-06: Table of showbread ornament (`scene/showbreadOrnament.js`, at the user's
+  direction; reconstruction — the text gives only the crown round the top and the frame with
+  its crown, Ex 25:24–25). The ark's vocabulary (plant motifs only, no figures) in the table's
+  own layout: the top's crown a profiled moulding (astragal, cove, band with bead-and-reel and
+  hanging leaf tips, roll, inner lip; same height, ~5 mm more outward reach for the relief);
+  the frame's crown a rolled moulding along the frame's foot; on the frame's band (all four
+  outer faces) a running almond scroll with rosettes from a central beaded rosette, beaded top
+  and bottom edges, a rosette over each leg on the ends and a lobed rosette plate behind each
+  ring; on each leg leaf collars under the frame (leaves hanging) and near the foot (leaves
+  rising), an almond vine up every face, and a leaf-wrapped bun foot (replaces the plain cap,
+  now 4.2 cm tall). Sizes, rings, poles, loaves, cups and utensils unchanged; still one gold
+  mesh: +84.6k triangles, ~26 ms to build, +0.15 ms at `table`/`holyplace`. The long sides'
+  band sits mostly behind the poles at eye height; it reads from above and from the ends.
 - 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
   east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
@@ -175,7 +188,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   with marching cubes (~120 ms); wings are three rows of feather blades plus two rows
   of coverts along the bone on both faces. Ark and cherubim are
   one gold mesh (1 draw).
-- 2026-11-05: Ark ornament (`scene/arkOrnament.js`, at the user's direction; reconstruction —
+- 2026-11-05: Ark ornament (`scene/arkOrnament.js`, helpers shared in `scene/ornament.js` since
+  2026-11-06; at the user's direction; reconstruction —
   the text gives only the crown, Ex 25:11). Plant motifs only, no figures besides the
   cherubim. Profiled crown (bead, cove, band with bead-and-reel and leaf tips, roll, inner lip),
   same height and reach as before; molded plinth; framed recessed panels with beaded edges —

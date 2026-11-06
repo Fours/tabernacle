@@ -105,10 +105,12 @@ src/
     ao.js               AO without a screen pass: baked ground contact AO (userData.aoShapes), crease AO (addBoxAO); global contact/room terms live in interiorLight.js
     menorah.js          menorah (merged gold), 7 lamp flames, the Holy Place's light
     showbread.js        table of showbread: table, poles, vessels, two stacks of 6 loaves
+    showbreadOrnament.js the table's relief (crowns, frame scroll, ring plates, leg collars, vines, feet), merged into its gold mesh
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
     arkOrnament.js      the ark's relief ornament (crown, panels, scrollwork, frieze), merged into its gold mesh
+    ornament.js         shared relief helpers (leafGeo, stemGeo, beadRod, Relief: rosette/palmette/bud, runningScroll, sweepRect, faceMatrix)
     sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
     horizon.js          distant granite ridges: GLSL composited by the sky shader (3 layers, no draw of their own)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce

@@ -5,6 +5,7 @@ import { GOLD } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
 import { aoBox, aoCircle } from './ao.js';
+import { showbreadOrnamentParts } from './showbreadOrnament.js';
 
 // The table of showbread (Ex 25:23-30; 37:10-16; Lev 24:5-9): a gold-overlaid table with a
 // frame a handbreadth wide, two crowns, four rings and two poles; twelve loaves in two stacks
@@ -36,25 +37,15 @@ function goldFrame() {
     g.push(boxPart(L - 2 * INSET, FRAME_H, FT, [0, fy, s * fz]));
     g.push(boxPart(FT, FRAME_H, W - 2 * INSET - 2 * FT, [s * fx, fy, 0]));
   }
-  // The frame's own crown: a bead along its lower edge (25:25).
-  const by = H - TOP - FRAME_H + FC / 2;
-  const bx = L / 2 - INSET + FC / 2, bz = W / 2 - INSET + FC / 2;
-  for (const s of [-1, 1]) {
-    g.push(boxPart(L - 2 * INSET + 2 * FC, FC, FC, [0, by, s * bz]));
-    g.push(boxPart(FC, FC, W - 2 * INSET, [s * bx, by, 0]));
-  }
-  // The crown (zer) around the top: wraps the slab's edge and rises above it (25:24).
-  const wrap = m(0.03);
-  const cy = H - wrap + (CH + wrap) / 2;
-  for (const s of [-1, 1]) {
-    g.push(boxPart(L + 2 * m(0.008), CH + wrap, CW, [0, cy, s * (W / 2 - CW / 2 + m(0.008))]));
-    g.push(boxPart(CW, CH + wrap, W - 2 * CW, [s * (L / 2 - CW / 2 + m(0.008)), cy, 0]));
-  }
-  // Legs with small foot caps.
+  // The frame's crown (25:25), the crown round the top (25:24) and the relief ornament
+  // (reconstruction): showbreadOrnament.js.
+  g.push(...showbreadOrnamentParts({
+    L, W, H, TOP, FRAME_H, INSET, LEG, CW, CH, FC, wrap: m(0.03), legX, legZ, ringY,
+  }));
+  // Legs (their collars, vines and bun feet are in the ornament).
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       g.push(boxPart(LEG, H - TOP, LEG, [sx * legX, (H - TOP) / 2, sz * legZ]));
-      g.push(boxPart(LEG * 1.35, m(0.035), LEG * 1.35, [sx * legX, m(0.0175), sz * legZ]));
       // Four rings at the feet, near the frame (25:26-27), on the long sides.
       g.push(part(new THREE.TorusGeometry(RING_R, RING_T, 8, 20).rotateY(Math.PI / 2),
         { pos: [sx * legX, ringY, sz * ringZ] }));
