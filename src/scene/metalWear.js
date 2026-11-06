@@ -9,6 +9,8 @@ import * as THREE from 'three';
 // - addSilverWear: polished high spots and edges, tarnish in hollows, on undersides and in
 //   broad patches.
 // - addWoodGrain: acacia grain streaks, fine checks and pores along the piece's local axis.
+// - addGoldWear: a furnishing's own gold copy, used: grime in relief and corners, handling
+//   smudges, dust and crumbs, soot (local-space masks from its dimensions).
 // - addBoardGold: the gold-overlaid boards (instanced boxes): bevelled board edges that catch
 //   the light, a dark joint between boards, and a hammered sheet surface.
 
@@ -220,4 +222,136 @@ export function addBoardGold(mat, { halfWidth, hammer = 22, strength = 0.05, she
   roughnessFactor = clamp(roughnessFactor + (mwNoise(vMwPos * ${f(hammer * 0.6)}) - 0.5) * 0.12, 0.05, 1.0);
   `;
   return patch(mat, `boardgold-${halfWidth}-${hammer}-${strength}-${sheets}`, body);
+}
+
+const v3 = (a) => `vec3(${f(a[0])}, ${f(a[1])}, ${f(a[2])})`;
+
+/**
+ * Worn, handled gold on a furnishing's own GOLD copy (on top of addGoldPatina). Every mask is
+ * in the mesh's local (geometry) space, in meters, so the options come from the piece's own
+ * dimensions. All parts are optional:
+ * - boxes: [{ min, max, ground, contact, reach }] solid blocks of the piece. `ground` (0..1):
+ *   grime on the block's own faces and the first few mm off them, i.e. the background of any
+ *   relief standing on them, so the raised pattern stays bright against a darker ground.
+ *   `contact` (0..1) within `reach` (m) of the block, off its own faces: grime in the inner
+ *   corners where other parts meet it (frame under the top, rails against the legs).
+ * - crevice: grime in concave creases from screen-space curvature (beads, leaf ribs).
+ * - handling: [{ a, b, r, strength }] capsules (segment a-b, radius r) where hands hold the
+ *   piece: dull, smudged gold (rougher, a little darker and greyer, in fingerprint blotches).
+ * - dust: { y, height, min: [x, z], max: [x, z], amount, spots: [{ min, max, flour, crumbs }] }
+ *   fine pale dust on up-facing surfaces between y and y + height inside the rectangle, thicker
+ *   toward its edges (against a crown); within ~7 cm of each spot rectangle (e.g. a loaf stack)
+ *   a flour haze (`flour`) and crumb specks (`crumbs`).
+ * - low: { height, strength }: darker toward the floor below `height`.
+ * - soot: { center, radius: [inner, outer], height: [from, full], strength, color }: smoke
+ *   blackening round a burning point, strongest high and close in, streaking down the sides.
+ * Dust and soot lower the metalness below the interior mask's metal threshold (interiorLight.js),
+ * so they read as matter on the gold, not as darker gold.
+ */
+export function addGoldWear(mat, opts = {}) {
+  const { boxes = [], crevice = 0, handling = [], dust = null, low = null, soot = null } = opts;
+  const lines = [];
+  lines.push(`
+  vec3 q = vMwLocal;
+  vec3 nW = inverseTransformDirection(normal, viewMatrix);
+  float gw = 0.0; // grime 0..1
+  float gn = mwNoise(q * 70.0 + 4.7) * 0.6 + mwNoise(q * 23.0 + 1.9) * 0.4;`);
+  if (boxes.length) {
+    lines.push(`  {
+    float fwq = max(length(fwidth(q)), 1e-5);
+    float gnd = 0.0, con = 0.0;`);
+    for (const b of boxes) {
+      const c = b.min.map((v, i) => (v + b.max[i]) / 2), h = b.min.map((v, i) => (b.max[i] - v) / 2);
+      lines.push(`    {
+      vec3 bq = abs(q - ${v3(c)}) - ${v3(h)};
+      float d = length(max(bq, 0.0)) + min(max(bq.x, max(bq.y, bq.z)), 0.0);
+      ${b.ground ? `gnd = max(gnd, ${f(b.ground)} * (1.0 - smoothstep(0.0004, max(0.0028, fwq * 2.0), abs(d))));` : ''}
+      ${b.contact ? `con = max(con, ${f(b.contact)} * (1.0 - smoothstep(0.0, ${f(b.reach || 0.03)}, d)) * smoothstep(0.0012, 0.004, d));` : ''}
+    }`);
+    }
+    lines.push(`    gw = max(gw, gnd * (0.55 + 0.6 * gn));
+    gw = max(gw, con * (0.6 + 0.5 * gn));
+  }`);
+  }
+  if (crevice) {
+    lines.push(`  gw = max(gw, clamp(-mwCurvature(normal) * 0.015, 0.0, 1.0) * ${f(crevice)} * (0.6 + 0.6 * gn));`);
+  }
+  if (low) {
+    lines.push(`  gw = max(gw, (1.0 - smoothstep(0.0, ${f(low.height)}, q.y)) * ${f(low.strength)} * (0.7 + 0.5 * gn));`);
+  }
+  // Grime: dark brown-black, rougher, slightly less metallic (stays metal for the interior mask).
+  lines.push(`  gw = clamp(gw, 0.0, 1.0);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.3, 0.22, 0.13), gw);
+  roughnessFactor += gw * 0.35;
+  metalnessFactor = mix(metalnessFactor, 0.72, gw * 0.6);`);
+  if (handling.length) {
+    lines.push(`  {
+    float hz = 0.0;`);
+    for (const z of handling) {
+      lines.push(`    {
+      vec3 pa = q - ${v3(z.a)}, ba = ${v3(z.b)} - ${v3(z.a)};
+      float t = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+      hz = max(hz, ${f(z.strength ?? 1)} * (1.0 - smoothstep(${f(z.r * 0.4)}, ${f(z.r)}, length(pa - ba * t))));
+    }`);
+    }
+    lines.push(`    float fade = 1.0 - smoothstep(0.3, 0.8, length(fwidth(q)) * 140.0);
+    float blot = smoothstep(0.35, 0.7, mwNoise(q * 110.0 + 9.1)) * fade + 0.5 * (1.0 - fade);
+    float hs = hz * (0.45 + 0.55 * blot);
+    vec3 grey = vec3(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)));
+    diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb, grey, 0.35) * 0.55, hs);
+    roughnessFactor += hs * 0.55;
+  }`);
+  }
+  if (dust) {
+    const s = dust.spots || [];
+    lines.push(`  {
+    float up = smoothstep(0.55, 0.9, nW.y) * step(${f(dust.y - 0.002)}, q.y) * step(q.y, ${f(dust.y + (dust.height ?? 0.04))});
+    vec2 lo = vec2(${f(dust.min[0])}, ${f(dust.min[1])}), hi = vec2(${f(dust.max[0])}, ${f(dust.max[1])});
+    vec2 e2 = min(q.xz - lo, hi - q.xz);
+    float inside = step(0.0, min(e2.x, e2.y));
+    float edge = 1.0 - smoothstep(0.0, 0.05, min(e2.x, e2.y));
+    float fade = 1.0 - smoothstep(0.3, 0.8, length(fwidth(q)) * 250.0);
+    float fine = mwNoise(q * 38.0 + 2.2) * 0.6 + mwNoise(q * 9.0) * 0.4;
+    float du = up * inside * ${f(dust.amount ?? 0.5)} * (0.35 + 0.65 * edge) * smoothstep(0.25, 0.7, fine);
+    float crumb = 0.0;`);
+    for (const sp of s) {
+      lines.push(`    {
+      vec2 sc = vec2(${f((sp.min[0] + sp.max[0]) / 2)}, ${f((sp.min[1] + sp.max[1]) / 2)});
+      vec2 sh = vec2(${f((sp.max[0] - sp.min[0]) / 2)}, ${f((sp.max[1] - sp.min[1]) / 2)});
+      vec2 sd = abs(q.xz - sc) - sh;
+      float r = length(max(sd, 0.0)) + min(max(sd.x, sd.y), 0.0);
+      float near = up * inside * (1.0 - smoothstep(0.0, 0.07, r));
+      du = max(du, near * ${f(sp.flour ?? 0.55)} * (0.5 + 0.5 * fine));
+      float spk = smoothstep(0.7, 0.8, mwNoise(q * 330.0 + 5.3)) * fade;
+      crumb = max(crumb, near * spk * ${f(sp.crumbs ?? 1)} * (1.0 - smoothstep(0.0, 0.05, r)));
+    }`);
+    }
+    lines.push(`    du = clamp(du, 0.0, 1.0);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.45, 0.36), du * 0.7);
+    roughnessFactor = mix(roughnessFactor, 0.9, du);
+    metalnessFactor = mix(metalnessFactor, 0.0, min(du * 1.6, 1.0));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.27, 0.13), crumb);
+    roughnessFactor = mix(roughnessFactor, 0.95, crumb);
+    metalnessFactor = mix(metalnessFactor, 0.0, crumb);
+  }`);
+  }
+  if (soot) {
+    lines.push(`  {
+    vec3 sc = ${v3(soot.center)};
+    float r = length(q.xz - sc.xz);
+    float sr = 1.0 - smoothstep(${f(soot.radius[0])}, ${f(soot.radius[1])}, r);
+    float sh = smoothstep(${f(soot.height[0])}, ${f(soot.height[1])}, q.y);
+    float streak = mwNoise(vec3(q.x * 40.0, q.y * 3.0, q.z * 40.0)) * 0.6 + mwNoise(q * 12.0 + 8.0) * 0.4;
+    float s = clamp(sr * sh * (0.4 + 0.9 * streak), 0.0, 1.0) * ${f(soot.strength ?? 0.8)};
+    diffuseColor.rgb = mix(diffuseColor.rgb, ${v3(soot.color || [0.04, 0.032, 0.026])}, s);
+    roughnessFactor = mix(roughnessFactor, 0.85, s * 0.8);
+    metalnessFactor = mix(metalnessFactor, 0.35, s * 0.8);
+  }`);
+  }
+  lines.push(`  roughnessFactor = clamp(roughnessFactor, 0.05, 1.0);
+  metalnessFactor = clamp(metalnessFactor, 0.0, 1.0);
+  diffuseColor.rgb = max(diffuseColor.rgb, vec3(0.0));`);
+  let hash = 0;
+  for (const ch of JSON.stringify(opts)) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return patch(mat, `goldwear-${hash}`, lines.join('\n'));
 }

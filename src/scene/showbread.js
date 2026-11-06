@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SHOWBREAD as S, m } from '../config/dimensions.js';
-import { GOLD } from './materials.js';
+import { GOLD, GOLD_PATINA, addGoldPatina } from './materials.js';
+import { addGoldWear } from './metalWear.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
 import { aoBox, aoCircle } from './ao.js';
@@ -58,6 +59,49 @@ function goldFrame() {
       { pos: [0, ringY, sz * ringZ] }));
   }
   return g;
+}
+
+/**
+ * The table's own gold (only the table's mesh; the shared GOLD is unchanged): a heavier patina
+ * and handling wear (metalWear.js addGoldWear) in the table's local frame. Grime on the ground
+ * of the relief on the frame, legs and crown and in the inner corners under the top; dull,
+ * smudged gold at the pole ends and the top's edges where it is carried and the bread is
+ * changed (Lev 24:8); fine dust, flour and crumbs on the top round the two stacks; darker
+ * toward the feet.
+ */
+function tableGold() {
+  const gold = GOLD.clone();
+  gold.name = 'showbread-gold';
+  addGoldPatina(gold, { ...GOLD_PATINA, tarnish: 0.26, grime: 0.4 }); // clone() drops GOLD's patch
+  const fx = L / 2 - INSET, fz = W / 2 - INSET, yb = H - TOP - FRAME_H, band = 0.005;
+  const poleEnd = L / 2 + m(S.poleOverhang);
+  const inX = L / 2 - CW + 0.0036, inZ = W / 2 - CW + 0.0036; // inside the crown
+  const lh = m(S.loaf.length) / 2 + 0.006, wh = m(S.loaf.width) / 2 + 0.006;
+  const legs = [-1, 1].flatMap((sx) => [-1, 1].map((sz) => ({
+    min: [sx * legX - LEG / 2, 0, sz * legZ - LEG / 2], max: [sx * legX + LEG / 2, H - TOP, sz * legZ + LEG / 2],
+    ground: 0.4, contact: 0.55, reach: 0.025,
+  })));
+  addGoldWear(gold, {
+    boxes: [
+      { min: [-fx, yb, -fz], max: [fx, H - TOP, fz], ground: 0.75 }, // the frame's band
+      ...legs,
+      { min: [-L / 2, H - TOP, -W / 2], max: [L / 2, H, W / 2], contact: 0.5, reach: 0.02 }, // under the top
+      { min: [-L / 2 - band, H - m(0.03), -W / 2 - band], max: [L / 2 + band, H + CH - 0.0135, W / 2 + band], ground: 0.55 }, // crown
+    ],
+    crevice: 0.8,
+    handling: [
+      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => (
+        { a: [sx * (L / 2 + 0.06), ringY, sz * ringZ], b: [sx * poleEnd, ringY, sz * ringZ], r: 0.06 }))),
+      ...[-1, 1].map((sx) => ({ a: [sx * (L / 2 + 0.005), H + 0.01, -0.12], b: [sx * (L / 2 + 0.005), H + 0.01, 0.12], r: 0.06, strength: 0.8 })),
+      ...[-1, 1].map((sz) => ({ a: [-0.15, H + 0.01, sz * (W / 2 + 0.005)], b: [0.15, H + 0.01, sz * (W / 2 + 0.005)], r: 0.05, strength: 0.6 })),
+    ],
+    dust: {
+      y: H, height: CH + 0.004, min: [-inX, -inZ], max: [inX, inZ], amount: 0.35,
+      spots: [-0.5, 0.5].map((sx) => ({ min: [m(sx) - lh, -wh], max: [m(sx) + lh, wh], flour: 0.45, crumbs: 1 })),
+    },
+    low: { height: 0.16, strength: 0.35 },
+  });
+  return gold;
 }
 
 // ---- Bread and frankincense (vertex-coloured, one material) --------------------------------
@@ -492,7 +536,8 @@ export function createShowbread() {
   group.position.set(m(S.x), 0, m(S.z));
 
   const st = stacks();
-  const goldMesh = new THREE.Mesh(merge([...goldFrame(), ...st.gold, ...utensils()]), GOLD);
+  const gold = tableGold();
+  const goldMesh = new THREE.Mesh(merge([...goldFrame(), ...st.gold, ...utensils()]), gold);
   goldMesh.name = 'showbread-gold';
   group.add(goldMesh);
 
@@ -514,6 +559,7 @@ export function createShowbread() {
   ];
   group.userData.dispose = () => {
     goldMesh.geometry.dispose();
+    gold.dispose();
     breadMesh.geometry.dispose();
     BREAD.dispose();
     CRUST.map.dispose();

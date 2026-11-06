@@ -114,7 +114,8 @@ src/
     sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
     horizon.js          distant granite ridges: GLSL composited by the sky shader (3 layers, no draw of their own)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
-    metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addSilverWear, addWoodGrain, addBoardGold
+    metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addSilverWear, addWoodGrain, addBoardGold,
+                        addGoldWear (relief-ground/corner grime, handling smudges, dust/crumbs, soot; local masks)
     textiles.js         shared canvas helpers (seeded, paintWeave, hex, grey); linen, goat hair, skin, tent cloth textures
     embroidery.js       embroidered gate and door screen textures (colour + bump)
     cherubimWeave.js    woven cherubim and garden motifs for the ceiling and veil

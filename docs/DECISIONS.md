@@ -169,6 +169,19 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   now 4.2 cm tall). Sizes, rings, poles, loaves, cups and utensils unchanged; still one gold
   mesh: +84.6k triangles, ~26 ms to build, +0.15 ms at `table`/`holyplace`. The long sides'
   band sits mostly behind the poles at eye height; it reads from above and from the ends.
+- 2026-11-06: Worn, handled gold on the table (`tableGold` in `scene/showbread.js`; the
+  reusable `addGoldWear` in `scene/metalWear.js`). The table's gold mesh (frame, cups, floor
+  utensils) has its own `GOLD.clone()` with a heavier patina (tarnish 0.26) and a wear patch in
+  the table's local frame: grime on the ground of the relief (on the frame band, leg faces and
+  crown band, within ~3 mm of the block faces, so the raised scroll stays bright on a darker
+  ground) and in the inner corners under the top and beside the legs (distance to boxes taken
+  from SHOWBREAD, not screen-space AO, since box corners have no curvature to detect); crevice
+  grime from curvature (beads, leaf ribs); dull, greyer, rougher fingerprint blotches on the
+  pole ends and the top's end and long-side edges (carrying; changing the bread, Lev 24:8);
+  fine dust thicker against the crown, a flour haze and crumb specks within ~7 cm of the two
+  stacks; darker below 16 cm. Dust and crumbs drop the metalness below the interior mask's
+  metal threshold so they read as matter, not darker gold. Other gold unchanged; no draws;
+  +0.2 ms at `table` (A/B by swapping the material in one session).
 - 2026-11-05: Altar of incense (`scene/incenseAltar.js`): 1×1×2 cubits at x = −18.5, 1 cubit
   east of the veil. Horns in the bronze altar's shape scaled to 0.45 cubit; crown, plinth and
   bead are reconstruction. 2 rings per N and S side under the crown, poles E–W. A gold firepan
