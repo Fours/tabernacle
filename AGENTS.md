@@ -78,7 +78,10 @@ src/
     altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
-    fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; createLampFlames (instanced oil-lamp flames)
+    fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; re-exports the pieces below
+    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL) + helpers (rng, quadParticles, noise1)
+    fireFlames.js       flame body for createFire; createLampFlames (instanced oil-lamp flames)
+    fireSmoke.js        embers and smoke puffs for createFire; createIncenseSmoke
     torches.js          torch posts, wrapped heads, small fires and lights
     pillarOfFire.js     pillar of fire over the Holy of Holies + light shaft (one volumetric draw) and its light
     tabernacle.js       boards, sockets, bars, door beam + screen (south half drawn across, north tied back)
