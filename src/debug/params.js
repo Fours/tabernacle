@@ -26,6 +26,8 @@ export function getParams() {
     ao: p.get('ao') !== '0',
     // `?wind=0` stills the cloth (scene/cloth.js).
     wind: p.get('wind') !== '0',
+    // `?skyt=<s>` pins the sky's clock (twinkle, meteors, haze drift), e.g. to show a meteor.
+    skyt: p.get('skyt') ? parseFloat(p.get('skyt')) : null,
     // Tone mapping override for comparison: aces | agx | neutral | none.
     tm: p.get('tm') || null,
     // Exposure override (number).

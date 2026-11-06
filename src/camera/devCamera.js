@@ -81,6 +81,10 @@ export const PRESETS = {
   // Eye height just outside the gate's north post, looking north-west past the north-east
   // corner of the hangings over the nearest tents (Merari's rows, Dan's camp beyond).
   campwalk: { pos: [m(hx) + 5, eye, -8], target: [5, eye + 0.3, -40], fov: 65 },
+  // Eye height just outside the court's north-west corner, looking north-west down the camp's
+  // diagonal lane, between the tents of Gershon/Merari and Ephraim's/Dan's camps, to the
+  // distant ridges on the horizon.
+  horizon: { pos: [-m(hx) - 4, eye, -m(hz) - 4], target: [-m(hx) - 80, eye + 2.4, -m(hz) - 76], fov: 60 },
   // Same spot as the first-person spawn: outside the open gate on the east-west axis,
   // looking straight west through it toward the altar and the tent.
   walk: {

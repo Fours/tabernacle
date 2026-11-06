@@ -101,7 +101,8 @@ src/
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
-    sky.js              star dome, Milky Way (no moon)
+    sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
+    horizon.js          distant granite ridges: GLSL composited by the sky shader (3 layers, no draw of their own)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
     metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addSilverWear, addWoodGrain, addBoardGold
     textiles.js         shared canvas helpers (seeded, paintWeave, hex, grey); linen, goat hair, skin, tent cloth textures
@@ -161,6 +162,7 @@ src/
 | `?bob=0` | Turn off head bob |
 | `?wind=0` | Still the cloth (wind strength 0; `scene/cloth.js`) |
 | `?ao=0` | Turn off contact, room and crease ambient occlusion (`window.__tabernacle.ao` holds the strength uniforms) |
+| `?skyt=<s>` | Pin the sky's clock (twinkle, meteors, haze drift); e.g. `?view=sky&skyt=340.03` shows a meteor |
 | `?haze=0` | Plain FogExp2: no ground haze and no glow of the fires in the air (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
@@ -176,6 +178,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
   `firepillarfoot` (its tapered foot), `firepillarfar` (the whole shaft from the desert)
 - **Camp:** `camp` (high oblique from the east: Levites' rows, tribal blocks, lanes), `campwalk`
   (eye height outside the gate, looking north-west over the nearest tents)
+- **Horizon:** `horizon` (eye height just outside the court's NW corner, looking down the
+  camp's diagonal lane to the distant ridges)
 - **First person:** `walk`
 
 Add presets when a task needs a new view.

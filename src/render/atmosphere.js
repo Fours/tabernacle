@@ -135,11 +135,13 @@ vec3 atmoGlow(vec3 c, vec3 d, vec2 s, float pch) {
   }
   return sum * 0.0795775; // 1 / (4 pi)
 }
-// Sky (no geometry): the ray runs out to the dome.
+// Sky (no geometry): the ray runs out to the dome, or, below the horizon, to where it would meet
+// the (flat) desert beyond the ground mesh, so the sky there matches the fogged far ground.
 vec3 atmoSky(vec3 col, vec3 dir) {
   if (uAtmoOn <= 0.0) return col;
   vec3 c = cameraPosition;
-  vec2 s = atmoSpan(c, dir, 3000.0);
+  float L = dir.y < 0.0 ? min(3000.0, max(c.y, 0.0) / -dir.y) : 3000.0;
+  vec2 s = atmoSpan(c, dir, L);
   float tau = atmoHazeDepth(c, dir, s);
   col = mix(col, uAtmoHazeColor, 1.0 - exp(-tau));
   return col + atmoGlow(c, dir, s, 1.0);

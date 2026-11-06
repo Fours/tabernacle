@@ -90,6 +90,7 @@ AO.uAoOn.value = params.ao ? 1 : 0;
 WIND.uWindStrength.value = params.wind ? 1 : 0;
 updaters.push(updateWind);
 const sky = createSky({ fogColor: FOG_COLOR, atmosphere: params.haze });
+sky.userData.timeOverride = params.skyt;
 scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
 // Keep exterior lights, sky fill and the night environment out of the tent, and the menorah's
@@ -232,7 +233,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
+  updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

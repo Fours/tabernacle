@@ -154,6 +154,12 @@ void main() {
   }
   col = scurve(clamp(col, 0.0, 1.0));
   col = col + uLift * (1.0 - col);
+  // Triangular dither of +-1 LSB (interleaved gradient noise, static) against 8-bit banding in
+  // the night sky's long, dark gradients.
+  vec2 fc = gl_FragCoord.xy;
+  float ign1 = fract(52.9829189 * fract(dot(fc, vec2(0.06711056, 0.00583715))));
+  float ign2 = fract(52.9829189 * fract(dot(fc + vec2(17.0, 31.0), vec2(0.06711056, 0.00583715))));
+  col += (ign1 + ign2 - 1.0) / 255.0;
   gl_FragColor = vec4(col, 1.0);
 }
 `,
