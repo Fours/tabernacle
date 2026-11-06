@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { rng, noise1 } from './fireCommon.js';
-import { createFlames } from './fireFlames.js';
+import { createFlames } from './fireVolume.js';
 import { createFireParticles } from './fireParticles.js';
 
-// Reusable GPU-animated fire: flame sheets plus sparks, embers, ash and smoke (2 draw calls)
+// Reusable GPU-animated fire: a flame volume plus sparks, embers, ash and smoke (2 draw calls)
 // and a flickering warm PointLight. All particle motion is computed in the shaders from a time
 // uniform, so the per-frame JS cost is a few uniform writes and no allocations.
 //
 // Used by the altar (large, shadow-casting) and the torches (small, no shadows). The pieces live
-// in fireCommon.js (shared GLSL + helpers), fireFlames.js, fireParticles.js and fireSmoke.js
-// (the incense smoke); this module is the public entry and re-exports what other modules use.
+// in fireCommon.js (shared GLSL + helpers), fireVolume.js (the flames), fireParticles.js,
+// fireFlames.js (lamp flames) and fireSmoke.js (the incense smoke); this module is the public entry and re-exports what other modules use.
 
 export { NOISE_GLSL, FOG_ADDITIVE_GLSL } from './fireCommon.js';
 export { createLampFlames } from './fireFlames.js';
@@ -21,8 +21,10 @@ export { createIncenseSmoke } from './fireSmoke.js';
  * @param {object} o
  * @param {number} [o.radius=0.5]      Radius of the burning bed (m).
  * @param {number} [o.height=1.2]      Typical flame height (m).
- * @param {number} [o.flameSize]       Width of a flame sheet (m); default 1.4 × radius.
- * @param {number} [o.flames=6]        Flame sheet count (fireFlames.js).
+ * @param {number} [o.flameSize]       Width of the flames' base (m); default 1.4 × radius.
+ * @param {number} [o.flames=6]        Seeds the flames: 4 × flames random draws are taken before
+ *                                     the particles' (as the old flame sheets did), so changing
+ *                                     it reseeds the sparks. Keep it at its call-site values.
  * @param {number} [o.core=1]          Brightness of the yellow-white core relative to the body.
  * @param {number} [o.sparks=60]       Fast spark streaks; about a third fly in bursts.
  * @param {number} [o.bursts]          Burst groups the bursting sparks share; default sparks / 12.
@@ -50,6 +52,7 @@ export { createIncenseSmoke } from './fireSmoke.js';
  * @param {number} [o.shadowRadius=3]  PCF filter radius (soft penumbra).
  * @param {number} [o.shadowIntensity=1] How dark the shadows are (0..1).
  * @param {number[]} [o.wind=[0,0]]    Horizontal drift (x, z) per meter of rise.
+ * @param {object} [o.grate]           Bars that cut the flames' bases (fireVolume.js createFlames).
  * @param {number} [o.seed=1]
  * @returns {{ group: THREE.Group, light: THREE.PointLight|null, update(dt:number, time:number):void,
  *   level: number, uniforms: object, dispose():void }}
@@ -88,6 +91,7 @@ export function createFire(o = {}) {
     shadowRadius = 3,
     shadowIntensity = 1,
     wind = [0, 0],
+    grate = null,
     seed = 1,
   } = o;
 
@@ -104,11 +108,12 @@ export function createFire(o = {}) {
     uSize: { value: flameSize },
     uWind: { value: new THREE.Vector2(wind[0], wind[1]) },
     uBrightness: { value: brightness },
+    uLevel: { value: 0 },
   };
   const disposables = [];
-  const bounds = new THREE.Sphere(new THREE.Vector3(0, height, 0), Math.max(height * 1.5, radius * 2));
 
-  const flameParts = createFlames(flames, u, rnd, { bounds, core });
+  const flameSeed = Array.from({ length: flames * 4 }, rnd).slice(0, 3);
+  const flameParts = createFlames(u, { foot: flameSize * 0.5, height, core, grate, seed: flameSeed });
   group.add(flameParts.object);
   disposables.push(...flameParts.disposables);
   if (sparks + embers + ash + smoke > 0) {
@@ -153,6 +158,7 @@ export function createFire(o = {}) {
       // Smooth layered value noise: a slow "breath" plus faster licks. No per-frame jumps.
       const f = 0.5 * noise1(t * 4.1) + 0.3 * noise1(t * 9.7 + 17.3) + 0.2 * noise1(t * 0.9 + 41.1);
       fire.level = f;
+      u.uLevel.value = f;
       u.uBrightness.value = brightness * (1 + 0.6 * flicker * f);
       if (light) {
         light.intensity = intensity * (1 + flicker * f);

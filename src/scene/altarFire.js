@@ -6,8 +6,8 @@ import { createFirewood } from './firewood.js';
  * The perpetual fire on the bronze altar (Lev 6:13), burning up through the top grate: a bed
  * of glowing coals under the grate (the wood itself isn't shown), flames, embers, smoke and the
  * courtyard's main (shadow-casting) light.
- * @param {{x:number, y:number, bedY:number, z:number, size:number}} hearth  World meters
- *   (altar.userData.hearth): y = grate top, bedY = ember bed under it.
+ * @param {{x:number, y:number, bedY:number, z:number, size:number, grate:object}} hearth  World
+ *   meters (altar.userData.hearth): y = grate top, bedY = ember bed under it, grate = its bars.
  */
 export function createAltarFire(hearth) {
   const group = new THREE.Group();
@@ -50,6 +50,11 @@ export function createAltarFire(hearth) {
     flicker: 0.22,
     castShadow: true,
     wind: [0.06, 0.02],
+    // The grate's bars, in the fire's frame (its base is BASE below the grate top).
+    grate: {
+      y: [-BASE - hearth.grate.depth, -BASE], pitch: hearth.grate.pitch, bar: hearth.grate.bar,
+      origin: hearth.grate.origin, half: hearth.grate.half,
+    },
   });
   fire.group.position.y = BASE;
   group.add(fire.group);

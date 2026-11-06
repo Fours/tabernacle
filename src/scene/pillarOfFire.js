@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PILLAR_OF_FIRE as P, m } from '../config/dimensions.js';
-import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, rng, randAttribute } from './fireCommon.js';
+import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, rng, randAttribute, createNoiseTexture } from './fireCommon.js';
 
 // The pillar of fire over the tent by night (Num 9:15-16): a tall column of slowly churning fire
 // standing in the sky above the Holy of Holies, and above it a long shaft of yellowish light
@@ -12,8 +12,8 @@ import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, 
 //    ray with an inner cylinder around the axis (rays that miss skip the march) and raymarches
 //    that segment in 6-28 steps (~0.35 m apart, jittered per pixel with interleaved gradient
 //    noise, which is stable over time so it never crawls). Each step samples a tiling 3D value
-//    noise texture (64^3, built once here). The column is one coherent body: its radius follows
-//    the decided envelope (a soft point at the foot, then narrowing steadily to ~45% at the
+//    noise texture (64^3, `createNoiseTexture` in fireCommon.js). The column is one coherent
+//    body: its radius follows the decided envelope (a soft point at the foot, then narrowing steadily to ~45% at the
 //    top), and the noise only displaces its surface (slow billows rolling up it, upward-stretched
 //    tongues at the rim) and modulates the brightness inside, so there are no holes. Temperature
 //    is highest along the axis and drives the shared blackbody ramp (HDR core blooms). Mostly
@@ -28,49 +28,6 @@ import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, 
 //
 // Fog: half the scene's fog, faded to black. Full fog would bury the shaft from the courtyard
 // (60-80 m away, ~50% fog), none would make the column's foot look pasted on.
-
-const NOISE_SIZE = 64; // texels per side
-const NOISE_CELLS = 8; // lattice cells per tile (8 texels per cell, smooth under trilinear)
-
-/** Tiling 3D value noise (quintic-interpolated lattice), one byte per texel. */
-function createNoiseTexture(seed) {
-  const rnd = rng(seed);
-  const C = NOISE_CELLS, N = NOISE_SIZE, s = N / C;
-  const lat = new Float32Array(C * C * C);
-  for (let i = 0; i < lat.length; i++) lat[i] = rnd();
-  const L = (x, y, z) => lat[((z % C) * C + (y % C)) * C + (x % C)];
-  const fade = new Float32Array(s);
-  for (let i = 0; i < s; i++) {
-    const f = i / s;
-    fade[i] = f * f * f * (f * (f * 6 - 15) + 10);
-  }
-  const data = new Uint8Array(N * N * N);
-  let k = 0;
-  for (let z = 0; z < N; z++) {
-    const cz = Math.floor(z / s), wz = fade[z % s];
-    for (let y = 0; y < N; y++) {
-      const cy = Math.floor(y / s), wy = fade[y % s];
-      for (let x = 0; x < N; x++) {
-        const cx = Math.floor(x / s), wx = fade[x % s];
-        const x0 = cx, x1 = cx + 1, y0 = cy, y1 = cy + 1, z0 = cz, z1 = cz + 1;
-        const a = L(x0, y0, z0) + (L(x1, y0, z0) - L(x0, y0, z0)) * wx;
-        const b = L(x0, y1, z0) + (L(x1, y1, z0) - L(x0, y1, z0)) * wx;
-        const c = L(x0, y0, z1) + (L(x1, y0, z1) - L(x0, y0, z1)) * wx;
-        const d = L(x0, y1, z1) + (L(x1, y1, z1) - L(x0, y1, z1)) * wx;
-        const v = (a + (b - a) * wy) + ((c + (d - c) * wy) - (a + (b - a) * wy)) * wz;
-        data[k++] = Math.round(v * 255);
-      }
-    }
-  }
-  const tex = new THREE.Data3DTexture(data, N, N, N);
-  tex.format = THREE.RedFormat;
-  tex.type = THREE.UnsignedByteType;
-  tex.minFilter = tex.magFilter = THREE.LinearFilter;
-  tex.wrapS = tex.wrapT = tex.wrapR = THREE.RepeatWrapping;
-  tex.unpackAlignment = 1;
-  tex.needsUpdate = true;
-  return tex;
-}
 
 const VERT = /* glsl */ `
 varying vec3 vWorld;

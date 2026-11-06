@@ -91,3 +91,47 @@ export function noise1(x) {
   const u = f * f * (3 - 2 * f);
   return (hash1(i) + (hash1(i + 1) - hash1(i)) * u) * 2 - 1;
 }
+
+// Tiling 3D value noise texture, shared by the pillar of fire and the flame volumes.
+const NOISE_SIZE = 64; // texels per side
+const NOISE_CELLS = 8; // lattice cells per tile (8 texels per cell, smooth under trilinear)
+
+/** Tiling 3D value noise (quintic-interpolated lattice), one byte per texel. */
+export function createNoiseTexture(seed) {
+  const rnd = rng(seed);
+  const C = NOISE_CELLS, N = NOISE_SIZE, s = N / C;
+  const lat = new Float32Array(C * C * C);
+  for (let i = 0; i < lat.length; i++) lat[i] = rnd();
+  const L = (x, y, z) => lat[((z % C) * C + (y % C)) * C + (x % C)];
+  const fade = new Float32Array(s);
+  for (let i = 0; i < s; i++) {
+    const f = i / s;
+    fade[i] = f * f * f * (f * (f * 6 - 15) + 10);
+  }
+  const data = new Uint8Array(N * N * N);
+  let k = 0;
+  for (let z = 0; z < N; z++) {
+    const cz = Math.floor(z / s), wz = fade[z % s];
+    for (let y = 0; y < N; y++) {
+      const cy = Math.floor(y / s), wy = fade[y % s];
+      for (let x = 0; x < N; x++) {
+        const cx = Math.floor(x / s), wx = fade[x % s];
+        const x0 = cx, x1 = cx + 1, y0 = cy, y1 = cy + 1, z0 = cz, z1 = cz + 1;
+        const a = L(x0, y0, z0) + (L(x1, y0, z0) - L(x0, y0, z0)) * wx;
+        const b = L(x0, y1, z0) + (L(x1, y1, z0) - L(x0, y1, z0)) * wx;
+        const c = L(x0, y0, z1) + (L(x1, y0, z1) - L(x0, y0, z1)) * wx;
+        const d = L(x0, y1, z1) + (L(x1, y1, z1) - L(x0, y1, z1)) * wx;
+        const v = (a + (b - a) * wy) + ((c + (d - c) * wy) - (a + (b - a) * wy)) * wz;
+        data[k++] = Math.round(v * 255);
+      }
+    }
+  }
+  const tex = new THREE.Data3DTexture(data, N, N, N);
+  tex.format = THREE.RedFormat;
+  tex.type = THREE.UnsignedByteType;
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = tex.wrapR = THREE.RepeatWrapping;
+  tex.unpackAlignment = 1;
+  tex.needsUpdate = true;
+  return tex;
+}

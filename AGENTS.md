@@ -90,8 +90,9 @@ src/
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; re-exports the pieces below
-    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1)
-    fireFlames.js       flame sheets for createFire (domain-warped noise tongues, temperature ramp); createLampFlames (oil-lamp flames)
+    fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1, createNoiseTexture: tiling 64³ 3D noise)
+    fireVolume.js       createFlames: a fire's flame body, raymarched in a tight cylinder (buoyant advected 3D noise, temperature ramp, optional grate)
+    fireFlames.js       createLampFlames (oil-lamp flames)
     fireParticles.js    a fire's smoke puffs, sparks, embers and ash in one instanced draw (createFireParticles)
     fireSmoke.js        createIncenseSmoke: the incense altar's thin ribbon thread
     torches.js          torch posts, wrapped heads, small fires and lights
@@ -183,7 +184,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Overview:** `top` (near-orthographic plan from 270 m; the pillar of fire's head covers the
   Holy of Holies), `iso`
 - **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub)
-- **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `laver`, `laverclose`
+- **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `fireclose` (eye height ~2 m out
+  from the altar's south-east horn, on the flames), `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
   the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW)
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `smoke` (the

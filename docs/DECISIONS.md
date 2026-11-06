@@ -190,22 +190,34 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The altar fire burns up through the grate; its base is 0.13 m below the grate
   top. The wood of the *ma'arakhah* is not rendered; `firewood.js` now only builds the coal
   bed (layers 0, leaners 0, 260 coals, glow 7).
-- 2026-11-05: Altar and torch flames are camera-facing flame sheets (`fireFlames.js`, one
-  instanced draw per fire: 14 at the altar, 4 per torch). Each sheet's shape is computed per
-  pixel from domain-warped, upward-scrolling value noise cut against a tapering envelope, fine
-  and fast at the base, broad and slow at the top. Colour is a blackbody-like HDR ramp (dull
-  red, orange, yellow, a small pale-yellow core, `core` option) with internal streaks. Sheets
-  blend premultiplied "over" (alpha 0.7) rather than additively, so overlaps settle on the ramp
-  colour instead of summing to white. Chosen over a baked flipbook (visible loop, can't follow
-  per-fire wind and flicker) and many sprites (they summed to a white blob). The altar's sheets
-  start 0.13 m under the grate, so the bars cut their bases. ~+0.04 ms, no extra draws.
-- 2026-11-05: Torch flames: radius 0.08, height 0.5, sheet width 0.34, base 0.03 m below the
+- 2026-11-05: Altar and torch flames are a raymarched volume (`fireVolume.js`, one draw per
+  fire), replacing the camera-facing flame sheets (they read as flat cut-outs with scrolling
+  noise). A cylinder round the bed (radius 1.45 × the flames' base radius, `flameSize` / 2,
+  plus half the wind lean; 1.4 × flame height tall) is drawn front faces out (back faces when
+  the camera is inside); the ray is clipped to it analytically and marched in up to 56 steps
+  (~0.025 × flame height, interleaved-gradient jitter), skipping the noise outside the flame's
+  envelope and stopping at 98% opacity. The field is fuel-driven: heat highest over the middle
+  of the bed, falling with height and eroded more and more by noise as it rises, so a
+  continuous body splits into tongues whose tips pinch off into flamelets that burn out. The
+  noise (the tiling 64³ texture shared with the pillar of fire) is advected in a buoyant frame
+  (sampled at sqrt(height) − time), so features rise slowly at the bed, accelerate and stretch
+  upward; fine, fast turbulence low, larger, slower tongues higher; a slow domain warp bends
+  them, the flame leans with the per-fire wind and its height and heat follow the same `level`
+  as the light's flicker. Emission and absorption both follow density (premultiplied out), so
+  thick flame settles on the shared ramp colour (yellow-orange body, HDR yellow core blooms,
+  orange-red tips) and edges stay translucent. Everything is in units of the flame height, so
+  a torch looks like a small altar fire. The altar's grate bars (`hearth.grate`) are
+  intersected analytically and end the ray, so they cut the flames' bases (which still start
+  0.13 m under the grate). Cost: ~+1.2 ms at `fire`, ~+0.3 ms at `gate` (throttled mode, flame
+  meshes on/off in one session); draws unchanged. `createFire`'s `flames` option now only
+  reserves its old 4 × flames random draws, so the particles keep their seeds.
+- 2026-11-05: Torch flames: radius 0.08, height 0.5, `flameSize` 0.34 (base radius 0.17), base 0.03 m below the
   post top so they wrap the burning crown; light offset 0.35 (same height as before). The coal
   bed's glow follows the flame `level` (0.75 + 0.25·noise + 0.4·level).
 - 2026-11-05: Fire particles (`fireParticles.js`): each fire draws its sparks, embers, ash and
   smoke in one instanced draw with premultiplied blending. Sparks and embers write alpha 0
   (additive, order-free); smoke and ash composite normally. Instances draw in a fixed order
-  (smoke, ash, embers, sparks), unsorted, so nothing pops. A fire is 2 draws: flame sheets plus
+  (smoke, ash, embers, sparks), unsorted, so nothing pops. A fire is 2 draws: flame volume plus
   particles.
 - 2026-11-05: Sparks are motion-blur streaks: a capsule between the analytic path now and
   28 ms earlier (45 ms embers, 80 ms ash), at least ~1.2 px wide with brightness scaled to keep

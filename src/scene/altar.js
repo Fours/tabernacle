@@ -360,7 +360,10 @@ export function createAltar() {
   group.userData.bounce = bounce;
   // World-space hearth info for the fire (meters): center, grate top (the fire's base), the
   // ember bed's height below it, and the hollow's inner side.
-  group.userData.hearth = { x: m(A.x), y: grateTop, bedY: hy, z: m(A.z), size: inner };
+  // grate: its bars (relative to the hearth centre and the grate top) for the flames to cut.
+  const gb = m(A.grateBar), gn = Math.max(2, Math.round(inner / m(A.gratePitch)));
+  const grateInfo = { depth: m(A.grateDepth), bar: gb, pitch: (inner - gb) / gn, origin: -inner / 2 + gb / 2, half: inner / 2 };
+  group.userData.hearth = { x: m(A.x), y: grateTop, bedY: hy, z: m(A.z), size: inner, grate: grateInfo };
   group.userData.colliders = [
     box(m(A.x), m(A.z), oL, oW), // body + ledge + net
     ...[-1, 1].map((sz) => box(m(A.x), m(A.z) + sz * poleZ, 2 * poleHalf, 2 * poleR + 0.06)), // carrying poles
