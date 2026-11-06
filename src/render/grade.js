@@ -23,7 +23,7 @@ export const GradeShader = {
     uShimmer: { value: new THREE.Vector4(0.5, 0.5, 0.1, 0) }, // x, y, radius, strength
     uBloom: { value: 1.8 }, // bloom strength (the gated input, spread over 7 mips)
     uAE: { value: 1 }, // 1 = apply the adapted exposure, 0 = multiplier 1
-    uCA: { value: 0.0025 }, // chromatic aberration at the frame corners (uv)
+    uCA: { value: 0.0016 }, // chromatic aberration at the frame corners (uv)
     uDirt: { value: 1.2 }, // lens dirt gain on the wide bloom
     uDirtThreshold: { value: 0.03 },
     uWarm: { value: 0.06 }, // highlight warmth
@@ -74,9 +74,11 @@ void main() {
       uv += off * uShimmer.w * mask;
     }
   }
-  // Chromatic aberration: red out, blue in, growing with the square of the distance from centre.
+  // Chromatic aberration: red out, blue in, growing with the square of the distance from centre
+  // and kept off the middle of the frame (none inside ~half the way to the corners).
   vec2 c = uv - 0.5;
-  vec2 ca = c * dot(c, c) * 4.0 * uCA;
+  float r2 = dot(c, c);
+  vec2 ca = c * r2 * 4.0 * uCA * smoothstep(0.06, 0.5, r2);
   vec3 col;
   if (uCA > 0.0) {
     col.r = texture2D(tDiffuse, uv + ca).r;
