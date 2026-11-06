@@ -5,6 +5,7 @@ import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
 import { aoBox } from './ao.js';
 import { createIncenseSmoke } from './fire.js';
+import { incenseOrnamentParts } from './incenseOrnament.js';
 
 // The altar of incense (Ex 30:1-10; 37:25-28): a 1 x 1 x 2 cubit gold-overlaid altar with four
 // horns of one piece with it, a crown around the top, two rings under the crown on each of the
@@ -18,6 +19,9 @@ const RING_R = m(A.ringRadius), RING_T = m(A.ringTube), POLE_R = m(A.poleRadius)
 const ringY = H - m(A.ringDrop);
 const ringZ = S / 2 + RING_R + RING_T * 0.3; // ring/pole axis, just outside the side
 const ringX = m(A.ringSpacing);
+const hornX = S / 2 - m(A.hornBaseRadius) * 0.9; // horn axes from the center along x and z
+/** Dimensions for the ornament (meters). */
+const ORN = { S, H, CW, CH, LIP, ringX, ringY, hornX, hornR: m(A.hornBaseRadius) };
 
 /** Tapered, outward-leaning horn (same shape as the bronze altar's); sits at the local origin. */
 function horn(outDir) {
@@ -45,30 +49,15 @@ function horn(outDir) {
 
 function goldParts() {
   const g = [];
-  // Footing and body (gold-overlaid acacia on all sides, Ex 30:3).
-  const pl = m(A.plinth), ph = m(A.plinthHeight);
-  g.push(boxPart(S + 2 * pl, ph, S + 2 * pl, [0, ph / 2, 0]));
+  // Body (gold-overlaid acacia on all sides, Ex 30:3). The crown (zer) round the top, the
+  // plinth and the relief (reconstruction) are in incenseOrnament.js.
   g.push(boxPart(S, H, S, [0, H / 2, 0]));
-  // Crown (zer) around the top: projects from the sides, with a raised lip at its outer edge.
-  const cy = H - CH / 2;
-  for (const s of [-1, 1]) {
-    g.push(boxPart(S + 2 * CW, CH, CW, [0, cy, s * (S / 2 + CW / 2)]));
-    g.push(boxPart(CW, CH, S, [s * (S / 2 + CW / 2), cy, 0]));
-    g.push(boxPart(S + 2 * CW, LIP, CW * 0.45, [0, H + LIP / 2, s * (S / 2 + CW * 0.775)]));
-    g.push(boxPart(CW * 0.45, LIP, S, [s * (S / 2 + CW * 0.775), H + LIP / 2, 0]));
-  }
-  // A fine bead on the crown's lower edge.
-  const bead = m(0.02);
-  for (const s of [-1, 1]) {
-    g.push(boxPart(S + 2 * CW + 2 * bead, bead, bead, [0, H - CH - bead / 2 + m(0.005), s * (S / 2 + CW + bead / 2 - m(0.005))]));
-    g.push(boxPart(bead, bead, S + 2 * CW, [s * (S / 2 + CW + bead / 2 - m(0.005)), H - CH - bead / 2 + m(0.005), 0]));
-  }
+  g.push(...incenseOrnamentParts(ORN));
   // Horns of one piece with the top, at the four corners.
-  const hx = S / 2 - m(A.hornBaseRadius) * 0.9;
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const dir = new THREE.Vector3(sx, 0, sz).normalize();
-      for (const geo of horn(dir)) g.push(part(geo, { pos: [sx * hx, H - m(0.01), sz * hx] }));
+      for (const geo of horn(dir)) g.push(part(geo, { pos: [sx * hornX, H - m(0.01), sz * hornX] }));
     }
   }
   // Two rings under the crown on each of two opposite sides (north and south), and the poles.

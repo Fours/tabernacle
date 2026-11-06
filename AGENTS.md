@@ -107,6 +107,7 @@ src/
     showbread.js        table of showbread: table, poles, vessels, two stacks of 6 loaves
     showbreadOrnament.js the table's relief (crowns, frame scroll, ring plates, leg collars, vines, feet), merged into its gold mesh
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
+    incenseOrnament.js  the incense altar's relief (crown, plinth, panels with an almond tree, frieze, ring plates, horn calyces), merged into its gold mesh; incenseGroundBoxes
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
     arkOrnament.js      the ark's relief ornament (crown, panels, scrollwork, frieze), merged into its gold mesh

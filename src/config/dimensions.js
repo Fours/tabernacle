@@ -246,8 +246,7 @@ export const INCENSE_ALTAR = {
   crownWidth: 0.07, // the crown (zer) projects this far outward from the sides (not in text)
   crownHeight: 0.1, // not in text
   crownLip: 0.035, // raised lip of the crown above the top (not in text)
-  plinth: 0.04, // footing that projects from the sides (not in text)
-  plinthHeight: 0.08, // not in text
+  plinth: 0.04, // footing's reach from the sides, for its contact AO (not in text; its moulded profile is in incenseOrnament.js)
   ringRadius: 0.07, // two rings per N and S side, under the crown (not in text)
   ringTube: 0.018, // not in text
   ringSpacing: 0.3, // rings at +/- this far from the side's center (not in text)

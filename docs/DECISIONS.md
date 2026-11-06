@@ -191,6 +191,23 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   height each ribbon peels off (up to 0.2 m), curls, twists (narrower and denser edge-on) and
   widens, and upward-scrolling streak noise breaks it into a faint haze by 1.3 m. Warm at the
   coals, grey-blue above, per-ribbon opacity 0.2, alpha-blended, no light.
+- 2026-11-06: Altar of incense ornament (`scene/incenseOrnament.js`, at the user's direction;
+  reconstruction — the text gives only the crown, Ex 30:3). The ark's vocabulary (plant motifs
+  only, no figures) in the altar's own tall layout: the crown a profiled moulding (astragal,
+  cove, band with bead-and-reel and hanging leaf tips, roll, inner lip; same height, ~4 mm more
+  reach); a moulded plinth (roll, band of upright leaves and darts, cove; ~4.5 mm more reach,
+  rising to 5.1 cm, replaces the plain footing box); on each side one tall framed panel with
+  beaded edges holding an almond tree rising from a palmette base (two pairs of volute
+  branches ending in rosettes, almond leaves and buds, a beaded rosette medallion at mid-height,
+  a palmette at the top, small beaded rosettes in the field's corners); above it a frieze under
+  the crown at ring height (a beaded rosette between two short almond scrolls; lobed rosette
+  plates behind the rings on the north and south, beaded rosettes on the east and west); a
+  bead-and-reel roll down each corner; a two-row calyx of almond leaves and a bead ring round
+  each horn's foot. Size, horns, rings, poles, firepan, coals and smoke unchanged; the top
+  inside the crown stays plain. Each face's relief is built once and copied to the four faces.
+  Still one gold mesh: +94k triangles, about half the table ornament's build time (~12 ms),
+  +0.23 ms at `incense`. `incenseGroundBoxes()` exports the relief's ground blocks (body,
+  crown band, plinth band) for the wear patch.
 - 2026-11-05: Ark (`scene/ark.js`): 2.5 × 1.5 × 1.5 cubits including 0.14-cubit feet, at
   x = −25, z = 0, long axis N–S. Crown molding rises 0.04 cubit above the mercy seat, which is
   1 handbreadth thick (Sukkah 5a). Rings on the N and S faces at the feet; poles E–W from
