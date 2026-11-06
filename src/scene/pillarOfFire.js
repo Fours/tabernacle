@@ -12,13 +12,15 @@ import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, HASH_GLSL, fogUniforms, 
 //    ray with an inner cylinder around the axis (rays that miss skip the march) and raymarches
 //    that segment in 6-28 steps (~0.35 m apart, jittered per pixel with interleaved gradient
 //    noise, which is stable over time so it never crawls). Each step samples a tiling 3D value
-//    noise texture (64^3, built once here): a domain warp of large slow eddies, rising billows
-//    that twist slowly around the axis (convection cells rolling upward), and vertically
-//    stretched tongues that rag the edges. Density falls off from the axis; temperature is
-//    highest in the core and drives the shared blackbody ramp (deep red edges, orange/yellow
-//    body, pale yellow core, HDR so the core blooms). Emission-absorption integration front to
-//    back: the cooler outer layers partly hide the core and the volume dims the sky behind it
-//    a little (premultiplied alpha), so the edges read denser than an additive glow.
+//    noise texture (64^3, built once here). The column is one coherent body: its radius follows
+//    the decided envelope (a soft point at the foot, then narrowing steadily to ~45% at the
+//    top), and the noise only displaces its surface (slow billows rolling up it, upward-stretched
+//    tongues at the rim) and modulates the brightness inside, so there are no holes. Temperature
+//    is highest along the axis and drives the shared blackbody ramp (HDR core blooms). Mostly
+//    emissive: absorption is weak (it only deepens the rim) and the volume dims the sky behind
+//    it a little (premultiplied alpha). Over its upper 60% brightness and density fade, the
+//    profile flattens so it keeps its width while fading, and the colour drifts to the shaft's
+//    yellow, handing over to the shaft without a neck.
 //    The shaft above stays analytic (closest approach of the ray to the axis, Gaussian across,
 //    slow rippling streaks), below bloom's threshold.
 // 2. Embers: a sparse swirl of large embers spiralling slowly up around the column (one
@@ -94,6 +96,7 @@ uniform float uShaftR;       // shaft radius at its foot (m)
 uniform float uShaftSpread;  // radius gained per meter
 uniform vec2 uBound;         // bounding radius at the foot and at the top (m)
 uniform float uColGain;
+uniform float uEmission;     // per meter at full density
 uniform float uExtinction;   // per meter at full density
 uniform float uOcclusion;    // how much the column dims what's behind it
 uniform float uShaftGain;
@@ -105,10 +108,11 @@ ${FIRE_RAMP_GLSL}
 float tn(vec3 p) { return texture(uNoise, p).r; }
 
 // Radius of the column's envelope at height y: the foot tapers almost to a point over its lowest
-// ~4.5 m; above that it narrows slowly to ~45% at its top.
+// ~4.5 m; above that it narrows slowly and steadily to ~45% at its top (no shoulder).
+float narrowing(float y) { return mix(1.0, 0.45, clamp((y - 4.5) / (uColH - 4.5), 0.0, 1.0)); }
 float envelope(float y) {
   float taper = mix(0.06, 1.0, pow(smoothstep(0.0, 4.5, y), 0.6));
-  return 1.9 * uColR * taper * mix(1.0, 0.45, smoothstep(uColH * 0.3, uColH, y));
+  return 1.9 * uColR * taper * narrowing(y);
 }
 
 vec2 axisSway(float y, float T) {
@@ -116,37 +120,50 @@ vec2 axisSway(float y, float T) {
               0.16 * sin(y * 0.29 + T * 0.31 + 1.3));
 }
 
-// Density (0..1) and temperature (0..1) at p (relative to the foot, m).
-vec2 fireField(vec3 p, float T) {
+// Density (0..1), temperature (0..1) and brightness (0..1, the long fade toward the shaft) at p
+// (relative to the foot, m). The noise displaces the column's surface (billows rolling up it,
+// upward-stretched tongues at its rim) instead of carving holes in it, so the body stays one
+// coherent glowing mass with a hot core along the axis.
+vec3 fireField(vec3 p, float T) {
   float y = p.y;
   p.xz -= axisSway(y, T);
   float R = envelope(y);
-  if (dot(p.xz, p.xz) > (R * 1.5 + 0.3) * (R * 1.5 + 0.3)) return vec2(0.0);
-  // Slow twist with height and time: the billows roll around the axis as they rise.
-  float ang = y * 0.07 + T * 0.11;
+  float r = length(p.xz);
+  if (r > R * 1.5 + 0.3) return vec3(0.0);
+  // Slow twist with height and time: the billows roll gently around the axis as they rise.
+  float ang = y * 0.05 + T * 0.06;
   float ca = cos(ang), sa = sin(ang);
-  p.xz = mat2(ca, sa, -sa, ca) * p.xz;
-  // Domain warp: large, slow eddies.
-  vec3 wq = p * vec3(0.035, 0.022, 0.035) - vec3(0.0, T * 0.018, 0.0);
-  float w1 = tn(wq) - 0.5, w2 = tn(wq + vec3(0.37, 0.61, 0.73)) - 0.5;
-  vec3 q = p + vec3(w1, w1 + w2, w2) * vec3(4.0, 5.0, 4.0);
-  // Billows rising (~1.8 and ~2.6 m/s) and vertically stretched tongues rising faster.
-  float nb = 0.62 * tn(q * 0.05 - vec3(0.0, T * 0.09, 0.0))
-           + 0.38 * tn(q * 0.12 + vec3(0.5, 0.3 - T * 0.31, 0.2));
-  float nt = tn(q * vec3(0.19, 0.06, 0.19) + vec3(0.13, -T * 0.23, 0.71));
-  // Fine detail (~0.4 m cells) crisps the edges and the cells' rims.
-  float nf = tn(q * 0.3 + vec3(0.2, 0.4 - T * 0.6, 0.4));
-  float e = 1.0 - length(q.xz) / R; // 1 on the axis, 0 at the envelope
-  float edge = 1.0 - clamp(e, 0.0, 1.0);
-  float d = e * 1.5 + (nb - 0.5) * 2.6 + (nt - 0.5) * 2.0 * edge + (nf - 0.5) * (0.5 + 0.8 * edge) - 0.1;
-  // The foot narrows to a soft point; a long fade over the upper part.
-  d -= (1.0 - smoothstep(0.0, 4.5, y)) * 0.7;
-  float dens = smoothstep(0.0, 0.55, d) * smoothstep(-0.3, 1.5, y)
-    * (1.0 - smoothstep(uColH * 0.4, uColH * 1.02, y));
-  // Hot core, cooler cells between the billows, a cooler foot.
-  float temp = -0.1 + e * 1.15 + (nb - 0.5) * 2.2 + (nf - 0.5) * 0.4;
-  temp = clamp(temp - (1.0 - smoothstep(0.0, 3.5, y)) * 0.35, 0.0, 1.0);
-  return vec2(dens, temp);
+  vec2 rxz = mat2(ca, sa, -sa, ca) * p.xz;
+  vec3 q = vec3(rxz.x, y, rxz.y);
+  // Gentle domain warp (large, slow eddies), only for the noise lookups.
+  vec3 wq = q * vec3(0.05, 0.025, 0.05) - vec3(0.0, T * 0.012, 0.0);
+  q += (vec3(tn(wq), tn(wq + vec3(0.37, 0.61, 0.73)), tn(wq + vec3(0.71, 0.17, 0.43))) - 0.5) * 2.4;
+  // Billows rising (~1.2 and ~1.7 m/s) and upward-stretched tongues rising faster (~3 m/s).
+  float nb = 0.6 * tn(q * vec3(0.06, 0.045, 0.06) - vec3(0.0, T * 0.055, 0.0))
+           + 0.4 * tn(q * 0.13 + vec3(0.5, 0.3 - T * 0.22, 0.2));
+  float nt = tn(q * vec3(0.22, 0.055, 0.22) + vec3(0.13, -T * 0.17, 0.71));
+  float nf = tn(q * 0.32 + vec3(0.2, 0.4 - T * 0.45, 0.4));
+  float rim = smoothstep(0.35, 1.0, r / R);
+  // Surface displacement (fraction of the radius): billows everywhere, tongues near the rim.
+  float disp = (nb - 0.5) * 0.55 + (nt - 0.5) * 0.5 * rim + (nf - 0.5) * 0.15;
+  float e = clamp(1.0 - r / R + disp, 0.0, 1.0); // ~1 on the axis, 0 at the (rolling) surface
+  // The foot narrows to a soft point.
+  float foot = smoothstep(0.0, 4.5, y);
+  float up = smoothstep(uColH * 0.4, uColH, y);
+  float dens = smoothstep(0.0, 0.3, e) * (0.8 + 0.4 * (nb - 0.5)) * smoothstep(-0.3, 1.2, y)
+    * mix(0.6, 1.0, foot) * (1.0 - smoothstep(uColH * 0.5, uColH * 1.02, y));
+  // Hot continuous core, gently cooler billow seams, deeper orange-red only at the very rim.
+  float temp = 0.22 + 0.7 * e + (nb - 0.5) * 0.9 + (nf - 0.5) * 0.25;
+  // Higher up the profile flattens (the rim stays hot), so the column keeps its width as it fades.
+  temp += up * 0.35 * (1.0 - e);
+  temp = clamp(temp - (1.0 - smoothstep(0.0, 3.5, y)) * 0.2, 0.0, 1.0);
+  // Brightness per meter grows as the column narrows (so it doesn't dim just by thinning) and
+  // falls over the upper 60% toward the shaft's level.
+  float narrow = narrowing(y);
+  float bright = mix(1.0, 0.35, smoothstep(uColH * 0.4, uColH, y)) / narrow;
+  // Rolling billows: brighter swelling cells and dimmer seams between them, inside the body.
+  bright *= 0.45 + 1.1 * smoothstep(0.3, 0.7, nb);
+  return vec3(dens, temp, bright);
 }
 
 void main() {
@@ -187,14 +204,15 @@ void main() {
       for (int i = 0; i < 28; i++) {
         if (float(i) >= n || tr < 0.03) break;
         vec3 p = o + d * t;
-        vec2 f = fireField(p, T);
+        vec3 f = fireField(p, T);
         if (f.x > 0.002) {
-          float sa = 1.0 - exp(-f.x * uExtinction * dt);
-          // Hotter regions glow far brighter; high up the colour drifts toward the shaft's yellow.
+          // Emission and absorption: the fire is mostly emissive, absorption only deepens the
+          // rim a little, so the core shows through as one luminous body.
+          float od = f.x * dt;
           float rise = smoothstep(uColH * 0.3, uColH, p.y);
-          vec3 em = mix(fireRampCore(f.y, 1.0), vec3(1.3, 0.66, 0.16), 0.45 * rise);
-          col += tr * sa * em;
-          tr *= 1.0 - sa;
+          vec3 em = mix(fireRampCore(f.y, 1.0), vec3(1.3, 0.88, 0.31), 0.7 * rise) * f.z;
+          col += tr * od * uEmission * em;
+          tr *= exp(-od * uExtinction);
         }
         t += dt;
       }
@@ -345,7 +363,7 @@ export function createPillarOfFire() {
   group.position.copy(base);
 
   const H = P.columnHeight + P.shaftHeight;
-  const marchR = 2.9 * P.columnRadius + 0.3; // envelope × 1.5 + 0.3, plus the axis sway
+  const marchR = 3.0 * P.columnRadius + 0.5; // envelope (1.9 colR) × 1.5 + 0.3, plus the axis sway
   const bound = new THREE.Vector2(
     Math.max(marchR, 2.5 * P.shaftRadius) + 0.6,
     2.4 * (P.shaftRadius + P.shaftSpread * H),
@@ -366,7 +384,8 @@ export function createPillarOfFire() {
     uShaftSpread: { value: P.shaftSpread },
     uBound: { value: bound },
     uColGain: { value: 1.3 },
-    uExtinction: { value: 1.4 },
+    uEmission: { value: 0.4 },
+    uExtinction: { value: 0.35 },
     uOcclusion: { value: 0.35 },
     uShaftGain: { value: 0.5 },
     uFogMix: { value: 0.5 },
