@@ -194,6 +194,9 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   light reach the far side of the courtyard.
   - An unshadowed 14 cd fill light sits 3.0 m above the rim.
   - The altar bronze uses `shadowSide = DoubleSide`, which fixes a light leak along its base.
+  - Shadow `bias` 0 (was −0.002), `normalBias` 0.03. The light grazes the ground, and the
+    negative bias let it leak past the base of the court's hangings as a lit band with a hard
+    edge ~1 m outside the walls.
   - `addFireBounce` fakes firelight bouncing off the sand onto the altar's walls.
 - 2026-11-05: There are 6 torches, positions in `TORCHES`. 4 have non-shadow 28 cd point
   lights; the 2 west outside corner torches only glow. With the menorah's light that makes

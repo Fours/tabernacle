@@ -440,7 +440,10 @@ export function createFire(o = {}) {
       light.shadow.mapSize.set(shadowMapSize, shadowMapSize);
       light.shadow.camera.near = 0.2;
       light.shadow.camera.far = 60;
-      light.shadow.bias = -0.002;
+      // No depth bias: the light grazes the ground, so even -0.002 (x far = 12 cm) let it leak
+      // past the base of the court's hangings as a lit band with a hard edge ~1 m out.
+      // normalBias alone keeps the surfaces free of acne.
+      light.shadow.bias = 0;
       light.shadow.normalBias = 0.03;
       light.shadow.radius = shadowRadius;
       light.shadow.intensity = shadowIntensity;
