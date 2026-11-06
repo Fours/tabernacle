@@ -4,6 +4,7 @@ import { SHOWBREAD as S, m } from '../config/dimensions.js';
 import { GOLD } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
+import { aoBox, aoCircle } from './ao.js';
 
 // The table of showbread (Ex 25:23-30; 37:10-16; Lev 24:5-9): a gold-overlaid table with a
 // frame a handbreadth wide, two crowns, four rings and two poles; twelve loaves in two stacks
@@ -513,6 +514,12 @@ export function createShowbread() {
   group.userData.colliders = [
     box(cx, cz, L + 2 * m(0.01), W + 2 * m(0.01)),
     ...[-1, 1].map((sz) => box(cx, cz + sz * ringZ, poleLen, 2 * POLE_R + 0.06)), // carrying poles
+  ];
+  // Contact AO: the legs, the shade under the top, the utensils on the floor.
+  group.userData.aoShapes = [
+    aoBox(cx, cz, L, W, 0.5, 0.45),
+    ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => aoBox(cx + sx * legX, cz + sz * legZ, LEG, LEG, 0.15, 0.6))),
+    aoCircle(cx + m(S.utensilsX), cz + m(S.utensilsZ), 0.14, 0.15, 0.4),
   ];
   group.userData.dispose = () => {
     goldMesh.geometry.dispose();

@@ -22,6 +22,8 @@ export function getParams() {
     lens: p.get('lens') !== '0',
     // `?haze=0` turns off the ground haze and the fires' glow in the air (render/atmosphere.js).
     haze: p.get('haze') !== '0',
+    // `?ao=0` turns off the contact, room and crease ambient occlusion (scene/ao.js).
+    ao: p.get('ao') !== '0',
     // Tone mapping override for comparison: aces | agx | neutral | none.
     tm: p.get('tm') || null,
     // Exposure override (number).

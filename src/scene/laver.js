@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { LAVER as L, m } from '../config/dimensions.js';
 import { circle } from './colliders.js';
+import { aoCircle } from './ao.js';
 import { WATER } from './materials.js';
 
 // Laver (Ex 30:17-21; 38:8): bronze basin on a bronze base, for the priests' washing, made from
@@ -512,6 +513,8 @@ export function createLaver() {
 
   group.position.set(m(L.x), 0, m(L.z));
   group.userData.colliders = [circle(m(L.x), m(L.z), m(R))];
+  // Contact AO: tight round the foot, broad and faint under the basin.
+  group.userData.aoShapes = [aoCircle(m(L.x), m(L.z), m(L.footRadius), 0.35, 0.6), aoCircle(m(L.x), m(L.z), m(L.stemRadius), m(R) + 0.5, 0.22)];
   group.userData.update = (dt, t) => { time.value = t; };
   return group;
 }

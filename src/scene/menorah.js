@@ -3,6 +3,7 @@ import { MENORAH as M, m } from '../config/dimensions.js';
 import { GOLD } from './materials.js';
 import { part, merge } from './bronzeParts.js';
 import { circle } from './colliders.js';
+import { aoCircle } from './ao.js';
 import { createLampFlames } from './fire.js';
 import { INTERIOR } from './interiorLight.js';
 
@@ -319,6 +320,12 @@ export function createMenorah() {
   group.userData.update(0, 0);
 
   const cr = m(M.colliderRadius);
+  // Contact AO: the three paws, and the shade under the base's dome.
+  const mx = m(M.x), mz = m(M.z);
+  group.userData.aoShapes = [
+    aoCircle(mx, mz, hb(1.2), 0.45, 0.45),
+    ...LEGS.map((a) => aoCircle(mx + Math.cos(a) * hb(2.12), mz + Math.sin(a) * hb(2.12), hb(0.25), 0.14, 0.6)),
+  ];
   group.userData.colliders = [-1, 0, 1].map((k) => circle(m(M.x) + k * hb(M.armRadii[0]) * 0.75, m(M.z), cr));
   group.userData.dispose = () => flames.dispose();
   return group;

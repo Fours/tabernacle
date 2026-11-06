@@ -6,6 +6,7 @@ import { ACACIA, BRONZE, SILVER, ROPE, COLORS, addMacroVariation } from './mater
 import { createLinenTexture } from './textiles.js';
 import { createEmbroideredScreenTextures } from './embroidery.js';
 import { addGatheredDrape, clothGeometry } from './drape.js';
+import { aoBox, aoCircle, aoSegment, addBoxAO } from './ao.js';
 
 // Courtyard enclosure (Ex 27:9-19; 38:9-20): pillars on bronze sockets with silver capitals,
 // hooks and fillets; fine linen hangings hung on the inner side of the pillar line; the
@@ -158,9 +159,11 @@ export function createCourtyard() {
   if (all.length !== C.pillarCount) console.warn(`Expected ${C.pillarCount} pillars, got ${all.length}`);
   // The middle gate post (east wall, z = 0) is left out so the gate stands open.
   const pts = all.filter(([x, z]) => !(Math.abs(x - C.length / 2) < 1e-6 && Math.abs(z) < 1e-6));
-  const sockets = new THREE.InstancedMesh(geo.socket, BRONZE, pts.length);
-  const shafts = new THREE.InstancedMesh(geo.shaft, ACACIA, pts.length);
-  const capitals = new THREE.InstancedMesh(geo.capital, SILVER, pts.length);
+  const mats = pillarMaterials();
+  const sockets = new THREE.InstancedMesh(geo.socket, mats.socket, pts.length);
+  const shafts = new THREE.InstancedMesh(geo.shaft, mats.shaft, pts.length);
+  const capitals = new THREE.InstancedMesh(geo.capital, mats.capital, pts.length);
+  const aoShapes = [];
   sockets.name = 'pillar-sockets';
   shafts.name = 'pillar-shafts';
   capitals.name = 'pillar-capitals';
@@ -171,6 +174,8 @@ export function createCourtyard() {
     shafts.setMatrixAt(i, M);
     capitals.setMatrixAt(i, M);
     colliders.push(circle(m(x), m(z), (SOCKET_W / 2) * 1.1));
+    // Contact AO: tight round the socket, broad and faint from the tall pillar.
+    aoShapes.push(aoBox(m(x), m(z), SOCKET_W, SOCKET_W, 0.35, 0.7), aoCircle(m(x), m(z), PR, 0.9, 0.18));
   });
   for (const im of [sockets, shafts, capitals]) im.castShadow = im.receiveShadow = true;
   group.add(sockets, shafts, capitals);
@@ -213,6 +218,7 @@ export function createCourtyard() {
         });
         const [px, pz] = at(sp - Math.sign(sp) * al);
         colliders.push(circle(px + nx * off, pz + nz * off, 0.17)); // gathered cloth
+        aoShapes.push(aoCircle(px + nx * off, pz + nz * off, 0.1, 0.35, 0.45));
       }
       // Hanging colliders exclude the gate (screen is passable; gate pillars collide).
       for (const [a0, a1] of [[-w.half, g0], [g1, w.half]]) {
@@ -230,6 +236,15 @@ export function createCourtyard() {
         Math.abs(ax) * l + Math.abs(nx) * (CLOTH_OFFSET + 0.12),
         Math.abs(az) * l + Math.abs(nz) * (CLOTH_OFFSET + 0.12)));
     }
+    // Contact AO along the hem (3 cm above the sand), where cloth hangs: all but the open gate.
+    const hem = (a0, a1) => {
+      const [x0, z0] = at(a0), [x1, z1] = at(a1);
+      aoShapes.push(aoSegment(x0 + nx * CLOTH_OFFSET, z0 + nz * CLOTH_OFFSET, x1 + nx * CLOTH_OFFSET, z1 + nz * CLOTH_OFFSET, 0.02, 0.5, 0.42));
+    };
+    if (w.gate) {
+      hem(r0, -GATE_OPEN);
+      hem(GATE_OPEN, r1);
+    } else hem(r0, r1);
     // Fillets join each pair of adjacent pillars on this wall.
     for (let k = 0; k < w.pillars.length - 1; k++) fillets.push([...at(w.pillars[k]), ...at(w.pillars[k + 1])]);
     // Inner hooks (cloth side). Corner pillars get one diagonal hook, added once below.
@@ -317,6 +332,7 @@ export function createCourtyard() {
     q.setFromAxisAngle(axis, tilt);
     M.compose(v.set(px, 0, pz), q, sc.set(1, 1, 1));
     pegs.setMatrixAt(i, M);
+    aoShapes.push(aoCircle(px, pz, 0.02, 0.1, 0.45));
     // Cord from the outer hook's bowl to the peg's neck.
     const r = SLEEVE_R + HOOK_REACH;
     a.set(x + ox * r, CORD_HOOK_Y - HOOK_R * 0.7, z + oz * r);
@@ -334,5 +350,28 @@ export function createCourtyard() {
   group.add(hooks);
 
   group.userData.colliders = colliders;
+  group.userData.aoShapes = aoShapes;
   return group;
+}
+
+/**
+ * The pillars' own materials (copies of the shared ones) with crease AO in the pillar's local
+ * frame (scene/ao.js): the shaft darkens just above the socket and under the capital's flare,
+ * the socket's top round the shaft foot, the silver sleeve under the flare.
+ */
+function pillarMaterials() {
+  const T = SHAFT_TOP;
+  const socketBox = { c: [0, SOCKET_H / 2, 0], e: [SOCKET_W / 2, SOCKET_H / 2, SOCKET_W / 2], r: 0.22, k: 0.7 };
+  const shaftBox = { c: [0, SOCKET_H + 0.6, 0], e: [PR, 0.6, PR], r: 0.14, k: 0.6 };
+  const flareBox = { c: [0, T + CAP_H * 0.25, 0], e: [PR * 1.55, CAP_H * 0.25, PR * 1.55], r: 0.18, k: 0.7 };
+  const socket = BRONZE.clone();
+  const shaft = ACACIA.clone();
+  const capital = SILVER.clone();
+  socket.name = 'pillar-socket';
+  shaft.name = 'pillar-shaft';
+  capital.name = 'pillar-capital';
+  addBoxAO(socket, [shaftBox], { space: 'local', key: 'pillar-socket' });
+  addBoxAO(shaft, [socketBox, flareBox], { space: 'local', key: 'pillar-shaft' });
+  addBoxAO(capital, [flareBox], { space: 'local', key: 'pillar-capital' });
+  return { socket, shaft, capital };
 }

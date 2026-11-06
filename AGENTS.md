@@ -93,6 +93,7 @@ src/
     laver.js            bronze basin on a stand
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
     interiorLight.js    per-fragment inside/outside light mask, warm room ambient (INTERIOR)
+    ao.js               AO without a screen pass: baked ground contact AO (userData.aoShapes), crease AO (addBoxAO); global contact/room terms live in interiorLight.js
     menorah.js          menorah (merged gold), 7 lamp flames, the Holy Place's light
     showbread.js        table of showbread: table, poles, vessels, two stacks of 6 loaves
     incenseAltar.js     gold altar of incense: horns, crown, rings, poles, coals, smoke wisp
@@ -123,8 +124,9 @@ src/
 ### Conventions
 
 - Each scene module returns a `THREE.Group`. It exposes `userData.colliders` (2D shapes on the
-  ground plane, from `colliders.js`) and, if animated, `userData.update(dt, time)`. `main.js`
-  wires both up automatically.
+  ground plane, from `colliders.js`), `userData.aoShapes` (its footprints for the baked ground
+  contact AO, from `ao.js`) and, if animated, `userData.update(dt, time)`. `main.js` wires them
+  up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`, `embroidery.js` and `cherubimWeave.js`. Use
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 77–116
@@ -151,6 +153,7 @@ src/
 | `?lens=0` | Turn off chromatic aberration, lens dirt and sharpening |
 | `?tm=aces\|agx\|neutral\|none`, `?exposure=<n>` | Tone mapping overrides |
 | `?bob=0` | Turn off head bob |
+| `?ao=0` | Turn off contact, room and crease ambient occlusion (`window.__tabernacle.ao` holds the strength uniforms) |
 | `?haze=0` | Plain FogExp2: no ground haze and no glow of the fires in the air (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
@@ -176,7 +179,7 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust`. `atmosphere.uniforms`
+composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust, ao, groundAO`. `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
 are the haze/glow tuning uniforms (`ATMO`) and `atmosphere.sources[i].gain` each glow's strength. `interior` is the interior
 light uniforms (`INTERIOR`); `updateInteriorVisibility()` shows or hides the interior meshes by
 camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPosition`, and each frame).

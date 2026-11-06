@@ -3,6 +3,7 @@ import { TORCHES, m } from '../config/dimensions.js';
 import { ACACIA } from './materials.js';
 import { createFire } from './fire.js';
 import { circle } from './colliders.js';
+import { aoCircle } from './ao.js';
 
 // Period torches: a wooden post set in a small cairn of stones, topped by a head of cloth
 // wrapped around a tow core and soaked in pitch. Posts, heads and cairns are instanced
@@ -133,6 +134,7 @@ export function createTorches() {
   const s = new THREE.Vector3(1, 1, 1);
   const p = new THREE.Vector3();
   const colliders = [];
+  const aoShapes = [];
   const fires = [];
 
   list.forEach((t, i) => {
@@ -147,6 +149,7 @@ export function createTorches() {
     cairns.setMatrixAt(i, mat);
     s.set(1, 1, 1);
     colliders.push(circle(x, z, 0.3));
+    aoShapes.push(aoCircle(x, z, 0.28, 0.3, 0.55), aoCircle(x, z, 0.06, 0.8, 0.12)); // cairn, post
 
     const fire = createFire({
       radius: 0.08,
@@ -183,6 +186,7 @@ export function createTorches() {
 
   group.userData.fires = fires;
   group.userData.colliders = colliders;
+  group.userData.aoShapes = aoShapes;
   group.userData.update = (dt, time) => {
     let lvl = 0;
     for (const f of fires) {

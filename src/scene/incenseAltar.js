@@ -3,6 +3,7 @@ import { INCENSE_ALTAR as A, m } from '../config/dimensions.js';
 import { GOLD } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
+import { aoBox } from './ao.js';
 import { createIncenseSmoke } from './fire.js';
 
 // The altar of incense (Ex 30:1-10; 37:25-28): a 1 x 1 x 2 cubit gold-overlaid altar with four
@@ -170,6 +171,8 @@ export function createIncenseAltar() {
     box(cx, cz, S + 2 * CW, S + 2 * CW),
     ...[-1, 1].map((sz) => box(cx, cz + sz * ringZ, poleLen, 2 * POLE_R + 0.06)), // carrying poles
   ];
+  const PL = S + 2 * m(A.plinth);
+  group.userData.aoShapes = [aoBox(cx, cz, PL, PL, 0.35, 0.7), aoBox(cx, cz, PL, PL, 0.9, 0.2)]; // contact AO
   group.userData.dispose = () => {
     goldMesh.geometry.dispose();
     coalGeo.dispose();

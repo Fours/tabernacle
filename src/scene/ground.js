@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WORLD_NOISE_GLSL } from './materials.js';
+import { AO, AO_PARS_GLSL, aoApplyGlsl, bindAOUniforms } from './ao.js';
 
 const TILE = 2; // meters covered by one sand texture tile
 
@@ -67,11 +68,18 @@ function sandMaterial() {
     roughness: 1,
   });
   mat.onBeforeCompile = (shader) => {
+    bindAOUniforms(shader);
+    shader.uniforms.uAoGround = AO.uAoGround;
+    shader.uniforms.uAoGroundTex = AO.uAoGroundTex;
+    shader.uniforms.uAoGroundRect = AO.uAoGroundRect;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vSandPos;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvSandPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vSandPos;\n${WORLD_NOISE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vSandPos;\n${WORLD_NOISE_GLSL}\n${AO_PARS_GLSL}
+uniform float uAoGround;
+uniform sampler2D uAoGroundTex;
+uniform vec4 uAoGroundRect;`)
       .replace(
         '#include <map_fragment>',
         `{
@@ -106,9 +114,20 @@ function sandMaterial() {
   vec3 grad = vec3(dir.x, 0.0, dir.y) * sl * 0.14 * fade;
   normal = normalize(normal - (viewMatrix * vec4(grad, 0.0)).xyz);
 }`,
+      )
+      .replace(
+        '#include <aomap_fragment>',
+        `#include <aomap_fragment>
+{
+  // Baked contact AO (scene/ao.js): soft darkening round everything standing on the sand.
+  vec2 aoUv = (vSandPos.xz - uAoGroundRect.xy) * uAoGroundRect.zw;
+  float aoIn = step(0.0, aoUv.x) * step(aoUv.x, 1.0) * step(0.0, aoUv.y) * step(aoUv.y, 1.0);
+  float aoVisG = 1.0 - aoIn * uAoGround * uAoOn * (1.0 - texture2D(uAoGroundTex, clamp(aoUv, 0.0, 1.0)).r);
+  ${aoApplyGlsl('aoVisG')}
+}`,
       );
   };
-  mat.customProgramCacheKey = () => 'sand-v1';
+  mat.customProgramCacheKey = () => 'sand-v2';
   return mat;
 }
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { box, circle } from './colliders.js';
+import { aoBox, aoCircle, aoSegment } from './ao.js';
 import { GOLD, GOLD_OVERLAY, SILVER, BRONZE, ROPE } from './materials.js';
 import { part, merge } from './bronzeParts.js';
 import { createEmbroideredScreenTextures } from './embroidery.js';
@@ -304,7 +305,33 @@ export function createTabernacle() {
   group.userData.colliders = colliders;
   // Ground kept free of rocks and scrub: the whole tent, floor included, out to its stakes.
   group.userData.groundKeepOut = [boxAB(x0, xF, z0, z1)];
+  group.userData.aoShapes = tentAOShapes(cov, door, veil);
   // Interior meshes main.js hides while the camera is outside the tent.
   group.userData.interior = [veil.mesh];
   return group;
+}
+
+/**
+ * Contact AO on the sand (scene/ao.js; meters): the sockets along the outside of the walls, the
+ * sheltered ground under the slanted coverings, the stakes, the door's drawn half and its
+ * tied-back bunch, the veil's hem and its pillars' sockets. Inside, the wall bases and corners
+ * come from the interior mask's room term (interiorLight.js).
+ */
+function tentAOShapes(cov, door, veil) {
+  const out = [];
+  const x0 = m(T.interiorMinX - BT), x1 = m(T.interiorMaxX), zO = m(HW + BT);
+  const side = m(T.goatHair.side.reach), back = m(T.goatHair.back.reach);
+  for (const s of [-1, 1]) {
+    out.push(aoSegment(x0, s * zO, x1, s * zO, m(T.socketProud), 0.4, 0.5)); // sockets
+    out.push(aoBox((x0 + x1) / 2, s * (zO + side / 2), x1 - x0, side, 0.8, 0.3)); // under the slant
+  }
+  out.push(aoSegment(x0, -zO, x0, zO, m(T.socketProud), 0.4, 0.5));
+  out.push(aoBox(x0 - back / 2, 0, back, 2 * zO, 0.6, 0.3));
+  for (const [x, z] of cov.stakes) out.push(aoCircle(x, z, 0.02, 0.1, 0.45));
+  const dx = m(T.doorBeam.x);
+  out.push(aoSegment(dx, 0, dx, DOOR.closedSide * m(HW), 0.02, 0.4, 0.35));
+  for (const [x, z] of door.ties) out.push(aoCircle(x, z, 0.12, 0.35, 0.45));
+  out.push(aoSegment(m(T.veil.x), -m(HW), m(T.veil.x), m(HW), 0.02, 0.35, 0.3));
+  for (const [x, z] of veil.socketPositions) out.push(aoBox(m(x), m(z), m(T.veil.socket), m(T.veil.socket), 0.28, 0.55));
+  return out;
 }

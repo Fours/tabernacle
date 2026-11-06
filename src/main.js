@@ -17,6 +17,7 @@ import { createArk } from './scene/ark.js';
 import { createPillarOfFire } from './scene/pillarOfFire.js';
 import { overlaps } from './scene/colliders.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
+import { AO, bakeGroundAO } from './scene/ao.js';
 import { TABERNACLE as T, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
@@ -80,6 +81,9 @@ for (const g of elements) {
   colliders.push(...(g.userData.colliders || []));
   if (g.userData.update) updaters.push(g.userData.update);
 }
+// Contact AO on the sand: every element's footprints baked into one texture (scene/ao.js).
+const groundAO = bakeGroundAO(elements.flatMap((g) => g.userData.aoShapes || []));
+AO.uAoOn.value = params.ao ? 1 : 0;
 const sky = createSky({ fogColor: FOG_COLOR, atmosphere: params.haze });
 scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
@@ -223,7 +227,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust,
+  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

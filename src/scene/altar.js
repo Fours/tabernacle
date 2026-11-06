@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ALTAR as A, ALTAR_UTENSILS as U, CUBIT, m } from '../config/dimensions.js';
 import { box } from './colliders.js';
+import { aoBox, aoCircle, aoSegment, addBoxAO } from './ao.js';
 import { BRONZE_PLATED, ACACIA, EARTH, addFireBounce } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -361,6 +362,27 @@ export function createAltar() {
     box(m(A.x), m(A.z), oL, oW), // body + ledge + net
     ...[-1, 1].map((sz) => box(m(A.x), m(A.z) + sz * poleZ, 2 * poleHalf, 2 * poleR + 0.06)), // carrying poles
   ];
+  // Contact AO on the sand: the body, the shade under the ledge and net, the utensils.
+  const ax = m(A.x), az = m(A.z), uz = az + m(U.offsetZ);
+  const seg = (x0, z0, len, yaw) => aoSegment(x0, z0, x0 + Math.sin(yaw) * len, z0 + Math.cos(yaw) * len, 0.02, 0.12, 0.45);
+  group.userData.aoShapes = [
+    aoBox(ax, az, L, W, 0.7, 0.6),
+    aoBox(ax, az, oL, oW, 0.5, 0.25),
+    aoCircle(ax + m(-2.2), uz, m(0.33), 0.18, 0.55), // ash pot
+    aoCircle(ax + m(-1.1), uz, m(0.4), 0.14, 0.45), // basin
+    aoBox(ax + m(0.1) + Math.sin(0.35) * m(0.5), uz - m(0.4) + Math.cos(0.35) * m(0.5), m(0.32), m(0.45), 0.08, 0.4, 0.35), // shovel blade
+    seg(ax + m(0.1), uz - m(0.4), -m(0.65), 0.35), // shovel handle
+    seg(ax + m(1.2) + Math.sin(-0.25) * m(0.5), uz - m(0.3) + Math.cos(-0.25) * m(0.5), -m(1.2), -0.25), // fork
+    aoCircle(ax + m(2.3), uz, m(0.36), 0.12, 0.45), // firepan
+    seg(ax + m(2.3), uz, -m(1.05), 0.2), // its handle
+  ];
+  // Crease AO (world space): the walls under the ledge and the net behind it, the ledge's
+  // underside against the walls, the net's rails.
+  const lt2 = lt / 2;
+  addBoxAO(BRONZE_PLATED, [
+    { c: [ax, H / 2, az], e: [L / 2, H / 2, W / 2], r: 0.4, k: 0.55 },
+    { c: [ax, ly, az], e: [oL / 2, lt2, oW / 2], r: 0.45, k: 0.75 },
+  ], { key: 'altar' });
   // Ground kept free of rocks and scrub: the utensils lying south of the altar.
   group.userData.groundKeepOut = [box(m(A.x - 0.4), m(A.z + U.offsetZ), m(5.2), m(2.6))];
   return group;

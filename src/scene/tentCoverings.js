@@ -184,8 +184,9 @@ const SKIN_TILE = 8;
 
 /**
  * Build the goat-hair, ram-skin and tachash coverings with their stakes and cords.
- * Returns { group, bronzeParts, ropeParts, rect, footprint } (parts are geometries to merge;
- * footprint {minX, maxX, minZ, maxZ} in cubits bounds the slants and stakes).
+ * Returns { group, bronzeParts, ropeParts, rect, footprint, stakes } (parts are geometries to
+ * merge; footprint {minX, maxX, minZ, maxZ} in cubits bounds the slants and stakes; stakes are
+ * their [x, z] positions in meters).
  */
 export function createCoverings() {
   const group = new THREE.Group();
@@ -430,12 +431,14 @@ export function createCoverings() {
   const ropeParts = [];
   const stakeGeo = stakeGeometry();
   const fp = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
+  const stakes = []; // [x, z] in meters (contact AO)
   const Y = new THREE.Vector3(0, 1, 0), M = new THREE.Matrix4(), qt = new THREE.Quaternion();
   const addStake = (hem, sx, sz) => {
     const ox = sx - hem.x, oz = sz - hem.z, ol = Math.hypot(ox, oz);
     qt.setFromAxisAngle(new THREE.Vector3(oz / ol, 0, -ox / ol), STAKE_TILT);
     M.compose(new THREE.Vector3(m(sx), 0, m(sz)), qt, new THREE.Vector3(1, 1, 1));
     bronzeParts.push(part(stakeGeo.clone().applyMatrix4(M)));
+    stakes.push([m(sx), m(sz)]);
     const neck = new THREE.Vector3(0, STAKE_NECK, 0).applyQuaternion(qt).divideScalar(m(1)).add(new THREE.Vector3(sx, 0, sz));
     ropeParts.push(rod(hem, neck, 0.016, 4));
     fp.minX = Math.min(fp.minX, sx);
@@ -462,5 +465,5 @@ export function createCoverings() {
   });
   stakeGeo.dispose();
 
-  return { group, bronzeParts, ropeParts, rect, footprint: fp };
+  return { group, bronzeParts, ropeParts, rect, footprint: fp, stakes };
 }

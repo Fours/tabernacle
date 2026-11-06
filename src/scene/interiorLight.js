@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { COLORS } from './materials.js';
+import { AO_PARS_GLSL, aoApplyGlsl, bindAOUniforms } from './ao.js';
 
 // Interior light mask. Point lights have no occlusion (only the altar fire casts shadows), so
 // the altar, torches, moon, hemisphere fill and night environment would otherwise all light the
@@ -218,6 +219,31 @@ const MAPS_AFTER = /* glsl */ `
 }
 `;
 
+// Ambient occlusion (scene/ao.js), on every lit material after the lighting is summed:
+// - Contact: surfaces near the ground and not facing up (the foot of every pillar, wall, hem,
+//   furnishing) darken over uAoContactR; the sand itself faces up and gets none from this.
+// - Inside the tent: the side walls, west wall, ceiling and veil each darken the surfaces near
+//   them that face them (wall bases on the floor, the wall/ceiling seam, the corners, where two
+//   terms multiply). The open door end has none.
+const AO_AFTER = /* glsl */ `
+{
+  vec3 aoN = inverseTransformDirection(geometryNormal, viewMatrix);
+  float aoVis = 1.0 - uAoContact * aoOcc(max(ilW.y, 1e-3), uAoContactR, aoN, vec3(0.0, -1.0, 0.0));
+  if (ilIn > 0.001) {
+    float r = uAoRoomR, k = uAoRoom * ilIn;
+    float room = (1.0 - k * aoOcc(${f(BOX.yT)} - ilW.y, r, aoN, vec3(0.0, 1.0, 0.0)))
+      * (1.0 - k * aoOcc(ilW.z + ${f(BOX.zH)}, r, aoN, vec3(0.0, 0.0, -1.0)))
+      * (1.0 - k * aoOcc(${f(BOX.zH)} - ilW.z, r, aoN, vec3(0.0, 0.0, 1.0)))
+      * (1.0 - k * aoOcc(ilW.x - ${f(BOX.xW)}, r, aoN, vec3(-1.0, 0.0, 0.0)));
+    float dv = ilW.x - ${f(BOX.veilX)};
+    room *= 1.0 - k * aoOcc(abs(dv), r, aoN, vec3(-sign(dv), 0.0, 0.0));
+    aoVis *= room;
+  }
+  aoVis = mix(1.0, aoVis, uAoOn);
+  ${aoApplyGlsl('aoVis')}
+}
+`;
+
 let beginChunk = null;
 const patched = new WeakSet();
 
@@ -230,8 +256,10 @@ export function addInteriorMask(mat) {
   mat.onBeforeCompile = (shader, renderer) => {
     if (prev) prev(shader, renderer);
     Object.assign(shader.uniforms, INTERIOR);
+    bindAOUniforms(shader);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${PARS}`)
+      .replace('#include <common>', `#include <common>\n${PARS}\n${AO_PARS_GLSL}`)
+      .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${AO_AFTER}`)
       .replace('#include <lights_fragment_begin>', beginChunk)
       .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>\n${MAPS_AFTER}`);
   };
@@ -239,7 +267,7 @@ export function addInteriorMask(mat) {
   // which is now this wrapper for every material).
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v4`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v5`;
   mat.needsUpdate = true;
   return mat;
 }

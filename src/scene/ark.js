@@ -4,6 +4,7 @@ import { ARK as A, m } from '../config/dimensions.js';
 import { GOLD, GOLD_PATINA, addGoldPatina } from './materials.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
+import { aoBox, addBoxAO } from './ao.js';
 import { arkOrnamentParts } from './arkOrnament.js';
 
 // The ark of the covenant (Ex 25:10-22; 37:1-9) in the Holy of Holies: a 2.5 x 1.5 x 1.5 cubit
@@ -323,6 +324,14 @@ export function createArk() {
     box(cx, cz, W + 2 * CW, L + 2 * CW),
     ...[-1, 1].map((sz) => box(cx + (e - w) / 2, cz + sz * ringZ, e + w, 2 * (RING_R + RING_T))),
   ];
+  // Contact AO under the chest and round its feet; crease AO under the crown (scene/ao.js).
+  const FS = m(A.footSize);
+  group.userData.aoShapes = [
+    aoBox(cx, cz, W, L, 0.5, 0.5),
+    ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => aoBox(cx + sx * (W - FS) / 2, cz + sz * (L - FS) / 2, FS, FS, 0.15, 0.6))),
+  ];
+  const c0 = H - C_BELOW, c1 = SEAT_TOP + C_LIP;
+  addBoxAO(gold, [{ c: [cx, (c0 + c1) / 2, cz], e: [W / 2 + CW, (c1 - c0) / 2, L / 2 + CW], r: 0.12, k: 0.7 }], { key: 'ark-crown' });
   group.userData.dispose = () => {
     mesh.geometry.dispose();
     gold.dispose();
