@@ -397,6 +397,20 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   the other gaps. The veil has a palm in each gap between its frontal figures. Both have
   small flowering sprigs along each row's ground line. `?light=work` adds an
   unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
+- 2026-11-05: Cloth (`scene/cloth.js`): textiles carry a shared patch. Firelight shows
+  through cloth by a diffuse transmission term per point light (wrapped −N·L with a forward
+  lobe, tinted by the cloth's colour, unshadowed but distance-attenuated), classed by the
+  interior mask from the cloth's back side, so the menorah only shines through cloth whose back
+  faces the tent and the altar and torches only through cloth facing out. Strengths: linen
+  hangings 0.35, gate and door screens 0.3, veil 0.2, goat hair 0.04, skins and the linen
+  ceiling none. A Charlie fibre sheen (direct, after the shadow) and a grazing rim (indirect)
+  tinted by sqrt(albedo) on linen and wool; none on skins.
+- 2026-11-05: Wind: a slow travelling-wave field (shared `WIND` uniforms, from the north-west)
+  displaces cloth in the vertex shader along per-vertex directions and amplitudes
+  (`aWind`/`aWindG`), with analytically bent normals and matching shadow materials. Hangings
+  and gate panels 4.5 cm (sin·sin profile, zero at hooks, pillars and the pegged hem; 10 rows,
+  existing top sag kept), gate drape hems 3 cm below the tie, the door's drawn half 3.5 cm,
+  its tied-back hem 2.5 cm, coverings' hems 1.4 cm. The veil is still. `?wind=0` stills it.
 - 2026-11-05: Materials:
   - `addMacroVariation` breaks up visible tiling.
   - The goat-hair texture tile spans 2 curtains × 4 cubits.

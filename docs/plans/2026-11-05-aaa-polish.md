@@ -177,7 +177,7 @@ biblical dimensions or layout.
   budget.
   **Carry-over notes:** Done (dbd8ef7, 1 round; ~+0.15 ms, 0 draws). Moderate rather than dramatic; `uAoDirect` 0.7 is the knob.
 
-- [ ] **Step 7: Cloth — translucency, wind and sheen** — model: Opus / effort: medium
+- [x] **Step 7: Cloth — translucency, wind and sheen** — model: Opus / effort: medium
   **Goal:** Make the textiles look like cloth. (a) Translucency: linen hangings, the gate and
   door screens, the drawn door half and the veil let firelight through — when a light is
   behind the cloth, its back side glows warmly with the weave showing (a wrap/transmission term
@@ -195,7 +195,7 @@ biblical dimensions or layout.
   where the fire is behind it; at `gate`, `torch`, `tent`, `coverings` the cloth moves gently
   in successive frames with no tearing at seams or hooks; shadows follow the motion; the
   embroidery still reads. Lint, build, clean console; budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (c1dc0c6, 2f94dfd, 1 round; cost within noise, 0 draws).
 
 - [ ] **Step 8: Ground and surface materials** — model: Opus / effort: medium
   **Goal:** Richer ground and materials. (a) Sand: gentle low-frequency relief in the ground
@@ -260,4 +260,4 @@ biblical dimensions or layout.
   has a soft warm atmosphere without washing out the woven ceiling and veil; every preset
   renders without errors; DECISIONS has the new baseline (`gate` under ~14 ms throttled at
   2048×1536 or the overrun explained); AGENTS.md is current. Lint, build, clean console.
-  **Carry-over notes:** (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.
+  **Carry-over notes:** (from Step 7) from outside (`ground`, `pillar`) the hangings' transmitted glow reads fairly uniform peach; the folds/weave could show more (e.g. modulate transmission by the fold normal / weave texture), without going back to dull grey. Wind-driven shadows were not visually checked. (from Step 5) haze/glow are cut out inside the tent by a slab test in `render/atmosphere.js`; the interior haze and the menorah as a glow source are this step's job. The altar smoke may read too faint now at `fire`; nudge `smokeOpacity` up slightly if it does in the final pass.
