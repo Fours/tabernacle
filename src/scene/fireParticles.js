@@ -206,6 +206,7 @@ const FRAG = /* glsl */ `
 uniform float uTime;
 uniform float uBrightness;
 uniform float uSmokeOpacity;
+uniform float uSmokeFadeIn;
 uniform vec3 uSmokeAmbient;
 uniform vec3 uAshColor;
 varying vec2 vUv;
@@ -237,7 +238,7 @@ void main() {
     float dens = radial * clamp((n - 0.3) * 2.0 + (n2 - 0.5) * 0.4 + radial * 0.5, 0.0, 1.2);
     // Thinner as it spreads; dissolves into the haze. It thickens only gradually over the
     // flames (a young puff is small, so full density there reads as an opaque ball).
-    float fade = smoothstep(0.0, 0.3, age) * (1.0 - smoothstep(0.35, 1.0, age)) / (1.0 + 1.5 * age);
+    float fade = smoothstep(0.0, uSmokeFadeIn, age) * (1.0 - smoothstep(0.35, 1.0, age)) / (1.0 + 1.5 * age);
     float a = 1.0 - exp(-dens * uSmokeOpacity * fade * 3.0);
     if (a < 0.002) discard;
     // Fake volume: a sphere normal; light wraps round from the fire side, dense cores are
@@ -283,14 +284,15 @@ void main() {
  *   sparks/embers/ash/smoke: counts; bursts: how many burst groups the sparks are split into
  *   (about a third of them burst); sparkSize: streak width (m); smokeHeight: rise (m);
  *   smokeSize: puff size relative to the bed radius; smokeBase: where puffs start (× height);
- *   smokeOpacity; smokeGlow: how strongly the fire lights the smoke; smokeAmbient: unlit smoke
+ *   smokeOpacity; smokeFadeIn: the puff age (0..1 of its life) by which it reaches full
+ *   density; smokeGlow: how strongly the fire lights the smoke; smokeAmbient: unlit smoke
  *   colour (linear); ashColor (linear); lightY: the fire's light height above the base (m).
  */
 export function createFireParticles(u, rnd, o) {
   const {
     radius, height, sparks = 0, embers = 0, ash = 0, smoke = 0, bursts = 0,
     sparkSize = Math.max(0.006, radius * 0.02), smokeHeight = height * 3.5, smokeSize = 1.2,
-    smokeBase = 0.8, smokeOpacity = 0.3, smokeGlow = 1.2, smokeAmbient = [0.04, 0.05, 0.07],
+    smokeBase = 0.8, smokeOpacity = 0.3, smokeFadeIn = 0.3, smokeGlow = 1.2, smokeAmbient = [0.04, 0.05, 0.07],
     ashColor = [0.5, 0.42, 0.36], lightY = height * 0.75,
   } = o;
   const count = smoke + ash + embers + sparks;
@@ -338,6 +340,7 @@ export function createFireParticles(u, rnd, o) {
       uSmokeSize: { value: smokeSize },
       uSmokeBase: { value: smokeBase },
       uSmokeOpacity: { value: smokeOpacity },
+      uSmokeFadeIn: { value: smokeFadeIn },
       uSmokeGlow: { value: smokeGlow },
       uSmokeAmbient: { value: new THREE.Vector3(...smokeAmbient) },
       uAshColor: { value: new THREE.Vector3(...ashColor) },

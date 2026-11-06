@@ -32,6 +32,7 @@ export { createIncenseSmoke } from './fireSmoke.js';
  * @param {number} [o.smoke=16]        Smoke puff count; 0 disables.
  * @param {number} [o.smokeHeight]     How high smoke rises (m); default 3.5 × height.
  * @param {number} [o.smokeOpacity=0.3]
+ * @param {number} [o.smokeFadeIn=0.3] Puff age (fraction of its life) by which it reaches full density.
  * @param {number} [o.smokeSize=1.2]   Puff size at birth relative to the radius (grows 4×).
  * @param {number} [o.smokeBase=0.8]   Where puffs start, as a fraction of the flame height.
  * @param {number} [o.smokeGlow=1.2]   How strongly the fire lights the smoke from below.
@@ -69,6 +70,7 @@ export function createFire(o = {}) {
     smoke = 16,
     smokeHeight = height * 3.5,
     smokeOpacity = 0.3,
+    smokeFadeIn,
     smokeSize,
     smokeBase,
     smokeGlow,
@@ -112,7 +114,7 @@ export function createFire(o = {}) {
   if (sparks + embers + ash + smoke > 0) {
     const p = createFireParticles(u, rnd, {
       radius, height, sparks, bursts, embers, ash, smoke, sparkSize, smokeHeight, smokeOpacity,
-      smokeSize, smokeBase, smokeGlow, smokeAmbient, lightY: lightOffset[1],
+      smokeFadeIn, smokeSize, smokeBase, smokeGlow, smokeAmbient, lightY: lightOffset[1],
     });
     group.add(p.object);
     disposables.push(...p.disposables);

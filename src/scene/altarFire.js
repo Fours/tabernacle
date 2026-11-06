@@ -34,7 +34,10 @@ export function createAltarFire(hearth) {
     smokeHeight: 6,
     smokeSize: 1.3,
     smokeBase: 0.75,
-    smokeOpacity: 0.2,
+    // Faint, and fading in soon over the flames so a soft plume shows just above them (not the
+    // opaque ball a young, small, dense puff makes).
+    smokeOpacity: 0.26,
+    smokeFadeIn: 0.15,
     smokeGlow: 1.4,
     // Decay 1.5 (not the physical 2) with a lower intensity: a big fire is a large source, so
     // the near rim/horns shouldn't blow out while the far courtyard stays lit.
