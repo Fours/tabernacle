@@ -149,19 +149,20 @@ export function createTorches() {
     colliders.push(circle(x, z, 0.3));
 
     const fire = createFire({
-      radius: 0.07,
+      radius: 0.08,
       height: 0.5,
-      flameSize: 0.17,
-      flames: 16,
+      flameSize: 0.34,
+      flames: 4,
+      core: 0.8,
       embers: t.light ? 8 : 0,
       smoke: 0,
       intensity: t.light ? 28 : 0,
-      lightOffset: [0, 0.3, 0],
+      lightOffset: [0, 0.35, 0], // same height as before (base lowered 5 cm)
       flicker: 0.3,
       wind: [0.03, 0.01],
       seed: 100 + i,
     });
-    fire.group.position.set(x, H + 0.02, z);
+    fire.group.position.set(x, H - 0.03, z); // flames wrap the burning crown
     group.add(fire.group);
     fires.push(fire);
   });

@@ -3,7 +3,7 @@ import { rng, noise1 } from './fireCommon.js';
 import { createFlames } from './fireFlames.js';
 import { createEmbers, createSmokePuffs } from './fireSmoke.js';
 
-// Reusable GPU-animated fire: flames, embers and smoke (3 draw calls) plus a flickering
+// Reusable GPU-animated fire: flame sheets, embers and smoke (3 draw calls) plus a flickering
 // warm PointLight. All particle motion is computed in the shaders from a time uniform, so the
 // per-frame JS cost is a few uniform writes and no allocations.
 //
@@ -21,8 +21,9 @@ export { createIncenseSmoke } from './fireSmoke.js';
  * @param {object} o
  * @param {number} [o.radius=0.5]      Radius of the burning bed (m).
  * @param {number} [o.height=1.2]      Typical flame height (m).
- * @param {number} [o.flameSize]       Flame sprite size (m); default ~1.1 × radius.
- * @param {number} [o.flames=60]       Flame particle count.
+ * @param {number} [o.flameSize]       Width of a flame sheet (m); default 1.4 × radius.
+ * @param {number} [o.flames=6]        Flame sheet count (fireFlames.js).
+ * @param {number} [o.core=1]          Brightness of the yellow-white core relative to the body.
  * @param {number} [o.embers=80]       Ember (spark) count; 0 disables.
  * @param {number} [o.smoke=16]        Smoke puff count; 0 disables.
  * @param {number} [o.smokeHeight]     How high smoke rises (m); default 3.5 × height.
@@ -49,8 +50,9 @@ export function createFire(o = {}) {
   const {
     radius = 0.5,
     height = 1.2,
-    flameSize = radius * 1.1,
-    flames = 60,
+    flameSize = radius * 1.4,
+    flames = 6,
+    core = 1,
     embers = 80,
     smoke = 16,
     smokeHeight = height * 3.5,
@@ -88,7 +90,7 @@ export function createFire(o = {}) {
   const disposables = [];
   const bounds = new THREE.Sphere(new THREE.Vector3(0, height, 0), Math.max(height * 1.5, radius * 2));
 
-  const flameParts = createFlames(flames, u, rnd, { bounds });
+  const flameParts = createFlames(flames, u, rnd, { bounds, core });
   group.add(flameParts.object);
   disposables.push(...flameParts.disposables);
   if (embers > 0) {

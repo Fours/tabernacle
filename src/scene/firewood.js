@@ -164,7 +164,8 @@ float wNoise(vec3 p) {
         `#include <emissivemap_fragment>
 {
   float cracks = smoothstep(0.42, 0.78, wNoise(vLocal * 26.0 + vec3(0.0, -uTime * 0.12, uTime * 0.05)));
-  float pulse = 0.7 + 0.3 * wNoise(vLocal * 5.0 + vec3(uTime * 0.6)) + 0.25 * uLevel;
+  // Local breathing plus the flames' flicker level, so the bed brightens as the flames flare.
+  float pulse = 0.75 + 0.25 * wNoise(vLocal * 5.0 + vec3(uTime * 0.6)) + 0.4 * uLevel;
   float g = pow(max(vGlow, 0.0), 1.6) * mix(0.15, 1.0, cracks) * pulse;
   totalEmissiveRadiance += vec3(1.0, 0.22, 0.03) * g * uGlow;
 }`,

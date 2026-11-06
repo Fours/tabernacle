@@ -25,8 +25,8 @@ export function createAltarFire(hearth) {
   const fire = createFire({
     radius: hearth.size * 0.3,
     height: 1.8,
-    flameSize: hearth.size * 0.42,
-    flames: 110,
+    flameSize: hearth.size * 0.6,
+    flames: 14,
     embers: 140,
     smoke: 22,
     smokeHeight: 5,
