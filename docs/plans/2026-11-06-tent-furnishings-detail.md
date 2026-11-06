@@ -85,7 +85,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
   `holyplace` within budget.
   **Carry-over notes:**
 
-- [ ] **Step 2: Worn, handled gold on the table** — model: Opus / effort: medium
+- [x] **Step 2: Worn, handled gold on the table** — model: Opus / effort: medium
   **Goal:** Give the table its own gold material with a stronger patina and a wear patch:
   grime collecting in the new relief's recesses and the frame's inner corners (from AO-like
   cues: crevice/curvature, or local-space masks from the table's dimensions), dulled and
@@ -139,7 +139,12 @@ the linen ceiling's loops (Ex 26:4); new lights.
   coals, grime in the relief) but still gold; before/after screenshots; other gold
   unchanged; no non-runnable programs; lint, build, clean console; no new draws; frame time
   at `incense` within budget.
-  **Carry-over notes:**
+  **Carry-over notes:** `addGoldWear(mat, opts)` (metalWear.js) takes local-space masks in
+  meters: `boxes` (ground = grime on the relief's background, contact = inner corners), `crevice`,
+  `handling` capsules, `dust` on up-facing surfaces, `low`, and `soot {center, radius, height,
+  strength, color}` (compiled but not yet tuned visually). Follow `tableGold()` in showbread.js
+  (GOLD.clone + addGoldPatina re-applied, disposed in userData.dispose). Lower metalness where
+  matter (soot, ash, dust) should read as matter, or the interior mask recolours it to gold.
 
 - [ ] **Step 5: Blood on the mercy seat** — model: Opus / effort: medium
   **Goal:** Add the stain described in the assumptions to the ark's own gold material: a
