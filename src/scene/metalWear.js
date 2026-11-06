@@ -238,13 +238,17 @@ const v3 = (a) => `vec3(${f(a[0])}, ${f(a[1])}, ${f(a[2])})`;
  * - crevice: grime in concave creases from screen-space curvature (beads, leaf ribs).
  * - handling: [{ a, b, r, strength }] capsules (segment a-b, radius r) where hands hold the
  *   piece: dull, smudged gold (rougher, a little darker and greyer, in fingerprint blotches).
- * - dust: { y, height, min: [x, z], max: [x, z], amount, spots: [{ min, max, flour, crumbs }] }
- *   fine pale dust on up-facing surfaces between y and y + height inside the rectangle, thicker
+ * - dust: { y, height, min: [x, z], max: [x, z], amount, color, spots: [{ min, max, flour, crumbs }] }
+ *   fine pale dust (`color`: default flour-tan; grey for ash) on up-facing surfaces between y and y + height inside the rectangle, thicker
  *   toward its edges (against a crown); within ~7 cm of each spot rectangle (e.g. a loaf stack)
  *   a flour haze (`flour`) and crumb specks (`crumbs`).
  * - low: { height, strength }: darker toward the floor below `height`.
- * - soot: { center, radius: [inner, outer], height: [from, full], strength, color }: smoke
- *   blackening round a burning point, strongest high and close in, streaking down the sides.
+ * - soot: { center, radius: [inner, outer], height: [from, full], strength, color, streak, inner }:
+ *   smoke blackening round a burning point (mesh-local), strongest high and close in. `streak`
+ *   (m): how far the blackening's lower edge wanders with the streak noise, so it runs down the
+ *   sides in tongues; `inner` (0..1): how much less the faces turned away from the burning point
+ *   (and not up) get, so it collects on inner walls and the top (assumes the mesh is not rotated).
+ *   Applied before the dust, which settles on top of it.
  * Dust and soot lower the metalness below the interior mask's metal threshold (interiorLight.js),
  * so they read as matter on the gold, not as darker gold.
  */
@@ -302,6 +306,22 @@ export function addGoldWear(mat, opts = {}) {
     roughnessFactor += hs * 0.55;
   }`);
   }
+  if (soot) {
+    lines.push(`  {
+    vec3 sc = ${v3(soot.center)};
+    vec2 rv = q.xz - sc.xz;
+    float r = length(rv);
+    float sr = 1.0 - smoothstep(${f(soot.radius[0])}, ${f(soot.radius[1])}, r);
+    float streak = mwNoise(vec3(q.x * 40.0, q.y * 3.0, q.z * 40.0)) * 0.6 + mwNoise(q * 12.0 + 8.0) * 0.4;
+    float sh = smoothstep(${f(soot.height[0])}, ${f(soot.height[1])}, q.y + (streak - 0.5) * ${f(soot.streak ?? 0)});
+    // Inner walls and up-facing surfaces catch the smoke; outer walls less.
+    float face = max(smoothstep(-0.1, 0.7, -dot(nW.xz, rv / max(r, 1e-4))), smoothstep(0.3, 0.9, nW.y));
+    float s = clamp(sr * sh * (0.4 + 0.9 * streak) * (1.0 - ${f(soot.inner ?? 0)} * (1.0 - face)), 0.0, 1.0) * ${f(soot.strength ?? 0.8)};
+    diffuseColor.rgb = mix(diffuseColor.rgb, ${v3(soot.color || [0.04, 0.032, 0.026])}, s);
+    roughnessFactor = mix(roughnessFactor, 0.85, s * 0.8);
+    metalnessFactor = mix(metalnessFactor, 0.35, s * 0.8);
+  }`);
+  }
   if (dust) {
     const s = dust.spots || [];
     lines.push(`  {
@@ -327,25 +347,12 @@ export function addGoldWear(mat, opts = {}) {
     }`);
     }
     lines.push(`    du = clamp(du, 0.0, 1.0);
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.45, 0.36), du * 0.7);
+    diffuseColor.rgb = mix(diffuseColor.rgb, ${v3(dust.color || [0.5, 0.45, 0.36])}, du * 0.7);
     roughnessFactor = mix(roughnessFactor, 0.9, du);
     metalnessFactor = mix(metalnessFactor, 0.0, min(du * 1.6, 1.0));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.27, 0.13), crumb);
     roughnessFactor = mix(roughnessFactor, 0.95, crumb);
     metalnessFactor = mix(metalnessFactor, 0.0, crumb);
-  }`);
-  }
-  if (soot) {
-    lines.push(`  {
-    vec3 sc = ${v3(soot.center)};
-    float r = length(q.xz - sc.xz);
-    float sr = 1.0 - smoothstep(${f(soot.radius[0])}, ${f(soot.radius[1])}, r);
-    float sh = smoothstep(${f(soot.height[0])}, ${f(soot.height[1])}, q.y);
-    float streak = mwNoise(vec3(q.x * 40.0, q.y * 3.0, q.z * 40.0)) * 0.6 + mwNoise(q * 12.0 + 8.0) * 0.4;
-    float s = clamp(sr * sh * (0.4 + 0.9 * streak), 0.0, 1.0) * ${f(soot.strength ?? 0.8)};
-    diffuseColor.rgb = mix(diffuseColor.rgb, ${v3(soot.color || [0.04, 0.032, 0.026])}, s);
-    roughnessFactor = mix(roughnessFactor, 0.85, s * 0.8);
-    metalnessFactor = mix(metalnessFactor, 0.35, s * 0.8);
   }`);
   }
   lines.push(`  roughnessFactor = clamp(roughnessFactor, 0.05, 1.0);

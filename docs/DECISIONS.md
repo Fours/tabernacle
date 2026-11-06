@@ -208,6 +208,20 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   Still one gold mesh: +94k triangles, about half the table ornament's build time (~12 ms),
   +0.23 ms at `incense`. `incenseGroundBoxes()` exports the relief's ground blocks (body,
   crown band, plinth band) for the wear patch.
+- 2026-11-06: Worn, sooted gold on the altar of incense (`altarGold` in
+  `scene/incenseAltar.js`; `addGoldWear` in `scene/metalWear.js`). The altar's gold mesh has its
+  own `GOLD.clone()` (patina re-applied, tarnish 0.2) with a wear patch in the altar's local
+  frame, for an altar burned on twice a day (Ex 30:7-8): soot and resin from the firepan's
+  centre (radius 16-40 cm, from 14 cm below the top up), mottled by streak noise, strongest on
+  the top and on faces turned toward the coals (the crown's inner lip, the horns' inner sides;
+  outer walls get 30% of it), its lower edge wandering ~12 cm so it runs down the sides in
+  tongues; grime on the ground of the relief (`incenseGroundBoxes`: panel fields, frieze,
+  crown and plinth bands, kept light so the relief stays bright against it) and in the inner
+  corners; dull, greyer fingerprint blotches on the pole ends and the crown's edge; grey ash
+  (new `dust.color`) on the top round the pan; darker below 10 cm. `addGoldWear`'s soot gained
+  `streak` and `inner` and is applied before the dust (ash settles on soot); the table does not
+  use soot and its shader is unchanged. Soot and ash lower the metalness below the interior
+  mask's threshold so they read as matter. Other gold unchanged; no draws; +0.25 ms at `incense`.
 - 2026-11-05: Ark (`scene/ark.js`): 2.5 × 1.5 × 1.5 cubits including 0.14-cubit feet, at
   x = −25, z = 0, long axis N–S. Crown molding rises 0.04 cubit above the mercy seat, which is
   1 handbreadth thick (Sukkah 5a). Rings on the N and S faces at the feet; poles E–W from

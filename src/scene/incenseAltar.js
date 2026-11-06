@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { INCENSE_ALTAR as A, m } from '../config/dimensions.js';
-import { GOLD } from './materials.js';
+import { GOLD, GOLD_PATINA, addGoldPatina } from './materials.js';
+import { addGoldWear } from './metalWear.js';
 import { part, boxPart, merge } from './bronzeParts.js';
 import { box } from './colliders.js';
 import { aoBox } from './ao.js';
 import { createIncenseSmoke } from './fire.js';
-import { incenseOrnamentParts } from './incenseOrnament.js';
+import { incenseOrnamentParts, incenseGroundBoxes } from './incenseOrnament.js';
 
 // The altar of incense (Ex 30:1-10; 37:25-28): a 1 x 1 x 2 cubit gold-overlaid altar with four
 // horns of one piece with it, a crown around the top, two rings under the crown on each of the
@@ -78,6 +79,49 @@ function goldParts() {
   return g;
 }
 
+/**
+ * The altar's own gold (only its mesh; the shared GOLD is unchanged): an altar burned on twice
+ * a day (Ex 30:7-8). Soot and resin blacken the top round the firepan, the crown's and the
+ * horns' inner faces, and run down the outer sides in streaks; grime sits on the ground of the
+ * relief and in the inner corners; the pole ends and the crown's edge are dull and smudged
+ * where it is carried and steadied; a little grey ash lies on the top. Masks are in the
+ * altar's local frame (metalWear.js addGoldWear).
+ */
+function altarGold() {
+  const gold = GOLD.clone();
+  gold.name = 'incense-altar-gold';
+  addGoldPatina(gold, { ...GOLD_PATINA, tarnish: 0.2, grime: 0.4 }); // clone() drops GOLD's patch
+  const gb = incenseGroundBoxes(ORN);
+  const yc = H + LIP - 0.008; // the crown's top edge
+  const poleEnd = S / 2 + m(A.poleOverhang);
+  const hc = S / 2 + CW; // the crown's outer face
+  const inner = hc - CW - 0.004; // inside the crown (the top's clear area)
+  addGoldWear(gold, {
+    boxes: [
+      { ...gb.body, ground: 0.3, contact: 0.35, reach: 0.02 },
+      { ...gb.crownBand, ground: 0.28 },
+      { ...gb.plinthBand, ground: 0.28 },
+    ],
+    crevice: 0.7,
+    handling: [
+      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => (
+        { a: [sx * (S / 2 + 0.12), ringY, sz * ringZ], b: [sx * poleEnd, ringY, sz * ringZ], r: 0.05 }))),
+      ...[-1, 1].flatMap((s) => [
+        { a: [s * hc, yc, -0.08], b: [s * hc, yc, 0.08], r: 0.04, strength: 0.7 },
+        { a: [-0.08, yc, s * hc], b: [0.08, yc, s * hc], r: 0.04, strength: 0.7 },
+      ]),
+    ],
+    soot: {
+      center: [0, H, 0], radius: [0.16, 0.4], height: [H - 0.14, H + 0.01], strength: 0.62,
+      streak: 0.12, inner: 0.7,
+    },
+    dust: { y: H - 0.003, height: 0.02, min: [-inner, -inner], max: [inner, inner], amount: 0.3, color: [0.36, 0.34, 0.31],
+      spots: [{ min: [-0.13, -0.13], max: [0.13, 0.13], flour: 0.4, crumbs: 0 }] },
+    low: { height: 0.1, strength: 0.25 },
+  });
+  return gold;
+}
+
 // ---- Coals -------------------------------------------------------------------------------
 
 const COALS = new THREE.MeshStandardMaterial({
@@ -131,7 +175,8 @@ export function createIncenseAltar() {
   group.name = 'incense-altar';
   group.position.set(m(A.x), 0, m(A.z));
 
-  const goldMesh = new THREE.Mesh(merge(goldParts()), GOLD);
+  const gold = altarGold();
+  const goldMesh = new THREE.Mesh(merge(goldParts()), gold);
   goldMesh.name = 'incense-altar-gold';
   group.add(goldMesh);
 
@@ -164,6 +209,7 @@ export function createIncenseAltar() {
   group.userData.aoShapes = [aoBox(cx, cz, PL, PL, 0.35, 0.7), aoBox(cx, cz, PL, PL, 0.9, 0.2)]; // contact AO
   group.userData.dispose = () => {
     goldMesh.geometry.dispose();
+    gold.dispose();
     coalGeo.dispose();
     COALS.dispose();
     smoke.dispose();
