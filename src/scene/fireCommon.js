@@ -48,6 +48,18 @@ float fogAmount() {
 }
 `;
 
+// Blackbody-like ramp in linear HDR: dull red at the edges and tips, orange, yellow body, a
+// pale yellow core (scaled by \`core\`). Values stay finite and positive (bloom-safe). Shared by
+// the flame sheets and the pillar of fire.
+export const FIRE_RAMP_GLSL = /* glsl */ `
+vec3 fireRampCore(float t, float core) {
+  vec3 c = mix(vec3(0.14, 0.01, 0.0), vec3(0.7, 0.085, 0.005), smoothstep(0.0, 0.3, t));
+  c = mix(c, vec3(1.3, 0.34, 0.03), smoothstep(0.25, 0.6, t));
+  c = mix(c, vec3(1.7, 0.7, 0.1), smoothstep(0.55, 0.85, t));
+  return mix(c, vec3(2.2, 1.25, 0.36) * core, smoothstep(0.88, 1.0, t));
+}
+`;
+
 export const HASH_GLSL = /* glsl */ `
 float h11(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 `;

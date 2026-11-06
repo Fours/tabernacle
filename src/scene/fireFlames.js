@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, fogUniforms, rng, randAttribute } from './fireCommon.js';
+import { NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, fogUniforms, rng, randAttribute } from './fireCommon.js';
 
 // Flame rendering: the body of a fire (createFlames, used by createFire) and small oil-lamp
 // flames (createLampFlames, the menorah).
@@ -71,14 +71,8 @@ varying float vSeed;
 varying float vAspect;
 ${NOISE_GLSL}
 ${FOG_ADDITIVE_GLSL}
-// Blackbody-like ramp in linear HDR: dull red at the edges and tips, orange, yellow body, a
-// pale yellow core. Values stay finite and positive (bloom-safe).
-vec3 fireRamp(float t) {
-  vec3 c = mix(vec3(0.14, 0.01, 0.0), vec3(0.7, 0.085, 0.005), smoothstep(0.0, 0.3, t));
-  c = mix(c, vec3(1.3, 0.34, 0.03), smoothstep(0.25, 0.6, t));
-  c = mix(c, vec3(1.7, 0.7, 0.1), smoothstep(0.55, 0.85, t));
-  return mix(c, vec3(2.2, 1.25, 0.36) * uCore, smoothstep(0.88, 1.0, t));
-}
+${FIRE_RAMP_GLSL}
+vec3 fireRamp(float t) { return fireRampCore(t, uCore); }
 void main() {
   float x = vUv.x; // -1..1 across the sheet
   float y = vUv.y; // 0..1 up the sheet
