@@ -19,7 +19,13 @@ import { TABERNACLE as T, m } from '../config/dimensions.js';
 //   flames, little brown wash over the whole sky); the result is dimmed by the night fog between
 //   the source and the eye.
 // - The part of the ray inside the tent (the interior box) gets neither: the haze and glows are
-//   the outside air's. Step 10 does the interior atmosphere.
+//   the outside air's. That part gets the room's own air instead (`atmoInterior`): a faint warm
+//   haze, the menorah's glow in it (the same closed-form point-source integral, over the part of
+//   the ray east of the veil only), and a thin layer of incense haze under the ceiling (linear
+//   density ramp over its top `IN_CEIL` metres, integrated in closed form), denser toward the
+//   incense altar and the veil and drifting slowly. West of the veil only a trace of haze, dim.
+//   Rays from outside get the interior part from where they enter the box, so the door shows no
+//   seam.
 // Additive sprites use `atmoFogAmount()` (via FOG_ADDITIVE_GLSL) to fade toward black. The sky
 // dome (no fog) calls `atmoSky()` so the halos and the horizon haze continue against the sky.
 // Materials get the shared uniforms through `applyAtmosphere(root)`; a material that misses
@@ -30,6 +36,8 @@ export const ATMO_GLOWS = 8;
 const f = (v) => v.toFixed(4);
 const BOX_MIN = [m(T.interiorMinX), -1, -m(T.interiorWidth / 2)];
 const BOX_MAX = [m(T.interiorMaxX), m(T.interiorHeight), m(T.interiorWidth / 2)];
+const VEIL_X = m(T.veil.x);
+const IN_CEIL = 0.8; // m: depth of the incense layer under the ceiling
 
 /** Shared uniforms (tunable live through window.__tabernacle.atmosphere). */
 export const ATMO = {
@@ -51,6 +59,17 @@ export const ATMO = {
   uAtmoGlowPos: { value: Array.from({ length: ATMO_GLOWS }, () => new THREE.Vector4(0, -1000, 0, 1)) }, // xyz m, w core radius m
   // rgb: linear colour × cd × gain; w: the halo's reach (m)
   uAtmoGlowCol: { value: Array.from({ length: ATMO_GLOWS }, () => new THREE.Vector4(0, 0, 0, 1)) },
+  // Inside the tent (set by createAtmosphere's interior source each frame):
+  uAtmoInHaze: { value: 0.012 }, // room haze extinction, 1/m
+  uAtmoInHazeCol: { value: new THREE.Color() }, // its colour (warm room ambient scattered)
+  uAtmoInScatter: { value: 0.022 }, // scattering of the menorah's light, 1/m
+  uAtmoInG: { value: 0.35 }, // its forward scattering (smoke and dust: broader than the night air)
+  uAtmoInGlowPos: { value: new THREE.Vector4(0, -1000, 0, 0.3) }, // xyz m, w core radius m
+  uAtmoInGlowCol: { value: new THREE.Vector4(0, 0, 0, 1) }, // rgb colour × cd × gain, w reach m
+  uAtmoInCeil: { value: 0.25 }, // incense layer extinction at the ceiling, 1/m
+  uAtmoInCeilCol: { value: new THREE.Color() }, // its colour (lit from below by the lamps)
+  uAtmoInHoh: { value: 0.15 }, // haze density west of the veil, fraction of the Holy Place's
+  uAtmoInHohCol: { value: 0.1 }, // and its brightness there
 };
 
 /** GLSL shared by the fog chunk and the sky: uniforms, haze and glow integrals. */
@@ -71,6 +90,16 @@ uniform float uAtmoG;
 uniform float uAtmoFogD;
 uniform vec4 uAtmoGlowPos[ATMO_GLOWS];
 uniform vec4 uAtmoGlowCol[ATMO_GLOWS];
+uniform float uAtmoInHaze;
+uniform vec3 uAtmoInHazeCol;
+uniform float uAtmoInScatter;
+uniform float uAtmoInG;
+uniform vec4 uAtmoInGlowPos;
+uniform vec4 uAtmoInGlowCol;
+uniform float uAtmoInCeil;
+uniform vec3 uAtmoInCeilCol;
+uniform float uAtmoInHoh;
+uniform float uAtmoInHohCol;
 
 float atmoHash(vec2 p) { // sin-free hash (cheap; this runs for every fogged fragment)
   vec3 q = fract(vec3(p.xyx) * 0.1031);
@@ -90,18 +119,84 @@ float atmoPatch(vec2 xz) {
   float n = 0.65 * atmoVNoise(q) + 0.35 * atmoVNoise(q * 2.3 + vec2(5.2, 1.3) + uAtmoTime * 0.013);
   return mix(1.0, 0.25 + 1.5 * n, uAtmoNoise);
 }
-// The outside part [s0, s1] of the ray c + d t, t in [0, L]: the tent's interior box is cut out
-// (from the camera to where the ray leaves the box, or from where it enters the box onward).
-vec2 atmoSpan(vec3 c, vec3 d, float L) {
+// Entry and exit of the ray c + d t in the tent's interior box (b <= a: misses it).
+vec2 atmoBoxT(vec3 c, vec3 d) {
   vec3 inv = 1.0 / (d + vec3(equal(d, vec3(0.0))) * 1e-6);
   vec3 ta = (vec3(${f(BOX_MIN[0])}, ${f(BOX_MIN[1])}, ${f(BOX_MIN[2])}) - c) * inv;
   vec3 tb = (vec3(${f(BOX_MAX[0])}, ${f(BOX_MAX[1])}, ${f(BOX_MAX[2])}) - c) * inv;
   vec3 tn = min(ta, tb), tx = max(ta, tb);
-  float a = max(max(tn.x, tn.y), tn.z);
-  float b = min(min(tx.x, tx.y), tx.z);
-  if (b <= a || b <= 0.0) return vec2(0.0, L); // misses the box
-  if (a < 0.0) return vec2(min(b, L), L); // the camera is inside
-  return vec2(0.0, min(a, L));
+  return vec2(max(max(tn.x, tn.y), tn.z), min(min(tx.x, tx.y), tx.z));
+}
+// The outside part [s0, s1] of the ray, t in [0, L]: the tent's interior box is cut out
+// (from the camera to where the ray leaves the box, or from where it enters the box onward).
+vec2 atmoSpanT(vec2 ab, float L) {
+  if (ab.y <= ab.x || ab.y <= 0.0) return vec2(0.0, L); // misses the box
+  if (ab.x < 0.0) return vec2(min(ab.y, L), L); // the camera is inside
+  return vec2(0.0, min(ab.x, L));
+}
+vec2 atmoSpan(vec3 c, vec3 d, float L) { return atmoSpanT(atmoBoxT(c, d), L); }
+// The inside part of the ray (empty when s.y <= s.x).
+vec2 atmoInSpanT(vec2 ab, float L) {
+  return vec2(max(ab.x, 0.0), min(ab.y, L));
+}
+// ∫ of the incense layer's density profile (0 below the layer, rising linearly to 1 at the
+// ceiling) over y: the antiderivative, so the optical depth along a ray is closed form.
+float atmoCeilG(float y) {
+  float u = clamp(y - ${f(BOX_MAX[1] - IN_CEIL)}, 0.0, ${f(IN_CEIL)});
+  return u * u * ${f(0.5 / IN_CEIL)} + max(y - ${f(BOX_MAX[1])}, 0.0);
+}
+// Optical depth of the incense layer along [s0, s1] (before its horizontal weighting).
+float atmoCeilDepth(vec3 c, vec3 d, vec2 s) {
+  float len = max(s.y - s.x, 0.0);
+  if (len <= 0.0) return 0.0;
+  float y0 = c.y + d.y * s.x, y1 = c.y + d.y * s.y;
+  if (abs(d.y) < 1e-3) return len * clamp((y0 - ${f(BOX_MAX[1] - IN_CEIL)}) * ${f(1 / IN_CEIL)}, 0.0, 1.0);
+  return (atmoCeilG(y1) - atmoCeilG(y0)) / d.y;
+}
+// The room's air along the inside part [s0, s1] of the ray, applied to a colour.
+vec3 atmoInterior(vec3 col, vec3 c, vec3 d, vec2 s) {
+  if (s.y <= s.x) return col;
+  // Split at the veil: the Holy Place (east) and the Holy of Holies (west).
+  float tv = (${f(VEIL_X)} - c.x) / (abs(d.x) > 1e-5 ? d.x : 1e-5);
+  vec2 hp = s, hh = vec2(0.0);
+  if (abs(d.x) <= 1e-5) {
+    if (c.x < ${f(VEIL_X)}) { hh = s; hp = vec2(0.0); }
+  } else if (d.x > 0.0) {
+    hh = vec2(s.x, min(s.y, tv)); hp = vec2(max(s.x, tv), s.y);
+  } else {
+    hp = vec2(s.x, min(s.y, tv)); hh = vec2(max(s.x, tv), s.y);
+  }
+  float lp = max(hp.y - hp.x, 0.0), lh = max(hh.y - hh.x, 0.0);
+  // Room haze: thin, warm, the same everywhere east of the veil; a trace west of it.
+  float tau = uAtmoInHaze * (lp + uAtmoInHoh * lh);
+  vec3 hazeCol = uAtmoInHazeCol * (lp + uAtmoInHoh * uAtmoInHohCol * lh) / max(lp + uAtmoInHoh * lh, 1e-4);
+  col = mix(col, hazeCol, 1.0 - exp(-tau));
+  // Incense under the ceiling: denser toward the incense altar and the veil, slowly drifting.
+  float cp = atmoCeilDepth(c, d, hp), ch = atmoCeilDepth(c, d, hh) * uAtmoInHoh;
+  if (cp + ch > 0.0) {
+    vec2 sc = lp > 0.0 ? hp : hh;
+    float ts = d.y > 0.0 ? sc.y : sc.x; // the span's highest point: where the layer is
+    vec3 q = c + d * ts;
+    float w = mix(0.35, 1.0, smoothstep(${f(BOX_MAX[0] - 2)}, ${f(VEIL_X + 1.5)}, q.x));
+    w *= 0.4 + 1.2 * atmoVNoise(q.xz * 0.45 + vec2(0.05, 0.02) * uAtmoTime);
+    float tc = uAtmoInCeil * w * (cp + ch);
+    col = mix(col, uAtmoInCeilCol * mix(uAtmoInHohCol, 1.0, cp / (cp + ch)), 1.0 - exp(-tc));
+  }
+  // The menorah's glow in the air of the Holy Place (as atmoGlow, one source, no extinction).
+  if (lp > 0.0) {
+    vec4 g = uAtmoInGlowPos;
+    vec3 toS = g.xyz - c;
+    float tS = dot(toS, d);
+    float dd = dot(toS, toS);
+    float h = sqrt(max(dd - tS * tS, 0.0) + g.w * g.w);
+    float I = (atan((hp.y - tS) / h) - atan((hp.x - tS) / h)) / h;
+    float g2 = uAtmoInG * uAtmoInG;
+    float ct = tS * inversesqrt(max(dd, 1e-6));
+    float qh = 1.0 + g2 - 2.0 * uAtmoInG * ct;
+    float phase = (1.0 - g2) / (qh * sqrt(qh));
+    col += uAtmoInGlowCol.rgb * (max(I, 0.0) * uAtmoInScatter * phase * exp(-h / uAtmoInGlowCol.w) * 0.0795775);
+  }
+  return col;
 }
 // Optical depth of the height haze along [s0, s1] (closed form for an exponential profile).
 float atmoHazeDepth(vec3 c, vec3 d, vec2 s) {
@@ -149,10 +244,12 @@ vec3 atmoSky(vec3 col, vec3 dir) {
   if (uAtmoOn <= 0.0) return col;
   vec3 c = cameraPosition;
   float L = dir.y < 0.0 ? min(3000.0, max(c.y, 0.0) / -dir.y) : 3000.0;
-  vec2 s = atmoSpan(c, dir, L);
+  vec2 ab = atmoBoxT(c, dir);
+  vec2 s = atmoSpanT(ab, L);
   float tau = atmoHazeDepth(c, dir, s);
   col = mix(col, atmoHazeCol(dir), 1.0 - exp(-tau));
-  return col + atmoGlow(c, dir, s, 1.0);
+  col += atmoGlow(c, dir, s, 1.0);
+  return atmoInterior(col, c, dir, atmoInSpanT(ab, L)); // seen from inside, out of the door
 }
 `;
 
@@ -210,11 +307,13 @@ const PARS_FRAGMENT = /* glsl */ `
     vec3 r = vFogWorld - c;
     float L = length(r);
     vec3 d = r / max(L, 1e-4);
-    vec2 s = atmoSpan(c, d, L);
+    vec2 ab = atmoBoxT(c, d);
+    vec2 s = atmoSpanT(ab, L);
     float pch = atmoPatch(vFogWorld.xz);
     float tau = atmoHazeDepth(c, d, s) * pch;
-    col = mix(col, atmoHazeCol(d), (1.0 - exp(-tau)) * uAtmoOn);
-    return col + atmoGlow(c, d, s, pch) * uAtmoOn;
+    col = mix(col, atmoHazeCol(d), 1.0 - exp(-tau));
+    col += atmoGlow(c, d, s, pch);
+    return atmoInterior(col, c, d, atmoInSpanT(ab, L));
   }
 #endif
 `;
@@ -268,21 +367,36 @@ export function applyAtmosphere(root) {
  * @param {{pos: THREE.Vector3, radius: number, reach: number, color: THREE.Color, gain: number,
  *   intensity: () => number}[]} sources  pos in world metres; radius: core (m); reach: halo
  *   falloff (m); intensity in candela.
+ * @param {{source: object, ambient: THREE.Color, haze: number, ceiling: number}} [interior]
+ *   The tent's own air: `source` (same shape) glows only inside; the room haze takes `ambient`
+ *   (the warm room ambient, flicker-scaled) × `haze`, the incense layer × `ceiling`.
  */
-export function createAtmosphere(sources) {
+export function createAtmosphere(sources, interior = null) {
   if (sources.length > ATMO_GLOWS) throw new Error(`atmosphere: at most ${ATMO_GLOWS} glow sources`);
   const pos = ATMO.uAtmoGlowPos.value;
   const col = ATMO.uAtmoGlowCol.value;
   sources.forEach((s, i) => pos[i].set(s.pos.x, s.pos.y, s.pos.z, s.radius));
+  if (interior) {
+    const s = interior.source;
+    ATMO.uAtmoInGlowPos.value.set(s.pos.x, s.pos.y, s.pos.z, s.radius);
+  }
   return {
     uniforms: ATMO,
     sources,
+    interior,
     update(time) {
       ATMO.uAtmoTime.value = time % 3600;
       for (let i = 0; i < sources.length; i++) {
         const s = sources[i];
         const k = s.intensity() * s.gain;
         col[i].set(s.color.r * k, s.color.g * k, s.color.b * k, s.reach);
+      }
+      if (interior) {
+        const s = interior.source;
+        const k = s.intensity() * s.gain;
+        ATMO.uAtmoInGlowCol.value.set(s.color.r * k, s.color.g * k, s.color.b * k, s.reach);
+        ATMO.uAtmoInHazeCol.value.copy(interior.ambient).multiplyScalar(interior.haze);
+        ATMO.uAtmoInCeilCol.value.copy(interior.ambient).multiplyScalar(interior.ceiling);
       }
     },
   };

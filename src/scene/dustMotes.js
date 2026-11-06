@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { FOG_ADDITIVE_GLSL, rng } from './fireCommon.js';
 import { ATMO, ATMO_GLOWS } from '../render/atmosphere.js';
+import { TABERNACLE as T, m } from '../config/dimensions.js';
 
-// Dust drifting in the firelight around the altar and the torches: one instanced draw of tiny
-// additive quads. Each mote wanders slowly about its home point (layered sines in the vertex
+const f = (v) => v.toFixed(4);
+
+// Dust drifting in the firelight around the altar, the torches and the menorah: one instanced
+// draw of tiny additive quads. Each mote wanders slowly about its home point (layered sines in the vertex
 // shader, no per-frame JS), is lit by the glow sources of render/atmosphere.js (I / d², the same
 // positions and flicker as the haze glows), glints now and then as it tumbles, and fades out
-// close to the camera and beyond ~15 m. Motes too dim to see collapse in the vertex shader.
+// close to the camera and beyond ~15 m. Inside the tent's interior box only the menorah lights
+// them (render/atmosphere.js's interior source, east of the veil); outside only the fires. Motes too dim to see collapse in the vertex shader.
 
 const VERT = /* glsl */ `
 #define GLOWS ${ATMO_GLOWS}
@@ -17,6 +21,9 @@ uniform float uGain;
 uniform float uFar;
 uniform vec4 uAtmoGlowPos[GLOWS];
 uniform vec4 uAtmoGlowCol[GLOWS];
+uniform vec4 uAtmoInGlowPos;
+uniform vec4 uAtmoInGlowCol;
+uniform float uInGain;
 attribute vec3 aHome;
 attribute vec4 aRand;
 varying vec2 vUv;
@@ -37,6 +44,11 @@ void main() {
     float r = uAtmoGlowPos[i].w + 0.4;
     L += uAtmoGlowCol[i].rgb / (dot(dv, dv) + r * r);
   }
+  float inBox = step(${f(m(T.interiorMinX))}, p.x) * step(p.x, ${f(m(T.interiorMaxX))})
+    * step(abs(p.z), ${f(m(T.interiorWidth / 2))}) * step(p.y, ${f(m(T.interiorHeight))});
+  vec3 dm = uAtmoInGlowPos.xyz - p;
+  float rm = uAtmoInGlowPos.w + 0.2;
+  L = L * (1.0 - inBox) + inBox * step(${f(m(T.veil.x))}, p.x) * uInGain * uAtmoInGlowCol.rgb / (dot(dm, dm) + rm * rm);
   // Flat flakes catch the light as they tumble.
   float glint = 0.3 + 0.7 * pow(0.5 + 0.5 * sin(t * (0.6 + 1.8 * aRand.y) + aRand.x * 40.0), 6.0);
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
@@ -73,7 +85,7 @@ void main() {
  *   Cylinders (world metres) the motes' home points fill.
  * @returns {THREE.Mesh} with userData.update(dt, time) and userData.uniforms.
  */
-export function createDustMotes(clouds, { size = 0.008, gain = 0.1, far = 16, seed = 11 } = {}) {
+export function createDustMotes(clouds, { size = 0.008, gain = 0.1, inGain = 1, far = 16, seed = 11 } = {}) {
   const rnd = rng(seed);
   const n = clouds.reduce((s, c) => s + c.count, 0);
   const home = new Float32Array(n * 3);
@@ -103,6 +115,9 @@ export function createDustMotes(clouds, { size = 0.008, gain = 0.1, far = 16, se
     uFar: { value: far },
     uAtmoGlowPos: ATMO.uAtmoGlowPos,
     uAtmoGlowCol: ATMO.uAtmoGlowCol,
+    uAtmoInGlowPos: ATMO.uAtmoInGlowPos,
+    uAtmoInGlowCol: ATMO.uAtmoInGlowCol,
+    uInGain: { value: inGain },
     ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
   };
   const mat = new THREE.ShaderMaterial({

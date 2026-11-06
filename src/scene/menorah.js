@@ -307,6 +307,10 @@ export function createMenorah() {
   light.position.copy(lightPos);
   group.add(light);
   INTERIOR.uIlSource.value.copy(lightPos).add(group.position);
+  group.userData.light = light;
+  // The seven flames' centroid (world m): the menorah as one glow source for the room's haze.
+  group.userData.lampCentre = wicks.reduce((c, w) => c.add(new THREE.Vector3(...w)), new THREE.Vector3())
+    .multiplyScalar(1 / wicks.length).add(group.position);
   const AMBIENT = new THREE.Color(0xffd8a8).multiplyScalar(0.06);
 
   group.userData.update = (dt, time) => {

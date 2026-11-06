@@ -114,20 +114,29 @@ const atmosphere = createAtmosphere([
     : { pos: worldOf(t.group, 0.35), radius: 0.15, reach: 3, color: torchColor, gain: 0.5, intensity: () => 28 * (1 + 0.3 * t.level) }),
   // The pillar of fire: a big, bright body high over the tent.
   { pos: worldOf(pillarLight), radius: 3.0, reach: 25, color: pillarLight.color, gain: 0.8, intensity: () => pillarLight.intensity },
-]);
+], {
+  // Inside the tent: the seven lamps as one source at their centroid, the room haze and the
+  // incense under the ceiling lit by the warm room ambient (menorah.js sets it, flickering).
+  source: { pos: menorah.userData.lampCentre, radius: 0.3, reach: 3.5, color: menorah.userData.light.color, gain: 1, intensity: () => menorah.userData.light.intensity },
+  ambient: INTERIOR.uIlAmbient.value,
+  haze: 0.6,
+  ceiling: 2.5,
+});
 ATMO.uAtmoHazeColor.value.set(FOG_COLOR).multiplyScalar(3.5); // moonlit mist, a little lighter than the fog
 ATMO.uAtmoFogD.value = scene.fog.density;
 ATMO.uAtmoOn.value = params.haze ? 1 : 0;
 updaters.push((dt, t) => atmosphere.update(t));
-// Dust in the firelight around the altar and the lit torches (one instanced draw).
+// Dust in the firelight around the altar, the lit torches and the menorah (one instanced draw).
 const hearth = altar.userData.hearth;
+const lamps = menorah.userData.lampCentre;
 const dust = createDustMotes([
+  { x: lamps.x, z: lamps.z - 0.4, y0: 0.5, y1: 3.2, r: 1.8, count: 220 },
   { x: hearth.x, z: hearth.z, y0: 0.2, y1: 4.5, r: 5.5, count: 700 },
   ...torchFires.filter((t) => t.light).map((t) => {
     const p = worldOf(t.group);
     return { x: p.x, z: p.z, y0: p.y - 1.4, y1: p.y + 1.0, r: 2.2, count: 120 };
   }),
-]);
+], { inGain: 3 });
 scene.add(dust);
 updaters.push(dust.userData.update);
 applyAtmosphere(scene);
