@@ -79,6 +79,7 @@ src/
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
     drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
+    cloth.js            addCloth: firelight through cloth, fibre sheen, wind (WIND, aWind attrs, addWindShadow)
     altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
     altarFire.js        places the coal bed + fire on altar.userData.hearth
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
@@ -153,6 +154,7 @@ src/
 | `?lens=0` | Turn off chromatic aberration, lens dirt and sharpening |
 | `?tm=aces\|agx\|neutral\|none`, `?exposure=<n>` | Tone mapping overrides |
 | `?bob=0` | Turn off head bob |
+| `?wind=0` | Still the cloth (wind strength 0; `scene/cloth.js`) |
 | `?ao=0` | Turn off contact, room and crease ambient occlusion (`window.__tabernacle.ao` holds the strength uniforms) |
 | `?haze=0` | Plain FogExp2: no ground haze and no glow of the fires in the air (`render/atmosphere.js`) |
 
@@ -179,7 +181,7 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust, ao, groundAO`. `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
+composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust, ao, groundAO, wind`. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
 are the haze/glow tuning uniforms (`ATMO`) and `atmosphere.sources[i].gain` each glow's strength. `interior` is the interior
 light uniforms (`INTERIOR`); `updateInteriorVisibility()` shows or hides the interior meshes by
 camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPosition`, and each frame).
