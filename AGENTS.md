@@ -51,7 +51,10 @@ Three.js.
 - `PCFSoftShadowMap` is removed. Use `PCFShadowMap` with `shadow.radius`.
 - `THREE.Clock` is deprecated. Use `THREE.Timer`, as `main.js` already does.
 - Custom `ShaderMaterial`s need the fog chunks (`fog_pars_*`, `fog_fragment`) and the
-  tonemapping/colorspace chunks to match the scene.
+  tonemapping/colorspace chunks to match the scene. The fog chunks are replaced by
+  `render/atmosphere.js` (haze and glows); `fog_vertex` needs a `vec4 mvPosition`, additive
+  sprites use `fogAmount()` from `FOG_ADDITIVE_GLSL`, and materials get the haze uniforms from
+  `applyAtmosphere` in `main.js` (anything added after it reads plain FogExp2).
 - A NaN or negative `pow()` in a shader spreads into black squares once bloom is on. Clamp
   values first.
 
@@ -71,6 +74,7 @@ src/
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES
   scene/
     ground.js           procedural sand
+    dustMotes.js        dust drifting in the firelight round the altar and lit torches (1 instanced draw, lit by the atmosphere's glow sources)
     groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
@@ -111,6 +115,7 @@ src/
     grade.js            GradeShader (shimmer, CA, bloom + lens dirt, exposure, tint, vignette, grain),
                         FinishShader (S-curve, cool black lift, CAS sharpen), lens-dirt texture
     environment.js      generated night environment map
+    atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air (ATMO uniforms, applyAtmosphere)
   debug/params.js       URL parameters
   debug/overlay.js      grid, axes, fps/draw-call readout
 ```
@@ -146,6 +151,7 @@ src/
 | `?lens=0` | Turn off chromatic aberration, lens dirt and sharpening |
 | `?tm=aces\|agx\|neutral\|none`, `?exposure=<n>` | Tone mapping overrides |
 | `?bob=0` | Turn off head bob |
+| `?haze=0` | Plain FogExp2: no ground haze and no glow of the fires in the air (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
 
@@ -170,7 +176,8 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, menorah, interior, updateInteriorVisibility, fires`. `interior` is the interior
+composer, menorah, interior, updateInteriorVisibility, fires, atmosphere, dust`. `atmosphere.uniforms`
+are the haze/glow tuning uniforms (`ATMO`) and `atmosphere.sources[i].gain` each glow's strength. `interior` is the interior
 light uniforms (`INTERIOR`); `updateInteriorVisibility()` shows or hides the interior meshes by
 camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPosition`, and each frame).
 

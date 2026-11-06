@@ -24,8 +24,13 @@ import { createFirstPerson } from './camera/firstPerson.js';
 import { createDebug } from './debug/overlay.js';
 import { createPostFX } from './render/postfx.js';
 import { createNightEnvironment } from './render/environment.js';
+import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
+import { createDustMotes } from './scene/dustMotes.js';
 
 const params = getParams();
+// Ground haze and the fires' glow in the air live in the fog chunks (render/atmosphere.js);
+// they must be in place before any material compiles. `?haze=0` keeps plain FogExp2.
+if (params.haze) installAtmosphereChunks();
 const canvas = document.querySelector('#scene');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -75,12 +80,47 @@ for (const g of elements) {
   colliders.push(...(g.userData.colliders || []));
   if (g.userData.update) updaters.push(g.userData.update);
 }
-const sky = createSky({ fogColor: FOG_COLOR });
+const sky = createSky({ fogColor: FOG_COLOR, atmosphere: params.haze });
 scene.add(sky);
 scene.add(createLighting({ work: params.light === 'work' }));
 // Keep exterior lights, sky fill and the night environment out of the tent, and the menorah's
 // light in (scene/interiorLight.js). Patches every lit material, so call after assembly.
 applyInteriorMask(scene);
+
+// Night atmosphere: glow sources for the haze and the dust motes (world positions fixed at
+// load; brightness follows each light's flicker every frame).
+scene.updateMatrixWorld(true);
+const worldOf = (o, dy = 0) => o.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, dy, 0));
+const altarLight = altarFire.userData.fire.light;
+const torchFires = torches.userData.fires;
+const torchColor = torchFires.find((t) => t.light).light.color;
+const pillarLight = pillarOfFire.userData.light;
+const atmosphere = createAtmosphere([
+  // The altar fire and its fill (one large source in the flames).
+  { pos: worldOf(altarLight), radius: 0.6, reach: 8, color: altarLight.color, gain: 0.5, intensity: () => altarLight.intensity },
+  // Lit torches use their light; the two glow-only ones a matching nominal 28 cd.
+  ...torchFires.map((t) => t.light
+    ? { pos: worldOf(t.light), radius: 0.15, reach: 3, color: t.light.color, gain: 0.5, intensity: () => t.light.intensity }
+    : { pos: worldOf(t.group, 0.35), radius: 0.15, reach: 3, color: torchColor, gain: 0.5, intensity: () => 28 * (1 + 0.3 * t.level) }),
+  // The pillar of fire: a big, bright body high over the tent.
+  { pos: worldOf(pillarLight), radius: 3.0, reach: 25, color: pillarLight.color, gain: 0.8, intensity: () => pillarLight.intensity },
+]);
+ATMO.uAtmoHazeColor.value.set(FOG_COLOR).multiplyScalar(3.5); // moonlit mist, a little lighter than the fog
+ATMO.uAtmoFogD.value = scene.fog.density;
+ATMO.uAtmoOn.value = params.haze ? 1 : 0;
+updaters.push((dt, t) => atmosphere.update(t));
+// Dust in the firelight around the altar and the lit torches (one instanced draw).
+const hearth = altar.userData.hearth;
+const dust = createDustMotes([
+  { x: hearth.x, z: hearth.z, y0: 0.2, y1: 4.5, r: 5.5, count: 700 },
+  ...torchFires.filter((t) => t.light).map((t) => {
+    const p = worldOf(t.group);
+    return { x: p.x, z: p.z, y0: p.y - 1.4, y1: p.y + 1.0, r: 2.2, count: 120 };
+  }),
+]);
+scene.add(dust);
+updaters.push(dust.userData.update);
+applyAtmosphere(scene);
 if (params.light === 'work') INTERIOR.uIlHoh.value = 1; // light the Holy of Holies for inspection
 // The altar's firelight bounce (materials.js addFireBounce) flickers with the fire.
 updaters.push(() => {
@@ -183,7 +223,7 @@ window.addEventListener('resize', () => {
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
-  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp,
+  updateInteriorVisibility, probe, pillarOfFire, groundScatter, camp, atmosphere, dust,
   fires: [altarFire.userData.fire, ...torches.userData.fires],
 };
 

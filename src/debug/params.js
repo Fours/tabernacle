@@ -20,6 +20,8 @@ export function getParams() {
     // lens dirt and sharpening.
     ae: p.get('ae') !== '0',
     lens: p.get('lens') !== '0',
+    // `?haze=0` turns off the ground haze and the fires' glow in the air (render/atmosphere.js).
+    haze: p.get('haze') !== '0',
     // Tone mapping override for comparison: aces | agx | neutral | none.
     tm: p.get('tm') || null,
     // Exposure override (number).

@@ -36,7 +36,9 @@ vec4 billboard(vec3 center, vec2 corner, float size, float stretch) {
 export const FOG_ADDITIVE_GLSL = /* glsl */ `
 #include <fog_pars_fragment>
 float fogAmount() {
-#ifdef USE_FOG
+#if defined(USE_FOG) && defined(ATMO_FOG)
+  return atmoFogAmount(); // FogExp2 plus the ground haze (render/atmosphere.js)
+#elif defined(USE_FOG)
   #ifdef FOG_EXP2
   return 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
   #else

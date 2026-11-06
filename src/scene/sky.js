@@ -1,8 +1,11 @@
 import * as THREE from 'three';
+import { ATMO, ATMO_GLSL } from '../render/atmosphere.js';
 
 // Night sky dome: gradient, procedural star field (anti-aliased hashed-cell discs), a faint
 // Milky Way band with dust lanes, slow twinkle; no moon. One mesh, one draw call.
 // The dome follows the camera, ignores depth/fog, and is drawn first so everything covers it.
+// With the atmosphere on (render/atmosphere.js) the ground haze closes the horizon and the
+// fires' glow in the air continues against the sky (atmoSky), matching the fogged ground.
 
 const vertexShader = /* glsl */ `
 varying vec3 vDir;
@@ -18,6 +21,9 @@ uniform float uTime;
 uniform vec3 uHorizon;
 uniform vec3 uZenith;
 varying vec3 vDir;
+#ifdef ATMO
+${ATMO_GLSL}
+#endif
 
 vec3 hash33(vec3 p) {
   p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -111,6 +117,9 @@ void main() {
   // Dust lanes also dim the stars behind them a little.
   stars *= 1.0 - 0.5 * lane;
   col += stars * horizonFade;
+#ifdef ATMO
+  col = atmoSky(col, d);
+#endif
 
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
@@ -119,7 +128,7 @@ void main() {
 `;
 
 /** Returns a Mesh; call `mesh.userData.update(camera, time)` each frame. */
-export function createSky({ fogColor = 0x0b0f1c } = {}) {
+export function createSky({ fogColor = 0x0b0f1c, atmosphere = false } = {}) {
   const horizon = new THREE.Color(fogColor).multiplyScalar(1.0);
   // A touch lighter/warmer just above the horizon is done in the shader; zenith is darker.
   const zenith = new THREE.Color(fogColor).multiplyScalar(0.28);
@@ -130,7 +139,9 @@ export function createSky({ fogColor = 0x0b0f1c } = {}) {
       uTime: { value: 0 },
       uHorizon: { value: new THREE.Vector3(horizon.r, horizon.g, horizon.b) },
       uZenith: { value: new THREE.Vector3(zenith.r, zenith.g, zenith.b) },
+      ...(atmosphere ? ATMO : {}),
     },
+    defines: atmosphere ? { ATMO: '' } : {},
     side: THREE.BackSide,
     depthWrite: false,
     depthTest: false,

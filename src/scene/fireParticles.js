@@ -235,8 +235,9 @@ void main() {
     float n2 = fNoise(rc * 4.3 + vec2(seed * 3.0 + uTime * 0.05, seed * 9.0));
     float radial = (1.0 - r2) * (1.0 - r2);
     float dens = radial * clamp((n - 0.3) * 2.0 + (n2 - 0.5) * 0.4 + radial * 0.5, 0.0, 1.2);
-    // Thinner as it spreads; appears softly over the flames, dissolves into the haze.
-    float fade = smoothstep(0.0, 0.05, age) * (1.0 - smoothstep(0.35, 1.0, age)) / (1.0 + 1.5 * age);
+    // Thinner as it spreads; dissolves into the haze. It thickens only gradually over the
+    // flames (a young puff is small, so full density there reads as an opaque ball).
+    float fade = smoothstep(0.0, 0.3, age) * (1.0 - smoothstep(0.35, 1.0, age)) / (1.0 + 1.5 * age);
     float a = 1.0 - exp(-dens * uSmokeOpacity * fade * 3.0);
     if (a < 0.002) discard;
     // Fake volume: a sphere normal; light wraps round from the fire side, dense cores are
@@ -246,7 +247,11 @@ void main() {
     float shadow = mix(1.0, 0.3, smoothstep(0.2, 1.1, dens));
     vec3 warm = vec3(1.0, 0.42, 0.14) * vA.z * lit * shadow;
     vec3 amb = uSmokeAmbient * mix(1.0, 0.65, smoothstep(0.3, 1.2, dens));
+  #ifdef ATMO_FOG
+    vec3 col = atmoApply(amb + warm); // fog, ground haze and the glows in front of the puff
+  #else
     vec3 col = mix(amb + warm, fogColor, fog);
+  #endif
     gl_FragColor = vec4(col * a, a);
   } else {
     // ---- Streaks: capsule of half-length vA.y (in widths) ----
