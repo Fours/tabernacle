@@ -62,7 +62,7 @@ the linen ceiling's loops (Ex 26:4); new lights.
 
 ## Steps
 
-- [ ] **Step 1: Floral relief on the table of showbread** — model: Opus / effort: medium
+- [x] **Step 1: Floral relief on the table of showbread** — model: Opus / effort: medium
   **Goal:** Move the reusable geometry helpers from `arkOrnament.js` into a new
   `scene/ornament.js` (ark unchanged). Then build a `showbreadOrnament.js` (or a section of
   `showbread.js` if it stays well under 1000 lines) with gold relief merged into the table's
@@ -103,7 +103,11 @@ the linen ceiling's loops (Ex 26:4); new lights.
   gold; side-by-side screenshots before and after; the other gold (ark, menorah, incense
   altar, boards) is unchanged; no non-runnable programs; lint, build, clean console; no new
   draws; frame time at `table` within budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Step 1 put the relief in `src/scene/showbreadOrnament.js` (84.6k tris,
+  one gold mesh with the table). At night it reads only subtly; grime collecting in the relief's
+  recesses (darker gold between leaves, stems and beads) should help it read. The long sides'
+  frame band sits at pole height, so the poles hide much of it at eye height. Free camera: set
+  `rig.controls.target` and `camera.position`, then `controls.update()`.
 
 - [ ] **Step 3: Floral relief on the altar of incense** — model: Opus / effort: medium
   **Goal:** Using `scene/ornament.js`, add gold relief to the incense altar, merged into its
