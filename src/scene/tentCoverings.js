@@ -186,10 +186,14 @@ const HAIR_TILE = { curtains: 2, heightCubits: 4 };
 const SKIN_TILE = 8;
 // Wind ripple (m) at the coverings' hems and the front flaps' lower edge (cloth.js).
 const HEM_WIND = 0.014;
+// Front-end ties sit this far (cubits along the path) in from the side slants' front edges.
+const TIE_END = 0.12;
+// Silver hem ring (m): wire-centre radius and wire radius (outer diameter ~4.5 cm, 6 mm wire).
+const RING_R = 0.0195, RING_T = 0.003;
 
 /**
  * Build the goat-hair, ram-skin and tachash coverings with their stakes and cords.
- * Returns { group, bronzeParts, ropeParts, rect, footprint, stakes } (parts are geometries to
+ * Returns { group, bronzeParts, ropeParts, silverParts, rect, footprint, stakes } (parts are geometries to
  * merge; footprint {minX, maxX, minZ, maxZ} in cubits bounds the slants and stakes; stakes are
  * their [x, z] positions in meters).
  */
@@ -238,6 +242,15 @@ export function createCoverings() {
     const k = Math.sin(Math.PI * Math.min(1, Math.max(0, (s - a) / (b - a || 1))));
     return 0.35 * k + 0.65 * k * k;
   };
+  // Tie points (s) per layer: where a cord holds the hem through a silver ring. The stakes, and
+  // a little in from each front end (the diagonal cords). The hem's wind ripple dies out toward
+  // them, so the ring, patch and cord can stay still with the cloth they're sewn to.
+  const ties = stakeS.map((list) => [...list, TIE_END, path.total - TIE_END].sort((a, b) => a - b));
+  const tieWind = (li, s) => {
+    let dmin = Infinity;
+    for (const p of ties[li]) dmin = Math.min(dmin, Math.abs(s - p));
+    return smooth(0.04, 0.6, dmin);
+  };
 
   // ---- Shared shape: the goat hair's slant per path sample ---------------------------------
   const sideKey = (side) => (side === 'W' ? 'back' : 'side');
@@ -285,7 +298,14 @@ export function createCoverings() {
     return sl.arc + L.reach * sl.L - (L.scallop + wob) * scallopK(li, smp.s);
   };
 
-  const samples = path.samples(0.33, 24).map((smp) => ({ smp, sl: slantOf(smp) }));
+  // Path samples, with a column exactly at every layer's tie so the hem there is where the
+  // ring is put (the scallop is pointed at a stake).
+  const sList = path.samples(0.33, 24);
+  for (const s of ties.flat()) {
+    if (sList.every((q) => Math.abs(q.s - s) > 0.01)) sList.push(path.at(s));
+  }
+  sList.sort((a, b) => a.s - b.s);
+  const samples = sList.map((smp) => ({ smp, sl: slantOf(smp) }));
   const FRONT_N = 48;
 
   // ---- One layer's geometry ----------------------------------------------------------------
@@ -326,15 +346,37 @@ export function createCoverings() {
     const ARC = 4;
     let base = pos.length / 3;
     for (const { smp, sl } of samples) {
-      const Q = hemQ(li, smp, sl);
+      const Q = hemQ(li, smp, sl), tw = tieWind(li, smp.s);
       for (let k = 0; k <= ARC + dropRows; k++) {
         const q = k <= ARC ? (sl.arc * k) / ARC : sl.arc + ((Q - sl.arc) * (k - ARC)) / dropRows;
         // Ripple over the last ~1.5 cubits above the layer's own hem (layers stay apart).
         const r = Math.max(0, 1 - (Q - q) / 1.5);
-        push(pointAt(smp, sl, q, d), uv(smp.x + smp.nx * q, smp.z + smp.nz * q), HEM_WIND * r * r);
+        push(pointAt(smp, sl, q, d), uv(smp.x + smp.nx * q, smp.z + smp.nz * q), HEM_WIND * r * r * tw);
       }
     }
     strip(samples.length, ARC + dropRows + 1, base);
+    // Reinforcing patches at the ties: the cloth doubled over the hem (goat hair) or a leather
+    // tab (skins, narrower at the top), folded round the hem edge. They don't ripple (nor does
+    // the hem there).
+    const P = li === 0 ? { w: 0.11, h: 0.2, top: 1 } : { w: 0.08, h: 0.16, top: 0.75 };
+    const PE = 0.008; // each face's normal offset from the cloth (cubits)
+    const rows = [[1, PE], [0.5, PE], [0, PE], [0, -PE], [0.5, -PE], [1, -PE]]; // [height fraction, offset]
+    for (const s of ties[li]) {
+      base = pos.length / 3;
+      const COLS = 5;
+      for (let i = 0; i < COLS; i++) {
+        const fc = (2 * i) / (COLS - 1) - 1;
+        for (const [hf, e] of rows) {
+          const sp = Math.min(path.total, Math.max(0, s + fc * P.w * (1 - hf + hf * P.top)));
+          const smp = path.at(sp), sl = slantOf(smp);
+          const q = hemQ(li, smp, sl) - hf * P.h;
+          // Texture shifted so the patch's weave (or hide) doesn't line up with the cloth's.
+          const [pu, pv] = uv(smp.x + smp.nx * q, smp.z + smp.nz * q);
+          push(pointAt(smp, sl, q, d + e), [pu + 0.37, pv + 0.21], 0);
+        }
+      }
+      strip(COLS, rows.length, base);
+    }
     // Front flap: over the front edge and straight down, soft vertical folds.
     base = pos.length / 3;
     const FROWS = 6;
@@ -445,23 +487,67 @@ export function createCoverings() {
     bronzeParts.push(part(g, { pos: [m(p.x), m(p.y), m(p.z)] }));
   }
 
-  // ---- Stakes and cords (Ex 35:18; 38:20) --------------------------------------------------
-  // Each stake's cord runs straight from its layer's hem; the cords of the upper layers pass
-  // over the lower layers' slants, so their stakes stand out beyond where the slant would meet
-  // the ground. Front ends: a diagonal cord from each side's hem corner, east and outward.
-  const ropeParts = [];
+  // ---- Stakes, cords and hem rings (Ex 35:18; 38:20) ---------------------------------------
+  // Each stake's cord runs straight from a silver ring in its layer's hem; the cords of the
+  // upper layers pass over the lower layers' slants, so their stakes stand out beyond where the
+  // slant would meet the ground. Front ends: a diagonal cord from a ring just in from each
+  // side's hem corner, east and outward. The ring lies in the cloth's plane, set through the
+  // patch with most of it below the hem; the cord loops round its wire and is knotted.
+  const ropeParts = [], silverParts = [];
   const stakeGeo = stakeGeometry();
   const fp = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
   const stakes = []; // [x, z] in meters (contact AO)
+  const tiePoints = []; // ring centres [x, y, z] in meters, per layer (debug, presets)
   const Y = new THREE.Vector3(0, 1, 0), M = new THREE.Matrix4(), qt = new THREE.Quaternion();
-  const addStake = (hem, sx, sz) => {
-    const ox = sx - hem.x, oz = sz - hem.z, ol = Math.hypot(ox, oz);
+  const cub = (v) => v / m(1); // meters to cubits
+  const toM = (v) => [m(v.x), m(v.y), m(v.z)];
+  const basisPart = (geo, X, Yv, at) => {
+    const B = new THREE.Matrix4().makeBasis(X, Yv, new THREE.Vector3().crossVectors(X, Yv));
+    B.setPosition(...toM(at));
+    return part(geo.applyMatrix4(B));
+  };
+  // Ring, loop and knot at tie s of layer li; returns the knot (cubits), where the cord leaves.
+  const addRing = (li, s, neckOf) => {
+    const d = layers[li].gap;
+    const smp = path.at(s), sl = slantOf(smp), Q = hemQ(li, smp, sl);
+    const hem = pointAt(smp, sl, Q, d);
+    const u = hem.clone().sub(pointAt(smp, sl, Q - 0.1, d)).normalize(); // down the cloth
+    const n = pointAt(smp, sl, Q, d + 0.1).sub(hem).normalize(); // out of the cloth
+    const t = new THREE.Vector3().crossVectors(u, n).normalize(); // along the hem
+    const c = pointAt(smp, sl, Q + 0.01, d); // centre just below the hem: the upper third in the patch
+    tiePoints.push([...toM(c), li]);
+    silverParts.push(basisPart(new THREE.TorusGeometry(RING_R, RING_T, 6, 20), t, u.clone().negate(), c));
+    // Loop round the wire's lowest point, in the plane across the wire, toward the stake.
+    const b = c.clone().addScaledVector(u, cub(RING_R));
+    const neck = neckOf(b);
+    const dp = neck.clone().sub(b);
+    dp.addScaledVector(t, -dp.dot(t)).normalize();
+    const e = new THREE.Vector3().crossVectors(dp, t).normalize();
+    const LOOP_T = 0.006, LOOP_R = RING_T + LOOP_T + 0.0005, KNOT = 0.035; // m
+    ropeParts.push(basisPart(new THREE.TorusGeometry(LOOP_R, LOOP_T, 5, 8, Math.PI), e, dp.clone().negate(), b));
+    const knot = b.clone().addScaledVector(dp, cub(KNOT));
+    for (const sg of [1, -1]) {
+      const a = b.clone().addScaledVector(e, sg * cub(LOOP_R));
+      ropeParts.push(rod(a, knot.clone().addScaledVector(e, sg * cub(0.004)), cub(LOOP_T), 5));
+    }
+    // Knot: a lump with two wraps.
+    ropeParts.push(basisPart(new THREE.SphereGeometry(1, 7, 5).scale(0.011, 0.016, 0.011), e, dp, knot));
+    for (const k of [-0.007, 0.007]) {
+      const w = new THREE.TorusGeometry(0.0105, 0.0028, 4, 9).rotateX(Math.PI / 2);
+      ropeParts.push(basisPart(w, e, dp, knot.clone().addScaledVector(dp, cub(k))));
+    }
+    return knot;
+  };
+  // Stake at (sx, sz), leaning away from `from`; its cord runs from layer li's ring at tie s.
+  const addStake = (from, sx, sz, li, s) => {
+    const ox = sx - from.x, oz = sz - from.z, ol = Math.hypot(ox, oz);
     qt.setFromAxisAngle(new THREE.Vector3(oz / ol, 0, -ox / ol), STAKE_TILT);
     M.compose(new THREE.Vector3(m(sx), 0, m(sz)), qt, new THREE.Vector3(1, 1, 1));
     bronzeParts.push(part(stakeGeo.clone().applyMatrix4(M)));
     stakes.push([m(sx), m(sz)]);
     const neck = new THREE.Vector3(0, STAKE_NECK, 0).applyQuaternion(qt).divideScalar(m(1)).add(new THREE.Vector3(sx, 0, sz));
-    ropeParts.push(rod(hem, neck, 0.016, 4));
+    const knot = addRing(li, s, () => neck);
+    ropeParts.push(rod(knot, neck, 0.016, 4));
     fp.minX = Math.min(fp.minX, sx);
     fp.maxX = Math.max(fp.maxX, sx);
     fp.minZ = Math.min(fp.minZ, sz);
@@ -473,18 +559,19 @@ export function createCoverings() {
       const smp = path.at(s);
       const sl = slantOf(smp);
       const hem = pointAt(smp, sl, hemQ(li, smp, sl) - 0.06, L.gap + 0.03);
-      addStake(hem, smp.x + smp.nx * out(smp), smp.z + smp.nz * out(smp));
+      addStake(hem, smp.x + smp.nx * out(smp), smp.z + smp.nz * out(smp), li, s);
     }
-    for (const s of [0, path.total]) {
+    for (const [s, sTie] of [[0, TIE_END], [path.total, path.total - TIE_END]]) {
       const smp = path.at(s);
       const sl = slantOf(smp);
       const hem = pointAt(smp, sl, hemQ(li, smp, sl) - 0.06, L.gap + 0.03);
       const hemO = sl.H[0] * L.reach;
       const run = out(smp) - hemO;
-      addStake(hem, hem.x + 0.45 * run, smp.z + smp.nz * (hemO + 0.85 * run));
+      addStake(hem, hem.x + 0.45 * run, smp.z + smp.nz * (hemO + 0.85 * run), li, sTie);
     }
   });
   stakeGeo.dispose();
+  group.userData.tiePoints = tiePoints;
 
-  return { group, bronzeParts, ropeParts, rect, footprint: fp, stakes };
+  return { group, bronzeParts, ropeParts, silverParts, rect, footprint: fp, stakes };
 }

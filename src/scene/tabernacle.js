@@ -291,6 +291,10 @@ export function createTabernacle() {
   const ropeMesh = new THREE.Mesh(merge(cov.ropeParts), ROPE);
   ropeMesh.name = 'tent-cords';
   group.add(ropeMesh);
+  // Silver rings in the coverings' hems at the cord ties (reconstruction; DECISIONS.md).
+  const hemRings = new THREE.Mesh(merge(cov.silverParts), SILVER);
+  hemRings.name = 'silver-hem-rings';
+  group.add(hemRings);
 
   // Colliders: the side and west walls with the slanted coverings out to their furthest stakes,
   // the front corners' diagonal stakes, the tied-back door cloth at the north side of the

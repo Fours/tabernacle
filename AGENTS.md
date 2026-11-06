@@ -98,7 +98,7 @@ src/
     torches.js          torch posts, wrapped heads, small fires and lights
     pillarOfFire.js     pillar of fire over the Holy of Holies: a mass of altar-like flames (FLAME_GLSL) + light shaft (one volumetric draw), embers, its light
     tabernacle.js       boards, sockets, bars, door beam + screen (south half drawn across, north tied back)
-    tentCoverings.js    goat hair drape, ram skins, tachash, clasps
+    tentCoverings.js    goat hair drape, ram skins, tachash, clasps, stakes, cords, silver hem rings
     laver.js            bronze basin on a stand
     lighting.js         night fill (hemisphere + moon); ?light=work adds bright fill
     interiorLight.js    per-fragment inside/outside light mask, warm room ambient (INTERIOR)
@@ -191,7 +191,9 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `fireclose` (eye height ~2 m out
   from the altar's south-east horn, on the flames), `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
-  the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW)
+  the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW),
+  `hemtie` (eye height ~1.5 m from a goat-hair cord tie on the north side: silver ring, patch,
+  loop and knot, with a ram-skin tie above)
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `smoke` (the
   incense altar's smoke from the side), `ark`, `mercyseat` (close above the lid from the east: the blood
   between the cherubim), `holyofholies`

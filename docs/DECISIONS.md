@@ -130,10 +130,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   0.7 cubit and the tachash has a 0.12 lip. Under the slants the outside of the boards and
   bars is visible.
 - 2026-11-05: Each visible layer has its own row of bronze stakes and cords (Ex 35:18; 38:20),
-  67 in all: 9.5 / 7.75 / 6.5 cubits out on the sides, 6 / 4.8 / 3.8 at the back, every
+  65 in all (21 / 22 / 22): 9.5 / 7.75 / 6.5 cubits out on the sides, 6 / 4.8 / 3.8 at the back, every
   4 cubits offset ±1.33 between layers; radial stakes at the back corners, diagonal ones at
   the front ends. Hems scallop between stakes. Stakes and cords merge into the bronze and rope
   meshes. Colliders (`tabernacle.js`) cover the footprint out to the goat-hair stakes.
+- 2026-11-06: Silver hem rings at every cord tie (reconstruction at the user's direction;
+  Ex 35:18 and 38:20 give the pegs and cords but not how they hold the coverings). At each of
+  the 65 ties a silver ring (4.5 cm outer diameter, 6 mm wire) lies in the cloth's plane,
+  centred just below the hem so its upper third is set into a reinforcing patch: the goat hair
+  doubled over the hem, a narrower leather tab on the skins (the same mesh as their layer,
+  texture shifted so the patch reads). The cord loops round the ring's wire, is knotted with
+  two wraps 3.5 cm below, and runs on to its stake. The front ends' diagonal cords tie
+  0.12 cubit in from the corner. The hems' wind ripple fades to nothing within ~0.6 cubit of
+  a tie, so ring, patch, cord and cloth don't separate; the path gets a sample column at each
+  tie so the pointed scallop is exactly at the ring. Rings: one merged `SILVER` mesh (+1 draw);
+  loops and knots merge into the rope mesh. Preset `hemtie`.
 
 ## Interior furnishings
 

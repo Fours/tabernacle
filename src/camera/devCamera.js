@@ -40,6 +40,9 @@ export const PRESETS = {
   // From the courtyard's north-east, low: the coverings stepping out along the north side
   // (tachash, ram skins, goat hair) with their rows of stakes and cords.
   coverings: { pos: [m(12), m(3.5), m(-22)], target: [m(-14), m(3), m(-9)], fov: 60 },
+  // Eye height ~1.5 m out from a goat-hair tie on the north side: its silver ring, patch, cord
+  // loop and knot, with a ram-skin tie higher up the slant. Meters: the tie is at (-8.62, 0.68, -4.72).
+  hemtie: { pos: [-7.95, eye, -5.75], target: [-8.4, 1.3, -4.4], fov: 65 },
   // From the south-west: the west and south slants, the corner fan and the stakes.
   coveringsw: { pos: [m(-46), m(4.5), m(22)], target: [m(-22), m(3), m(5)], fov: 60 },
   // Inside the Holy Place: just in from the entrance looking west at eye height.
