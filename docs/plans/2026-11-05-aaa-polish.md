@@ -95,7 +95,7 @@ biblical dimensions or layout.
   setup unchanged. Lint, build, clean console; budget.
   **Carry-over notes:** Done (a7da940, 41d0870, 1 round). fire.js is split into fireCommon/fireFlames/fireSmoke; `flames` now counts sheets. Under some flicker/exposure states the lower centre at `fire` reads pale peach — Step 3 may tone the core down a touch if smoke/sparks make it look hot-white.
 
-- [ ] **Step 3: Sparks, embers and smoke** — model: Opus / effort: medium
+- [x] **Step 3: Sparks, embers and smoke** — model: Opus / effort: medium
   **Goal:** The altar's secondary effects at AAA quality. Sparks: bright HDR streaks
   stretched along their velocity (motion-blur look), rising on the updraft, swirling, cooling
   from yellow to red and winking out; occasional bursts. Smoke: a fuller column rising from the
@@ -111,7 +111,7 @@ biblical dimensions or layout.
   a soft lit plume with no quad edges or hard intersections with the grate, and nothing
   flickers or sorts badly from the free camera circling the altar. Lint, build, clean console;
   budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (c603534, 1 round).
 
 - [ ] **Step 4: Pillar of fire, volumetric** — model: Opus / effort: medium
   **Goal:** Rebuild the pillar's look (shape, sizes, position, light unchanged) so it reads as
@@ -154,7 +154,7 @@ biblical dimensions or layout.
   glow in the air, the ground haze is visible but doesn't hide the scatter near the player,
   and nothing pops when walking (`rig.simulate`). Custom shaders (fire, smoke, pillar, sky,
   laver water, scatter) match the new fog. Lint, build, clean console; budget.
-  **Carry-over notes:**
+  **Carry-over notes:** (from Step 3) at `fire` the altar smoke just above the flame tips reads as a bright, opaque puffy ball; make its lower part thinner and more transparent (smoke params in altarFire.js / fireParticles.js) while touching the fog. No depth texture exists in the post chain (soft particles would need one).
 
 - [ ] **Step 6: Grounding — contact and baked AO** — model: Opus / effort: medium
   **Goal:** Make everything sit on the ground and in its corners. (a) Soft contact-AO blobs on

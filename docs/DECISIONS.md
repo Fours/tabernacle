@@ -201,6 +201,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: Torch flames: radius 0.08, height 0.5, sheet width 0.34, base 0.03 m below the
   post top so they wrap the burning crown; light offset 0.35 (same height as before). The coal
   bed's glow follows the flame `level` (0.75 + 0.25·noise + 0.4·level).
+- 2026-11-05: Fire particles (`fireParticles.js`): each fire draws its sparks, embers, ash and
+  smoke in one instanced draw with premultiplied blending. Sparks and embers write alpha 0
+  (additive, order-free); smoke and ash composite normally. Instances draw in a fixed order
+  (smoke, ash, embers, sparks), unsorted, so nothing pops. A fire is 2 draws: flame sheets plus
+  particles.
+- 2026-11-05: Sparks are motion-blur streaks: a capsule between the analytic path now and
+  28 ms earlier (45 ms embers, 80 ms ash), at least ~1.2 px wide with brightness scaled to keep
+  the energy. They cool pale yellow → orange → red and wink out at their own age; about a
+  third fly in small bursts. The altar has 90 sparks, 24 embers and 50 ash flecks.
+- 2026-11-05: Altar smoke: 56 soft puffs (circular falloff × rotating noise) rising ~6 m from
+  0.75 × flame height, dissolving by ~7 m, lit warm by the fire (1/(1+d²) falloff, wrapped
+  sphere normal) with darker dense cores over a cool grey-blue ambient (0.04, 0.05, 0.07). No
+  soft-particle depth fade (no depth texture); the puffs start above the rim instead.
+- 2026-11-05: The flame ramp's yellow-white core stop is (2.2, 1.25, 0.36) × core, so the lower
+  centre isn't hot-white.
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
   1.04 m above the rim, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
   light reach the far side of the courtyard.
@@ -215,7 +230,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   7 point lights; the pillar of fire makes 8. (Removed: the pair flanking the gate at x 54,
   z ±12, and the pair outside the east corners at x 54, z ±28. Only the pair nearest the
   spawn, x 59, z ±7, stands outside the gate.)
-  Torch fires have no smoke.
+  Each torch fire has 8 sparks, 2 embers and a thin dark wisp (16 small puffs, 1.6 m high).
 - 2026-11-05: Each torch is a 2.4 m wooden post in a stone cairn, with a charred,
   pitch-soaked cloth wrap on top and glowing HDR cracks.
 - 2026-11-05: The menorah has one warm point light (0xffc080, 8 cd, decay 1.6, no shadow),
