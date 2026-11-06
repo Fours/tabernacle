@@ -1,81 +1,27 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { MipBloomPass } from './bloom.js';
+import { createEyeAdaptation } from './exposure.js';
+import { GradeShader, FinishShader, createLensDirtTexture } from './grade.js';
 
-// Post chain: scene (HDR, MSAA) → bloom → night grade (heat shimmer, split tone, vignette,
-// grain) → OutputPass (tone mapping + sRGB). `?fx=0` bypasses it all: the scene then renders
-// straight to the canvas with the same tone mapping, so the two can be compared.
-
-const GradeShader = {
-  name: 'NightGrade',
-  uniforms: {
-    tDiffuse: { value: null },
-    uTime: { value: 0 },
-    uAspect: { value: 1 },
-    // Heat shimmer: screen-space ellipse above the altar fire (uv center, radius in uv.y units).
-    uShimmer: { value: new THREE.Vector4(0.5, 0.5, 0.1, 0) }, // x, y, radius, strength
-    uVignette: { value: 0.38 },
-    uGrain: { value: 0.035 },
-  },
-  vertexShader: /* glsl */ `
-varying vec2 vUv;
-void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-`,
-  fragmentShader: /* glsl */ `
-uniform sampler2D tDiffuse;
-uniform float uTime;
-uniform float uAspect;
-uniform vec4 uShimmer;
-uniform float uVignette;
-uniform float uGrain;
-varying vec2 vUv;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
-}
-void main() {
-  vec2 uv = vUv;
-  // Heat shimmer: rising, wobbling refraction inside a soft ellipse above the fire.
-  if (uShimmer.w > 0.0) {
-    vec2 d = (uv - uShimmer.xy) / uShimmer.z;
-    d.x *= uAspect * 1.6;
-    float mask = 1.0 - smoothstep(0.35, 1.0, length(d));
-    if (mask > 0.0) {
-      vec2 q = vec2(uv.x * uAspect, uv.y) / uShimmer.z;
-      vec2 off = vec2(noise(q * 9.0 + vec2(0.0, -uTime * 2.6)), noise(q * 9.0 + vec2(5.2, -uTime * 3.1))) - 0.5;
-      uv += off * uShimmer.w * mask;
-    }
-  }
-  vec3 col = texture2D(tDiffuse, uv).rgb;
-  // Night split tone (linear, pre tone mapping): cool lift in the darks, warmth kept in the lights.
-  float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  float dark = 1.0 - smoothstep(0.0, 0.08, l);
-  col += vec3(0.0010, 0.0016, 0.0042) * dark;
-  col = mix(col, col * vec3(0.92, 0.97, 1.12), dark * 0.6);
-  // Vignette.
-  vec2 v = (vUv - 0.5) * vec2(uAspect, 1.0);
-  col *= 1.0 - uVignette * smoothstep(0.25, 0.95, length(v));
-  // Film grain, multiplicative so it scales with brightness (invisible in pure black).
-  float g = hash(vUv * 1000.0 + fract(uTime * 7.13) * 100.0) - 0.5;
-  col *= 1.0 + g * uGrain * 2.0;
-  gl_FragColor = vec4(col, 1.0);
-}
-`,
-};
+// Post chain: scene (HDR, MSAA) → mip-chain bloom (bloom.js) + eye adaptation (exposure.js)
+// → grade (grade.js: shimmer, chromatic aberration, bloom + lens dirt, adapted exposure,
+// filmic tint, split tone, vignette, grain) → OutputPass (ACES + sRGB) → finish (S-curve,
+// cool black lift, CAS sharpening). `?fx=0` bypasses it all: the scene then renders straight
+// to the canvas with the same tone mapping, so the two can be compared. `?ae=0` holds the
+// exposure at 1; `?lens=0` turns off the aberration, lens dirt and sharpening.
 
 /**
  * @param {THREE.WebGLRenderer} renderer
  * @param {THREE.Scene} scene
  * @param {THREE.Camera} camera
- * @param {{ enabled?: boolean, shimmerSource?: THREE.Vector3 }} o
+ * @param {{ enabled?: boolean, shimmerSource?: THREE.Vector3, ae?: boolean, lens?: boolean }} o
  *   shimmerSource: world position at the base of the heat shimmer (above the altar fire).
  */
-export function createPostFX(renderer, scene, camera, { enabled = true, shimmerSource = null } = {}) {
+export function createPostFX(renderer, scene, camera, { enabled = true, shimmerSource = null, ae = true, lens = true } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
   const pr = renderer.getPixelRatio();
   const target = new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, {
@@ -85,25 +31,48 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
 
-  // Bloom at half resolution. Threshold is in linear HDR: flames, embers and the torch-head
-  // cracks are well above it; firelit linen and metal highlights mostly are not.
-  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.6, 0.55, 2.0);
+  // Bloom: threshold in linear HDR with a soft knee (1.5–2.5). Flames, embers, the torch-head
+  // cracks and the pillar's core are well above it; firelit linen, metal highlights and the
+  // pillar's thin shaft are not.
+  const bloom = new MipBloomPass(size.x * pr, size.y * pr, { threshold: 2.0, knee: 0.5, scatter: 0.7 });
   composer.addPass(bloom);
 
+  const adaptation = createEyeAdaptation();
+  const dirt = createLensDirtTexture();
   const grade = new ShaderPass(GradeShader);
+  const u = grade.uniforms;
+  u.tBloom.value = bloom.texture;
+  u.tWide.value = bloom.wideTexture;
+  u.tDirt.value = dirt;
+  u.uAE.value = ae ? 1 : 0;
+  // The grade reads the adapted exposure; update it from the HDR frame just before.
+  const gradeRender = grade.render.bind(grade);
+  let dt = 0;
+  grade.render = (r, writeBuffer, readBuffer, ...rest) => {
+    if (u.uAE.value > 0) adaptation.update(r, readBuffer.texture, dt);
+    u.tExposure.value = adaptation.texture;
+    gradeRender(r, writeBuffer, readBuffer, ...rest);
+  };
   composer.addPass(grade);
   composer.addPass(new OutputPass());
+  const finish = new ShaderPass(FinishShader);
+  composer.addPass(finish);
+  const lensDefaults = { ca: u.uCA.value, dirt: u.uDirt.value, sharpen: finish.uniforms.uSharpen.value };
+  function setLens(on) {
+    u.uCA.value = on ? lensDefaults.ca : 0;
+    u.uDirt.value = on ? lensDefaults.dirt : 0;
+    finish.uniforms.uSharpen.value = on ? lensDefaults.sharpen : 0;
+  }
+  setLens(lens);
 
   const sp = new THREE.Vector3();
   const camDir = new THREE.Vector3();
-  const u = grade.uniforms;
-
   function updateShimmer() {
     if (!shimmerSource) return;
     sp.copy(shimmerSource);
     const dist = sp.distanceTo(camera.position);
     camera.getWorldDirection(camDir);
-    const facing = sp.clone().sub(camera.position).dot(camDir) > 0;
+    const facing = (sp.x - camera.position.x) * camDir.x + (sp.y - camera.position.y) * camDir.y + (sp.z - camera.position.z) * camDir.z > 0;
     sp.project(camera);
     // Radius ~1.6 m of world space at the source, in uv.y units.
     const fovScale = 1 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
@@ -118,12 +87,25 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
     composer,
     bloom,
     grade,
+    finish,
+    adaptation,
     enabled,
+    /** Tuning handles: bloom (threshold, knee, scatter), grade, finish, adaptation uniforms. */
+    uniforms: { bloom: bloom.uniforms, grade: u, finish: finish.uniforms, adaptation: adaptation.uniforms },
+    setLens,
+    /** Camera inside the tent (main.js, each frame): picks the adaptation key. */
+    setInside: (inside) => adaptation.setInside(inside),
+    /** Debug only (CPU readback): { stops, exposure, logLum } of the eye adaptation. */
+    readExposure: () => adaptation.read(renderer),
+    lastTime: null,
     render(time) {
       if (!fx.enabled) {
         renderer.render(scene, camera);
         return;
       }
+      // Seconds since the last frame, capped so a stalled tab doesn't jump the adaptation.
+      dt = fx.lastTime === null ? 0 : THREE.MathUtils.clamp(time - fx.lastTime, 0, 0.25);
+      fx.lastTime = time;
       u.uTime.value = time % 1000;
       updateShimmer();
       composer.render();
@@ -132,8 +114,11 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
       composer.setPixelRatio(renderer.getPixelRatio());
       composer.setSize(w, h);
       u.uAspect.value = w / h;
+      const pr2 = renderer.getPixelRatio();
+      finish.uniforms.uTexel.value.set(1 / (w * pr2), 1 / (h * pr2));
     },
   };
   u.uAspect.value = size.x / size.y;
+  finish.uniforms.uTexel.value.set(1 / (size.x * pr), 1 / (size.y * pr));
   return fx;
 }

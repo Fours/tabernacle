@@ -171,7 +171,7 @@ if (debug) scene.add(debug.group);
 
 // Heat shimmer rises from just above the altar's flames.
 const shimmerSource = new THREE.Vector3(altar.userData.hearth.x, altar.userData.hearth.y + 1.3, altar.userData.hearth.z);
-const fx = createPostFX(renderer, scene, camera, { enabled: params.fx, shimmerSource });
+const fx = createPostFX(renderer, scene, camera, { enabled: params.fx, shimmerSource, ae: params.ae, lens: params.lens });
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -199,6 +199,7 @@ renderer.setAnimationLoop((time) => {
   for (const update of updaters) update(dt, t);
   if (probe.captureMs === null) probe.capture();
   renderer.info.reset();
+  fx.setInside(interiorShown === 2);
   fx.render(t);
   if (debug) debug.update(renderer);
 });

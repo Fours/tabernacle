@@ -102,7 +102,11 @@ src/
     devCamera.js        free orbit camera + PRESETS
     firstPerson.js      pointer-lock walking, collision, head bob, simulate()
   render/
-    postfx.js           composer: MSAA render, bloom, night grade + heat shimmer, output
+    postfx.js           composer: MSAA render → bloom → grade → OutputPass (ACES) → finish; `fx` API
+    bloom.js            MipBloomPass: Karis 13-tap prefilter, soft-knee gate, 7-level down/up mip chain
+    exposure.js         eye adaptation on the GPU: 64×32 log-lum → 1×1 ping-pong adapted exposure
+    grade.js            GradeShader (shimmer, CA, bloom + lens dirt, exposure, tint, vignette, grain),
+                        FinishShader (S-curve, cool black lift, CAS sharpen), lens-dirt texture
     environment.js      generated night environment map
   debug/params.js       URL parameters
   debug/overlay.js      grid, axes, fps/draw-call readout
@@ -135,6 +139,8 @@ src/
 | `?light=work` | Bright neutral fill so geometry is readable. Always also check real night lighting |
 | `?debug=1` | Grid, axes, fps/draw-call readout |
 | `?fx=0` | Turn off post-processing |
+| `?ae=0` | Hold the eye-adaptation exposure at 1 |
+| `?lens=0` | Turn off chromatic aberration, lens dirt and sharpening |
 | `?tm=aces\|agx\|neutral\|none`, `?exposure=<n>` | Tone mapping overrides |
 | `?bob=0` | Turn off head bob |
 
@@ -178,6 +184,10 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
   Reload the page, or call `fx.render(t)` to force a fresh frame.
 - **Stale console errors:** errors from mid-edit hot reloads can stay in the console. Reload
   before trusting `read_console_messages`.
+- **Post chain:** `fx.uniforms.{bloom, grade, finish, adaptation}` are live tuning handles;
+  `fx.readExposure()` reads back the adapted exposure (debug only). The hidden pane runs ~1 fps,
+  so to watch adaptation call `fx.setInside(...)` and `fx.render(t)` yourself with `t` stepped
+  by 1/60.
 - **Pointer lock:** the pane refuses pointer lock, so mouse look can't be tested there. WASD
   works without it.
 

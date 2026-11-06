@@ -16,6 +16,10 @@ export function getParams() {
     debug: p.get('debug') === '1',
     // Post-processing chain (bloom, grade, shimmer); `?fx=0` renders the plain scene.
     fx: p.get('fx') !== '0',
+    // `?ae=0` holds the eye-adaptation exposure at 1; `?lens=0` turns off chromatic aberration,
+    // lens dirt and sharpening.
+    ae: p.get('ae') !== '0',
+    lens: p.get('lens') !== '0',
     // Tone mapping override for comparison: aces | agx | neutral | none.
     tm: p.get('tm') || null,
     // Exposure override (number).
