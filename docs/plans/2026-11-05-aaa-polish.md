@@ -113,7 +113,7 @@ biblical dimensions or layout.
   budget.
   **Carry-over notes:** Done (c603534, 1 round).
 
-- [ ] **Step 4: Pillar of fire, volumetric** — model: Opus / effort: medium
+- [x] **Step 4: Pillar of fire, volumetric** — model: Opus / effort: medium
   **Goal:** Rebuild the pillar's look (shape, sizes, position, light unchanged) so it reads as
   a towering, slowly churning column of fire, not a blurred streak. A short raymarch (e.g.
   16–32 steps, jittered and blue-noise dithered) through the existing bounding volume with 3D
@@ -133,7 +133,7 @@ biblical dimensions or layout.
   geometry and no NaN squares; it animates smoothly. Frame time at `firepillarfoot` is reported
   (allowed up to ~+1.5 ms fast mode for this step, since it can fill the screen). Lint, build,
   clean console.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (0ab4b7c, 99b5075; 2 rounds — the first lost the column's height and looked torn).
 
 - [ ] **Step 5: Night atmosphere — haze and glow** — model: Opus / effort: medium
   **Goal:** Make the air visible. (a) Height fog: a thin, ground-hugging haze layer (denser in

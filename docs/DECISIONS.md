@@ -274,7 +274,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: The pillar of fire's light (`scene/pillarOfFire.js`): 0xffb35a, 90 cd, decay
   1.6, no shadow, ~13.5 m up in the fire's body (above the tent's interior box, so the mask
   classes it as outside), breathing ±10%. Raised with the fire, so 60 → 90 cd to keep the roof
-  lit. The column's core is HDR (gain 2.6) and blooms; the thin shaft (gain 0.5) stays under
+  lit. The column's core is HDR (ramp up to ~2.2) and blooms; the thin shaft (gain 0.5) stays under
   bloom's threshold.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
@@ -385,11 +385,23 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   must be patched explicitly) and, gentler, on GOLD_OVERLAY so the walls don't blotch. Inside
   the tent the interior mask sets the hue, so the wear shows as darkening and roughness. No
   textures or extra draws; about +0.35 ms at `holyplace`.
-- 2026-11-05: The pillar of fire is one analytic-volume draw: a flared bounding cylinder drawn
-  back faces only, whose shader takes the ray's closest approach to the axis with a Gaussian
-  density, wobbled by fire.js noise (`NOISE_GLSL`) and brighter with path length when looking
-  along it (capped ×3). It gets half the scene fog (`uFogMix` 0.5) so the shaft stays visible
-  from the courtyard, and a 4% multiplicative dither against banding.
+- 2026-11-05: The pillar of fire is two draws: a raymarched volume and an embers swirl. A
+  flared bounding cylinder (back faces only) marches the column inside a 3.0×radius+0.5 m
+  cylinder, 6–28 steps ~0.35 m apart, jittered with time-stable interleaved gradient noise,
+  through a 64³ tiling value-noise 3D texture built once. The noise only displaces the
+  column's surface (slow billows rolling up, upward-stretched tongues at the rim, a gentle
+  ~1.2 m warp of the lookups) and modulates brightness inside; it never cuts holes, so the
+  column is one coherent body with a hot core along its axis, coloured by the shared
+  blackbody ramp (`FIRE_RAMP_GLSL` in `fireCommon.js`). Mostly emissive (emission 0.4/m,
+  absorption 0.35/m; it dims the sky behind by up to 35%). The envelope tapers to a soft point
+  over the lowest 4.5 m, then narrows linearly to 45% at the top; brightness per metre is
+  divided by that narrowing, then falls to 35% from 40% to 100% of the height; density fades
+  from 50% to 102% and the colour drifts 70% toward the shaft's yellow, so it hands over to
+  the shaft with no neck. Billows ~1.2–1.7 m/s, tongues ~3 m/s, a slow twist. The shaft stays
+  analytic (closest approach, Gaussian across, slow ripple, gain 0.5, capped ×3 along the
+  path) and fades in from half the column's height. Both get half the scene fog (`uFogMix`
+  0.5) and a 4% dither. 56 large embers spiral up around the column in one instanced draw.
+  Cost (throttled) ~+0.45 ms at `firepillarfoot`, ~+0.2 ms at `gate`.
 
 ## Camera & controls
 
