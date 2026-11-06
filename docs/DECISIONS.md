@@ -220,7 +220,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-05: Dust motes (`scene/dustMotes.js`) drift in the firelight round the altar (700)
   and each lit torch (120): one instanced additive draw, lit by I/d² from the atmosphere's glow
   sources, faded beyond 16 m. The altar smoke thickens only over the first 30% of a puff's life
-  (opacity 0.2, fire glow 1.4) so it doesn't read as an opaque ball over the flames.
+  — now the first 15% (`smokeFadeIn` 0.15; torches keep 0.3) at opacity 0.26, fire glow 1.4 — a faint plume just above the flames, not an opaque ball.
 - 2026-11-05: The altar PointLight is the only shadow caster: 0xff8a3a, 105 cd, decay 1.5,
   1.04 m above the rim, 1024 cube map, PCF radius 5. Decay 1.5 isn't physical; it lets the
   light reach the far side of the courtyard.
@@ -256,7 +256,8 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   `uIlTint` 0.5, `uIlDirect` 0.7).
 - 2026-11-05: A static reflection probe (256 px HalfFloat cube with mips) is captured once on
   the first frame from (−4.5, 1.8, 0) m with the interior shown; `__tabernacle.probe.capture()`
-  re-captures it after interior changes. Gold east of the veil samples it, projected onto the
+  re-captures it after interior changes. The probe sample is not multiplied by the gold tint
+  (`ilTint`): it already sees the gold room, and tinting again turned shadowed gold coppery. Gold east of the veil samples it, projected onto the
   Holy Place's walls, blurred by roughness (`uIlProbeLod` 5.5, `uIlProbeMix` 0.85,
   `uIlProbeGain` 1.15). The probe is unbound during capture (no feedback). No per-frame cost;
   capture takes ~60–200 ms warm.
@@ -346,7 +347,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   strength 1.8. It replaced UnrealBloomPass, whose fixed-weight Gaussian levels gave a halo
   ring around small hot sources. 3. Eye adaptation (`render/exposure.js`), all on the GPU:
   64×32 log luminance, then a 1×1 ping-pong pass. 4. Grade (`render/grade.js`, linear HDR):
-  heat shimmer, edge chromatic aberration 0.0025, bloom, procedural lens dirt lit only by the
+  heat shimmer, edge chromatic aberration 0.0016 (faded in on r², smoothstep 0.06–0.5, so the frame centre and gold bevels stay clean), bloom, procedural lens dirt lit only by the
   widest bloom level, adapted exposure, warm highlights (0.06), saturation roll-off in the
   brights (0.18), cool split tone in the darks, vignette, grain. 5. OutputPass (ACES, exposure
   1.1, sRGB). 6. Finish (display-referred): S-curve (exponent 1.12 around 0.4), cool black lift
@@ -360,7 +361,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   clamp keeps the Holy of Holies dark (×1.23 at most) and the court from washing out.
 - 2026-11-05: Night haze is `FogExp2(0x0b0f1c, 0.012)` plus, through replaced fog chunks
   (`render/atmosphere.js`), a ground-hugging haze (0.05/m at the ground, falling off 1.3/m
-  with height, drifting noise, colour fog × 3.5) and the glow of the fires in the air:
+  with height, drifting noise, colour fog × 3.5, dimmed to 25% (`uAtmoHazeDown`) on steep downward rays: the mist is lit from above, so looking down it is back-scattered and dim) and the glow of the fires in the air:
   closed-form point-source in-scattering along each view ray for the altar, the six torches
   and the pillar of fire (base air 0.003/m plus local haze, Henyey-Greenstein g 0.6, per-source
   reach 8 / 3 / 25 m, gains 0.5 / 0.5 / 0.8 of each light's candela; without the reach the 1/h
@@ -429,7 +430,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   unshadowed 8 cd point light inside the tent at (−4.5, 1.8, 0) m.
 - 2026-11-05: Cloth (`scene/cloth.js`): textiles carry a shared patch. Firelight shows
   through cloth by a diffuse transmission term per point light (wrapped −N·L with a forward
-  lobe, tinted by the cloth's colour, unshadowed but distance-attenuated), classed by the
+  lobe, tinted by the cloth's colour, unshadowed but distance-attenuated; the back-lighting factor cubed ×1.4 so folds facing the light glow and valleys darken, an extra (10 m/d)^0.7 falloff capped at 1.5, and the albedo's variation counted twice so denser weave and the dusty hem pass less light), classed by the
   interior mask from the cloth's back side, so the menorah only shines through cloth whose back
   faces the tent and the altar and torches only through cloth facing out. Strengths: linen
   hangings 0.35, gate and door screens 0.3, veil 0.2, goat hair 0.04, skins and the linen
