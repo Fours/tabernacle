@@ -156,7 +156,7 @@ biblical dimensions or layout.
   laver water, scatter) match the new fog. Lint, build, clean console; budget.
   **Carry-over notes:** Done (1ac709f, 1 round; +2.3 ms throttled, slightly over the per-step budget, accepted). The altar smoke is now very faint at `fire`.
 
-- [ ] **Step 6: Grounding — contact and baked AO** — model: Opus / effort: medium
+- [x] **Step 6: Grounding — contact and baked AO** — model: Opus / effort: medium
   **Goal:** Make everything sit on the ground and in its corners. (a) Soft contact-AO blobs on
   the ground under pillars, sockets, pegs, torch cairns, the altar, the laver, the utensils
   and the stakes (one instanced decal draw, or folded into the ground shader from a small list
@@ -175,7 +175,7 @@ biblical dimensions or layout.
   look) and the tent's corners and wall bases darken; no dark halos where nothing stands and no
   double-darkening where the altar's real shadow already falls. Lint, build, clean console;
   budget.
-  **Carry-over notes:**
+  **Carry-over notes:** Done (dbd8ef7, 1 round; ~+0.15 ms, 0 draws). Moderate rather than dramatic; `uAoDirect` 0.7 is the knob.
 
 - [ ] **Step 7: Cloth — translucency, wind and sheen** — model: Opus / effort: medium
   **Goal:** Make the textiles look like cloth. (a) Translucency: linen hangings, the gate and

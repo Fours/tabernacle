@@ -349,8 +349,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   gives plain FogExp2.
 - 2026-11-05: The night environment is generated in `render/environment.js` (intensity 0.35):
   cool sky with a warm band at the horizon, so metals pick up warm reflections.
-- 2026-11-05: Ambient occlusion is skipped. GTAO needs a second scene render (about 85 more
-  draw calls) and clashes with the transparent fire sprites.
+- 2026-11-05: No screen-space AO (GTAO would need a second scene render, ~85 more draws, and
+  clashes with the transparent fire sprites). Instead, AO without a screen pass (`scene/ao.js`,
+  0 extra draws, ~+0.15 ms):
+  - Ground contact AO: modules list their footprints as `userData.aoShapes` (circles, boxes,
+    segments with falloff and strength); `main.js` bakes them once into a 4 cm R8 texture over
+    the court (~15 ms at load), sampled by the sand shader.
+  - Global terms in the interior mask patch: surfaces near the ground and not facing up darken
+    (over 0.45 m); inside the tent the side walls, west wall, ceiling and veil darken the
+    surfaces facing them (over 1.1 m), so wall bases, seams and corners darken.
+  - Crease AO from a few analytic boxes (`addBoxAO`): the altar's ledge and body, the courtyard
+    pillars' socket, shaft foot and capital flare (local space, own material copies), the ark's
+    crown. Menorah joints rely on the gold patina's crease term.
+  - All terms scale indirect light fully and direct light by `uAoDirect` (0.7), so the altar's
+    real shadow isn't doubled. `?ao=0` turns AO off; `window.__tabernacle.ao` holds the
+    uniforms.
 - 2026-11-05: The sky is a dome that follows the camera (`scene/sky.js`, 1 draw call):
   - Stars are drawn in anti-aliased hashed cells, 5 layers.
   - Milky Way with dust lanes.
