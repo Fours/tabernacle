@@ -193,7 +193,8 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
   the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW)
 - **Interior:** `holyplace`, `ceiling`, `veil`, `menorah`, `table`, `incense`, `smoke` (the
-  incense altar's smoke from the side), `ark`, `holyofholies`
+  incense altar's smoke from the side), `ark`, `mercyseat` (close above the lid from the east: the blood
+  between the cherubim), `holyofholies`
 - **Torches and sky:** `torch`, `sky`, `firepillar` (the pillar of fire and its shaft from the courtyard),
   `firepillarfoot` (its tapered foot), `firepillarfar` (the whole shaft from the desert)
 - **Camp:** `camp` (high oblique from the east: Levites' rows, tribal blocks, lanes), `campwalk`

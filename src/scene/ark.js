@@ -290,6 +290,114 @@ function cherubParts() {
   return [bakeBody(), ...wingParts(1), ...wingParts(-1)];
 }
 
+// ---- Blood on the mercy seat ---------------------------------------------------------------
+// The Day of Atonement's sprinkled blood (Lev 16:14-15), dried on the lid: a main splotch in
+// the centre between the cherubim's knees (placement at the user's direction) and drops and
+// radial flecks round it, more to the east, the side it was sprinkled from. A mask in the ark's
+// own gold material (object space, seeded, no texture, no draw) limited to up-facing fragments
+// at the lid's height inside its plain field, so the cherubim, frieze and crown stay clean.
+// Metalness under 0.5 inside the stain so the interior mask doesn't re-colour it as gold.
+
+const BLOOD_FIELD = [0.24, 0.27]; // half-extent (m) of the plain lid the stain may touch (x, z)
+
+/** Seeded drops: [x, z, radius, elongation] in m; elongated ones point away from the centre. */
+function bloodDrops() {
+  let s = 0x5eed1614;
+  const rnd = () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [];
+  const place = (n, dMin, dMax, rMin, rMax, eMin, eMax) => {
+    for (let i = 0; i < n;) {
+      // Two thirds aimed east (+x) within +-70 degrees, the rest anywhere.
+      const a = rnd() < 0.67 ? (rnd() - 0.5) * 2.4 : rnd() * Math.PI * 2;
+      const d = dMin + (dMax - dMin) * Math.pow(rnd(), 0.8);
+      const x = Math.cos(a) * d, z = Math.sin(a) * d;
+      const r = rMin + (rMax - rMin) * rnd() * rnd();
+      const e = eMin + (eMax - eMin) * rnd();
+      if (Math.abs(x) + r * e > BLOOD_FIELD[0] - 0.01 || Math.abs(z) + r * e > BLOOD_FIELD[1] - 0.01) continue;
+      out.push([x, z, r, e]);
+      i++;
+    }
+  };
+  place(22, 0.105, 0.23, 0.0015, 0.009, 1, 1.35); // round drops, 3 mm to ~2 cm across
+  place(6, 0.11, 0.18, 0.0025, 0.005, 3, 5.5); // flecks flung outward
+  return out;
+}
+
+function addMercySeatBlood(mat) {
+  const f = (v) => v.toFixed(5);
+  const drops = bloodDrops();
+  const list = drops.map((d) => `vec4(${d.map(f).join(', ')})`).join(',\n    ');
+  const body = `
+{
+  vec3 bq = vMsLocal;
+  float bUp = inverseTransformDirection(normal, viewMatrix).y;
+  if (bUp > 0.8 && abs(bq.y - ${f(SEAT_TOP)}) < 0.0015 && abs(bq.x) < ${f(BLOOD_FIELD[0])} && abs(bq.z) < ${f(BLOOD_FIELD[1])}) {
+    vec2 p = bq.xz;
+    // Main splotch: lobed outline warped by noise, ~22 cm across.
+    vec2 w = p + (vec2(msNoise(vec3(p * 22.0, 1.3)), msNoise(vec3(p * 22.0, 7.9))) - 0.5) * 0.035
+               + (vec2(msNoise(vec3(p * 70.0, 3.1)), msNoise(vec3(p * 70.0, 5.4))) - 0.5) * 0.008;
+    float a = atan(w.y, w.x);
+    float rad = 0.1 + 0.014 * sin(3.0 * a + 1.3) + 0.009 * sin(5.0 * a + 0.4) + 0.006 * sin(7.0 * a + 2.2)
+              + 0.012 * smoothstep(0.6, 1.0, cos(a - 0.35)); // a run toward the east
+    float dMain = length(w) - rad;
+    float d = dMain;
+    const vec4 drops[${drops.length}] = vec4[](
+    ${list});
+    for (int i = 0; i < ${drops.length}; i++) {
+      vec4 dr = drops[i];
+      vec2 dir = normalize(dr.xy);
+      vec2 o = p - dr.xy;
+      vec2 uv = vec2(dot(o, dir), dot(o, vec2(-dir.y, dir.x)));
+      uv.x /= dr.w * (1.0 + 0.35 * sign(uv.x)); // flecks: blunt head inward, tail outward
+      d = min(d, (length(uv) - dr.z));
+    }
+    float aa = max(fwidth(d), 2e-4);
+    float cov = 1.0 - smoothstep(-aa, aa, d);
+    if (cov > 0.0) {
+      // Thickness: deep in the splotch, broken by pooling noise; the drops are thin.
+      float pool = msNoise(vec3(p * 45.0, 9.2)) * 0.6 + msNoise(vec3(p * 140.0, 2.7)) * 0.4;
+      float thick = clamp(-dMain / 0.035, 0.0, 1.0) * (0.55 + 0.6 * pool);
+      float rim = 1.0 - smoothstep(0.0, max(0.0025, aa * 1.5), -d); // dried, darker edge
+      vec3 col = mix(vec3(0.36, 0.07, 0.034), vec3(0.2, 0.034, 0.018), clamp(thick, 0.0, 1.0));
+      col = mix(col, vec3(0.09, 0.015, 0.008), rim * 0.7);
+      diffuseColor.rgb = mix(diffuseColor.rgb, col, cov);
+      // Below the interior mask's metal threshold (0.5), so it isn't re-coloured as gold, but
+      // not zero: the Holy of Holies is lit almost only by reflections, and a dielectric's 4%
+      // would leave the stain a black hole. This gives it a dark red-brown sheen instead.
+      metalnessFactor = mix(metalnessFactor, mix(0.4, 0.48, clamp(thick, 0.0, 1.0)), cov);
+      roughnessFactor = mix(roughnessFactor, mix(0.62, 0.32, clamp(thick, 0.0, 1.0)), cov);
+    }
+  }
+}`;
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    if (prev) prev(shader, renderer);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vMsLocal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMsLocal = transformed;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vMsLocal;
+float msHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float msNoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  vec3 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(msHash(i), msHash(i + vec3(1, 0, 0)), u.x), mix(msHash(i + vec3(0, 1, 0)), msHash(i + vec3(1, 1, 0)), u.x), u.y),
+             mix(mix(msHash(i + vec3(0, 0, 1)), msHash(i + vec3(1, 0, 1)), u.x), mix(msHash(i + vec3(0, 1, 1)), msHash(i + vec3(1, 1, 1)), u.x), u.y), u.z);
+}`)
+      // After the patina and crease AO (normal_fragment_maps), before lighting.
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${body}`);
+  };
+  const key = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => `${key}|mercy-blood`;
+  mat.needsUpdate = true;
+}
+
 // ---- Assembly -----------------------------------------------------------------------------
 
 export function createArk() {
@@ -314,6 +422,7 @@ export function createArk() {
   gold.name = 'ark-gold';
   gold.defines = { ...gold.defines, IL_GLINT: '' };
   addGoldPatina(gold, GOLD_PATINA); // clone() doesn't copy GOLD's onBeforeCompile patch
+  addMercySeatBlood(gold);
   const mesh = new THREE.Mesh(merge(parts), gold);
   mesh.name = 'ark-gold';
   group.add(mesh);

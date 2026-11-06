@@ -32,6 +32,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   from hooks every ~0.32 m, with soft folds (`addHangingHalf` in `tabernacle.js`). The north
   half stays gathered and tied back. The drawn half has no collider, so the player can walk
   through it as well as through the open half.
+- 2026-11-06: Blood on the mercy seat: read as the Day of Atonement's blood (Lev 16:14–15),
+  dried on the lid. The text has it sprinkled "upon the mercy seat eastward, and before the
+  mercy seat seven times"; the main splotch sits in the centre of the lid at the user's
+  direction, with the drops and flecks round it thrown mostly east, the side it was sprinkled
+  from.
 
 ## Courtyard
 
@@ -242,6 +247,16 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   scalloped rosette plates behind the rings. The mercy seat has a palmette-and-bud frieze with
   corner rosettes, left plain under the cherubim's feet. Real relief merged into the one gold
   mesh: ~205k triangles in all, ~26 ms to build, +0.26 ms at `holyofholies`.
+- 2026-11-06: Blood on the mercy seat (`addMercySeatBlood` in `scene/ark.js`; see
+  "Interpretation of the text"): a mask in the ark's own gold material, object space, no texture
+  or draw. Only fragments facing up (n.y > 0.8) within 1.5 mm of the lid's top and inside its
+  plain field (|x| < 0.24, |z| < 0.27 m) are tested, so the cherubim, frieze and crown stay
+  clean. A ~22 cm noise-warped, lobed splotch with a run to the east, plus 22 seeded round
+  drops (3 mm–2 cm) and 6 radial flecks, about two thirds of them east. Dried red-brown,
+  darker where thick and at a dried rim, glossier (roughness 0.32) where thick. Metalness
+  0.4–0.48: under the interior mask's metal threshold (0.5) so it isn't re-coloured as gold,
+  but not 0, because the Holy of Holies is lit almost only through reflections and a plain
+  dielectric read as a black hole. +0.07 ms at `holyofholies`; preset `mercyseat`.
 
 ## Fire & lighting
 

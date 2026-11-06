@@ -59,6 +59,9 @@ export const PRESETS = {
   smoke: { pos: [m(INCENSE_ALTAR.x + 3.6), m(3.4), m(INCENSE_ALTAR.z + 5)], target: [m(INCENSE_ALTAR.x - 0.3), m(3.1), m(INCENSE_ALTAR.z)], fov: 50 },
   // Close three-quarter view of the ark and cherubim from the south-east, a little above.
   ark: { pos: [m(ARK.x + 3.9), m(3.7), m(ARK.z + 3.3)], target: [m(ARK.x), m(2), m(ARK.z)], fov: 50 },
+  // Close above the mercy seat from the east, looking down between the cherubim at the blood
+  // on the lid (Lev 16:14-15).
+  mercyseat: { pos: [m(ARK.x + 2.2), m(3.4), m(ARK.z + 0.15)], target: [m(ARK.x), m(1.67), m(ARK.z)], fov: 45 },
   // Just west of the veil (between its middle pillars) at eye height, looking west at the ark.
   holyofholies: { pos: [m(TABERNACLE.veil.x - 1.3), eye, 0], target: [m(ARK.x), m(1.8), 0], fov: 62 },
   // Low (0.8 m) just outside the south hangings near the altar, looking north-west across the
