@@ -37,6 +37,9 @@ export const ATMO = {
   uAtmoHaze: { value: 0.05 }, // haze extinction at the ground, 1/m
   uAtmoFalloff: { value: 1.3 }, // 1/m: the haze thins to ~14% by 1.5 m
   uAtmoHazeColor: { value: new THREE.Color() }, // set from the fog colour in main.js
+  // The haze's in-scattered light on steep downward rays, as a fraction of uAtmoHazeColor: the
+  // mist is lit from above (sky, moon), so a viewer looking down sees it back-scattered and dim.
+  uAtmoHazeDown: { value: 0.25 },
   uAtmoNoise: { value: 0.7 }, // how patchy the haze is (0 = uniform)
   uAtmoNoiseScale: { value: 0.06 }, // 1/m
   uAtmoWind: { value: new THREE.Vector2(0.22, 0.09) }, // m/s drift of the haze pattern
@@ -57,6 +60,7 @@ uniform float uAtmoOn;
 uniform float uAtmoHaze;
 uniform float uAtmoFalloff;
 uniform vec3 uAtmoHazeColor;
+uniform float uAtmoHazeDown;
 uniform float uAtmoNoise;
 uniform float uAtmoNoiseScale;
 uniform vec2 uAtmoWind;
@@ -108,6 +112,10 @@ float atmoHazeDepth(vec3 c, vec3 d, vec2 s) {
   float avg = abs(dy) > 1e-3 ? (e0 - e1) / dy : e0;
   return uAtmoHaze * max(s.y - s.x, 0.0) * avg;
 }
+// The haze's colour along a ray of direction d: full on level rays, dimmer looking down.
+vec3 atmoHazeCol(vec3 d) {
+  return uAtmoHazeColor * mix(1.0, uAtmoHazeDown, smoothstep(0.08, 0.45, -d.y));
+}
 // Light of the glow sources scattered toward the eye along [s0, s1].
 vec3 atmoGlow(vec3 c, vec3 d, vec2 s, float pch) {
   vec3 sum = vec3(0.0);
@@ -143,7 +151,7 @@ vec3 atmoSky(vec3 col, vec3 dir) {
   float L = dir.y < 0.0 ? min(3000.0, max(c.y, 0.0) / -dir.y) : 3000.0;
   vec2 s = atmoSpan(c, dir, L);
   float tau = atmoHazeDepth(c, dir, s);
-  col = mix(col, uAtmoHazeColor, 1.0 - exp(-tau));
+  col = mix(col, atmoHazeCol(dir), 1.0 - exp(-tau));
   return col + atmoGlow(c, dir, s, 1.0);
 }
 `;
@@ -205,7 +213,7 @@ const PARS_FRAGMENT = /* glsl */ `
     vec2 s = atmoSpan(c, d, L);
     float pch = atmoPatch(vFogWorld.xz);
     float tau = atmoHazeDepth(c, d, s) * pch;
-    col = mix(col, uAtmoHazeColor, (1.0 - exp(-tau)) * uAtmoOn);
+    col = mix(col, atmoHazeCol(d), (1.0 - exp(-tau)) * uAtmoOn);
     return col + atmoGlow(c, d, s, pch) * uAtmoOn;
   }
 #endif
