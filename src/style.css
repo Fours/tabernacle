@@ -233,6 +233,139 @@ body {
   50% { opacity: 0.45; }
 }
 
+/* Touch title screen (mobile mode): fits a short landscape phone (375 px tall), clear of the
+   rotated safe-area insets. */
+.fp-intro--touch {
+  padding: var(--safe-top) calc(var(--safe-right) + 16px) var(--safe-bottom) calc(var(--safe-left) + 16px);
+}
+
+.fp-intro--touch .fp-controls dd i {
+  margin: 0 0 0 4px;
+}
+
+@container (max-height: 520px) {
+  .fp-intro--touch .fp-intro__inner {
+    justify-content: center;
+    padding-top: 0;
+  }
+
+  .fp-intro--touch .fp-title__the {
+    font-size: 16px;
+  }
+
+  .fp-intro--touch .fp-title__main {
+    font-size: 38px;
+  }
+
+  .fp-intro--touch .fp-rule {
+    margin: 12px 0 14px;
+  }
+
+  .fp-intro--touch .fp-controls {
+    gap: 10px 18px;
+    font-size: 14px;
+  }
+
+  .fp-intro--touch .fp-verse {
+    margin-top: 20px;
+  }
+
+  .fp-intro--touch .fp-verse blockquote {
+    font-size: 15px;
+  }
+
+  .fp-intro--touch .fp-verse figcaption {
+    margin-top: 6px;
+    font-size: 11px;
+  }
+}
+
+/* Corner button that brings the title screen back (mobile; replaces Esc). */
+.fp-menu {
+  position: absolute;
+  z-index: 9;
+  top: calc(var(--safe-top) + 12px);
+  right: calc(var(--safe-right) + 12px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(236, 210, 158, 0.45);
+  border-radius: 50%;
+  background: rgba(4, 4, 7, 0.4);
+  box-shadow: 0 0 14px rgba(255, 170, 70, 0.12);
+  cursor: pointer;
+  transition: opacity 0.45s ease, visibility 0.45s;
+}
+
+.fp-menu span {
+  width: 14px;
+  height: 1px;
+  background: rgba(236, 210, 158, 0.85);
+}
+
+.fp-menu.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Floating thumbstick (mobile/touchControls.js): base ring, run ring and knob, while held.
+   JS sets the size and position (transform) in logical px. */
+.touch-stick {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  display: none;
+  border: 1px solid rgba(236, 210, 158, 0.4);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(4, 4, 7, 0.1), rgba(4, 4, 7, 0.35));
+  pointer-events: none;
+}
+
+.touch-stick.active {
+  display: block;
+}
+
+.touch-stick__run {
+  position: absolute;
+  border: 1px dashed rgba(236, 210, 158, 0.18);
+  border-radius: 50%;
+}
+
+.touch-stick__knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 1px solid rgba(236, 210, 158, 0.65);
+  border-radius: 50%;
+  background: rgba(236, 210, 158, 0.18);
+  box-shadow: 0 0 12px rgba(255, 170, 70, 0.2);
+}
+
+.touch-stick.running .touch-stick__knob {
+  background: rgba(236, 210, 158, 0.38);
+  box-shadow: 0 0 18px rgba(255, 170, 70, 0.45);
+}
+
+/* Measures the rotated safe area for the stick (touchControls.js). */
+.touch-safe {
+  position: absolute;
+  top: var(--safe-top);
+  right: var(--safe-right);
+  bottom: var(--safe-bottom);
+  left: var(--safe-left);
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .debug-readout {
   position: fixed;
   top: 8px;

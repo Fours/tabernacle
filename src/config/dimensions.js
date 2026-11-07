@@ -296,6 +296,17 @@ export const PLAYER = {
   // Subtle head bob while walking: vertical amplitude (m) and steps per metre.
   bobAmplitude: 0.025,
   bobStride: 0.8,
+  // Touch controls (mobile/touchControls.js; non-biblical, logical CSS px of the landscape frame).
+  // Drag to look: radians per logical px (a swipe across an 812 px screen turns ~185 degrees).
+  touchLookSpeed: 0.004,
+  // Floating thumbstick: base radius (px). Deflection is 0..1 of it: below `stickDeadZone`
+  // nothing, full walking speed by `stickWalkFull`, running past `stickRunAt`.
+  stickRadius: 56,
+  stickDeadZone: 0.1,
+  stickWalkFull: 0.7,
+  stickRunAt: 0.85,
+  // Left fraction of the logical screen where a touch spawns the stick (elsewhere it looks).
+  stickZone: 0.4,
 };
 
 // Torches (artistic license, not in the text): wooden posts with pitch-soaked wrapped heads.

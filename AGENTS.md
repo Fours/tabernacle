@@ -134,6 +134,7 @@ src/
     environment.js      generated night environment map
     atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
   mobile/device.js      mobile mode, forced landscape: isMobile, rotation, getViewport() (logical landscape size), toLogical(x, y) (screen point -> rotated frame), onViewportChange(cb); sizes/rotates #app
+  mobile/touchControls.js mobile: floating thumbstick (left 40%) + drag to look, by pointerId, through toLogical()
   debug/params.js       URL parameters
   debug/overlay.js      grid, axes, fps/draw-call readout
 ```
@@ -229,6 +230,13 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
 - **Walking:** `rig.simulate({f, b, l, r, run}, seconds)` walks the player at 60 Hz and
   returns `{x, z}`. Other rig calls: `rig.reset()`, `rig.getPosition()`, `rig.setPosition()`
   and `rig.setYaw()`. Example: `rig.simulate({f: true}, 3)` walks 4.2 m west from the spawn.
+- **Touch (mobile mode):** `rig.touch` is the touch controls (`null` on desktop): `move`
+  `{x, y, run}` is the live stick input, `releaseAll()`, `setEnabled()`. `rig.simulate` also takes an
+  analog vector, e.g. `rig.simulate({y: 1}, 3)` (x right, y forward, magnitude = fraction of
+  walk speed; add `run: true` to run). To drive it, hide the title (`.fp-intro` `.click()`),
+  dispatch `PointerEvent`s (`pointerdown` on the canvas, `pointermove`/`pointerup` on `window`,
+  each with a `pointerId`; client coordinates are physical, so invert `toLogical` when rotated),
+  then step `rig.update(1/60)` yourself. The pane's window `blur` releases held touches.
 - **Performance:** the browser pane is usually hidden, which slows `requestAnimationFrame` to
   about 1 fps, so the fps readout is meaningless. Measure frame time by timing N
   `fx.render(t)` calls (the whole post chain), closed by a 1-pixel `readPixels` (waits for
