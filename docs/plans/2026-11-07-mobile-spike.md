@@ -191,6 +191,8 @@ exactly as before).
     Kyle: "still looks pretty good and it's probably necessary on mobile". **Make pixel ratio 1
     the mobile tier's default** (`src/config/quality.js`). The camp didn't change (34 both
     ways), so something other than pixel count caps it there.
+  - With `?qk=pixelRatio:1,msaa:0` (Kyle): only a few fps more in places and it "looks
+    significantly worse". **Keep MSAA 2 on mobile.**
   - The walk-to-run step at 85% stick deflection hasn't been judged on the phone yet.
   - **Slow loading on the phone (saved for later, goes in the findings note):** the dev server
     sends ~72 unminified modules (6.4 MB) against one 1.1 MB file (325 KB gzipped) in

@@ -784,3 +784,5 @@ Branch `mobile-spike` only; not on `main`.
 - **Pixel ratio 1 on the phone** (`?qk=pixelRatio:1`): start 30 fps, altar 32, Holy Place 31,
   camp 34 (was 24/26/25/34 at 1.5). Kyle: still looks good, probably necessary on mobile.
   It's the mobile default from Step 4.
+- **MSAA stays at 2 on the phone:** turning it off on top of pixel ratio 1 gained only a few fps
+  and looked significantly worse (Kyle).
