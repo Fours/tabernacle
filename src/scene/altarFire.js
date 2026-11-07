@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createFire } from './fire.js';
 import { createFirewood } from './firewood.js';
+import { QUALITY } from '../config/quality.js';
 
 /**
  * The perpetual fire on the bronze altar (Lev 6:13), burning up through the top grate: a bed
@@ -47,6 +48,7 @@ export function createAltarFire(hearth) {
     // enough that the rim's shadow edge falls past the carrying poles (not a lit line on them).
     lightOffset: [0, 1.12 - BASE, 0],
     shadowRadius: 5,
+    shadowMapSize: QUALITY.shadowMapSize, // 1024 (high)
     flicker: 0.22,
     castShadow: true,
     wind: [0.06, 0.02],

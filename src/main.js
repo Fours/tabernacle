@@ -22,13 +22,14 @@ import { TABERNACLE as T, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
-import { createDebug } from './debug/overlay.js';
+import { createDebug, createFpsReadout } from './debug/overlay.js';
 import { createPostFX } from './render/postfx.js';
 import { createNightEnvironment } from './render/environment.js';
 import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
 import { createDustMotes } from './scene/dustMotes.js';
 import { WIND, updateWind } from './scene/cloth.js';
 import { getViewport, onViewportChange } from './mobile/device.js';
+import { QUALITY } from './config/quality.js';
 
 const params = getParams();
 // Ground haze and the fires' glow in the air live in the fog chunks (render/atmosphere.js);
@@ -36,8 +37,10 @@ const params = getParams();
 if (params.haze) installAtmosphereChunks();
 const canvas = document.querySelector('#scene');
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Quality tier (config/quality.js): `high` is the desktop (antialias on, pixel ratio cap 2).
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.canvasAA });
+const maxPixelRatio = Math.min(window.devicePixelRatio, QUALITY.pixelRatio);
+renderer.setPixelRatio(maxPixelRatio);
 const viewport = getViewport();
 renderer.setSize(viewport.width, viewport.height);
 // One shadow-casting light: the altar fire (PCFSoftShadowMap was removed in three r18x).
@@ -191,7 +194,7 @@ function updateInteriorVisibility() {
 // off and unbound, so nothing samples the target being drawn into.
 const PROBE_POS = new THREE.Vector3(m((T.veil.x + T.interiorMaxX) / 2), m(4), 0);
 const probe = {
-  target: new THREE.WebGLCubeRenderTarget(256, {
+  target: new THREE.WebGLCubeRenderTarget(QUALITY.probeSize, { // 256 (high)
     type: THREE.HalfFloatType,
     generateMipmaps: true,
     minFilter: THREE.LinearMipmapLinearFilter,
@@ -253,11 +256,43 @@ onViewportChange(({ width, height }) => {
   fx.setSize(width, height);
 });
 
+// Dynamic resolution (quality knob, off unless asked for): when the rolling rAF interval stays
+// over budget for 2 s, drop the pixel ratio a notch (never below 1); raise it back after 6 s
+// comfortably under the budget the higher ratio would need. Stalls (>100 ms: hidden tab, GC,
+// shader compiles) are ignored.
+const DYNRES = { budget: 24, step: 0.25, min: 1, dropAfter: 2000, raiseAfter: 6000 }; // ms
+let dynAvg = 0, dynOver = 0, dynUnder = 0;
+function setPixelRatio(pr) {
+  const { width, height } = getViewport();
+  renderer.setPixelRatio(pr);
+  renderer.setSize(width, height);
+  fx.setSize(width, height);
+}
+function updateDynamicResolution(frameMs) {
+  if (frameMs <= 0 || frameMs > 100) return;
+  dynAvg = dynAvg === 0 ? frameMs : dynAvg * 0.95 + frameMs * 0.05;
+  const pr = renderer.getPixelRatio();
+  const up = Math.min(maxPixelRatio, pr + DYNRES.step);
+  // Frame time scales roughly with pixel count: raise only if the higher ratio would fit too.
+  const raiseBelow = DYNRES.budget * 0.85 * (pr / up) ** 2;
+  dynOver = dynAvg > DYNRES.budget ? dynOver + frameMs : 0;
+  dynUnder = up > pr && dynAvg < raiseBelow ? dynUnder + frameMs : 0;
+  if (dynOver > DYNRES.dropAfter && pr > DYNRES.min) {
+    setPixelRatio(Math.max(DYNRES.min, pr - DYNRES.step));
+    dynOver = 0;
+  } else if (dynUnder > DYNRES.raiseAfter) {
+    setPixelRatio(up);
+    dynUnder = 0;
+  }
+}
+const fpsReadout = params.fps ? createFpsReadout(document.getElementById('app') ?? document.body, QUALITY.name) : null;
+
 // Small debug handle for automated verification.
 window.__tabernacle = {
   THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
   updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
-  fires: [altarFire.userData.fire, ...torches.userData.fires],
+  fires: [altarFire.userData.fire, ...torches.userData.fires], quality: QUALITY, setPixelRatio,
+  updateDynamicResolution, // (frameMs): the loop calls it when QUALITY.dynamicResolution is on; testable by hand
 };
 
 // Loading screen (index.html): fade it out over 1 s once the first frames have rendered (the
@@ -272,7 +307,10 @@ function hideLoader() {
 
 const timer = new THREE.Timer();
 timer.connect(document);
+let lastFrame = null;
 renderer.setAnimationLoop((time) => {
+  const frameMs = lastFrame === null ? 0 : time - lastFrame;
+  lastFrame = time;
   timer.update(time);
   const dt = timer.getDelta();
   const t = timer.getElapsed();
@@ -286,4 +324,6 @@ renderer.setAnimationLoop((time) => {
   fx.render(t);
   if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);
+  if (fpsReadout) fpsReadout.update(frameMs, renderer);
+  if (QUALITY.dynamicResolution) updateDynamicResolution(frameMs);
 });

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, fogUniforms, createNoiseTexture, noise1 } from './fireCommon.js';
+import { QUALITY } from '../config/quality.js';
 
 // The body of a fire (createFlames, used by createFire): a raymarched volume of flame inside a
 // tight cylinder round the burning bed, one draw per fire.
@@ -31,13 +32,13 @@ import { FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, fogUniforms, createNoise
 //
 // The fire's group may be translated but not rotated or scaled (rays are traced in its frame).
 
-const MAX_STEPS = 56;
+const MAX_STEPS = QUALITY.fireMaxSteps; // 56 (high)
 const SEGMENTS = 16;
 // Level of detail by the flame's projected height (px): step in flame heights is
 // clamp(STEP_PX / px, STEP_MIN, STEP_MAX); the warp and fine noise fade in over DETAIL_PX.
 const STEP_MIN = 0.025;
 const STEP_MAX = 0.15;
-const STEP_PX = 3;
+const STEP_PX = QUALITY.fireStepPx; // 3 (high)
 const DETAIL_PX = [10, 30];
 const GUST = 0.4; // gusts vary the flame's lean by ±40%
 const viewport = new THREE.Vector4();

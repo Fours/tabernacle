@@ -376,3 +376,18 @@ body {
   font: 12px/1.4 ui-monospace, monospace;
   pointer-events: none;
 }
+
+/* `?fps=1` (debug/overlay.js): inside #app, so it rotates; clear of the rotated safe area. */
+.fps-readout {
+  position: absolute;
+  z-index: 30;
+  top: calc(var(--safe-top) + 8px);
+  left: calc(var(--safe-left) + 8px);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #9f9;
+  font: 13px/1.35 ui-monospace, Menlo, monospace;
+  white-space: pre;
+  pointer-events: none;
+}

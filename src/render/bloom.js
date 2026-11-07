@@ -13,8 +13,8 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 //    (energy conserving: the blur spreads the gated input's energy without adding to it).
 // The pass doesn't touch the composer's buffers (needsSwap false); the grade pass adds
 // `texture` (the half-res result) and reads `wideTexture` (a coarse level) for lens dirt.
-
-const LEVELS = 7;
+// The mobile quality tier (config/quality.js) starts the chain at 1/4 (`start` 4: the prefilter's
+// taps spread over twice the source texels) with one level fewer, so it still reaches 1/128.
 
 const vert = /* glsl */ `
 varying vec2 vUv;
@@ -86,11 +86,17 @@ export class MipBloomPass extends Pass {
   /**
    * @param {number} width  full-resolution buffer width (px)
    * @param {number} height full-resolution buffer height (px)
-   * @param {{ threshold?: number, knee?: number, scatter?: number }} o
+   * @param {{ threshold?: number, knee?: number, scatter?: number, start?: number, levels?: number }} o
+   *   start: the prefilter writes 1/start of the frame (2 or 4); levels: mip levels from there.
    */
-  constructor(width, height, { threshold = 2.0, knee = 0.5, scatter = 0.7 } = {}) {
+  constructor(width, height, { threshold = 2.0, knee = 0.5, scatter = 0.7, start = 2, levels = 7 } = {}) {
     super();
     this.needsSwap = false;
+    const LEVELS = levels;
+    this.levels = levels;
+    this.start = start;
+    // The lens dirt reads the 1/16 level whatever the start.
+    this.wideIndex = Math.max(0, 3 - Math.log2(start / 2));
     const opts = { type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
     this.down = Array.from({ length: LEVELS }, () => new THREE.WebGLRenderTarget(1, 1, opts));
     this.up = Array.from({ length: LEVELS - 1 }, () => new THREE.WebGLRenderTarget(1, 1, opts));
@@ -146,30 +152,34 @@ export class MipBloomPass extends Pass {
 
   /** A coarse, very wide level (1/16 res), for the lens dirt. */
   get wideTexture() {
-    return this.up[3].texture;
+    return this.up[this.wideIndex].texture;
   }
 
   setSize(width, height) {
+    const LEVELS = this.levels;
     let w = width, h = height;
     for (let i = 0; i < LEVELS; i++) {
-      w = Math.max(1, Math.round(w / 2));
-      h = Math.max(1, Math.round(h / 2));
+      const d = i === 0 ? this.start : 2;
+      w = Math.max(1, Math.round(w / d));
+      h = Math.max(1, Math.round(h / d));
       this.down[i].setSize(w, h);
       if (i < LEVELS - 1) this.up[i].setSize(w, h);
     }
   }
 
   render(renderer, writeBuffer, readBuffer) {
+    const LEVELS = this.levels;
     const t = this.uniforms.threshold.value;
     const k = Math.max(this.uniforms.knee.value, 1e-3);
     this.prefilter.uniforms.uThreshold.value.set(t, k, 0, 0);
     const autoClear = renderer.autoClear;
     renderer.autoClear = false;
 
-    // Prefilter (full res → 1/2).
+    // Prefilter (full res → 1/start).
     const src = readBuffer.texture;
     this.prefilter.uniforms.tSrc.value = src;
-    this.prefilter.uniforms.uTexel.value.set(1 / readBuffer.width, 1 / readBuffer.height);
+    const spread = this.start / 2; // 1 at the default start
+    this.prefilter.uniforms.uTexel.value.set(spread / readBuffer.width, spread / readBuffer.height);
     this.quad.material = this.prefilter;
     renderer.setRenderTarget(this.down[0]);
     this.quad.render(renderer);

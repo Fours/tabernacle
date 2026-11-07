@@ -77,6 +77,7 @@ Three.js.
 src/
   main.js               renderer, scene assembly, per-frame loop, window.__tabernacle
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
+  config/quality.js     QUALITY tier (high | mobile), read at startup: pixel ratio cap, MSAA, bloom start/levels, fire steps, shadow and probe sizes, dynamic resolution
   scene/
     ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden
     terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes (sand mesh baked in ground.js) from ~10 m outside the court, lanes kept near-level
@@ -136,7 +137,7 @@ src/
   mobile/device.js      mobile mode, forced landscape: isMobile, rotation, getViewport() (logical landscape size), toLogical(x, y) (screen point -> rotated frame), onViewportChange(cb); sizes/rotates #app
   mobile/touchControls.js mobile: floating thumbstick (left 40%) + drag to look, by pointerId, through toLogical()
   debug/params.js       URL parameters
-  debug/overlay.js      grid, axes, fps/draw-call readout
+  debug/overlay.js      grid, axes, fps/draw-call readout; createFpsReadout (`?fps=1`, inside #app)
 ```
 
 ### Conventions
@@ -185,6 +186,9 @@ src/
 | `?skyt=<s>` | Pin the sky's clock (twinkle, meteors, haze drift); e.g. `?view=sky&skyt=340.03` shows a meteor |
 | `?mobile=1` / `?mobile=0` | Force mobile mode on or off (default: on for coarse-pointer touch devices). Mobile mode forces landscape: in portrait `#app` is rotated 90° by CSS (`mobile/device.js`). Test in the browser pane with `resize_window` 375×812 |
 | `?rot=cw\|ccw` | Which way the phone is turned in portrait (default `ccw`: top of the phone to the left, so the content's top edge is the screen's right edge) |
+| `?quality=high\|mobile` | Render quality tier (`config/quality.js`; default `mobile` in mobile mode, else `high`). `high` is the desktop exactly |
+| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution) |
+| `?fps=1` | Small readout (rolling rAF frame time, fps, draw calls, pixel ratio, tier) in `#app`'s rotated safe area; works on desktop too |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
@@ -218,7 +222,7 @@ Every visual change is checked with screenshots in the built-in browser
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
 composer, menorah, interior, updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp,
-fires, atmosphere, dust, ao, groundAO, wind`. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
+fires, atmosphere, dust, ao, groundAO, wind, quality, setPixelRatio, updateDynamicResolution`. `quality` is the active `QUALITY` tier; `setPixelRatio(pr)` resizes the renderer and post chain; `updateDynamicResolution(frameMs)` steps the dynamic resolution by hand. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
 are the haze/glow tuning uniforms (`ATMO`; the `uAtmoIn*` ones are the tent's air),
 `atmosphere.sources[i].gain` each glow's strength and `atmosphere.interior` the menorah source
 and the room/incense haze colour factors. `dust.userData.uniforms` tunes the motes. `probe`

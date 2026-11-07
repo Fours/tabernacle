@@ -732,3 +732,49 @@ Branch `mobile-spike` only; not on `main`.
 - **Touch title screen:** "Tap to enter", no pointer lock; compacts below 520 px of logical
   height (container query). A corner menu button in the safe area replaces Esc.
 - **Phone testing:** `.claude/launch.json` config `vite-lan` serves on the LAN at port 5180.
+- **Quality tier** (`src/config/quality.js`, `?quality=high|mobile`, default `mobile` in mobile
+  mode): one `QUALITY` object read at startup. `high` holds the desktop values exactly, so
+  desktop runs the same code paths (draws at `gate` 123, `fire` 112, `holyplace` 105, `camp` 123
+  and screenshots unchanged). `?qk=knob:value,...` overrides single knobs for A/B tests.
+
+  | Knob | `high` | `mobile` | Why |
+  |---|---|---|---|
+  | `pixelRatio` (cap on dpr) | 2 | 1.5 | The biggest single cost is fill |
+  | `msaa` (HDR scene target) | 4 | 2 | `0` saves more but the cords and gate rods stair-step visibly at 1.5×; the CAS sharpen doesn't hide it. Tile GPUs resolve MSAA on chip, so 2 should be cheap on a phone |
+  | `canvasAA` | on | off | The post chain draws into the canvas; its own MSAA only matters with `?fx=0` |
+  | `bloomStart` / `bloomLevels` | 2 / 7 | 4 / 6 | Half-res prefilter (taps spread ×2), still down to 1/128; lens dirt still reads the 1/16 level. 2 fewer draws |
+  | `fireMaxSteps` / `fireStepPx` | 56 / 3 | 40 / 4.5 | Coarser fire raymarch; no visible change at `fireclose` |
+  | `shadowMapSize` (altar fire) | 1024 | 512 | Soft (radius 5) shadows look the same |
+  | `probeSize` (gold room) | 256 | 128 | One capture at load; saves ~3 MB of half-float cube |
+  | `dynamicResolution` | off | off | Opt-in (`?qk=dynamicResolution:1`) |
+
+- **Measured cost** (2026-11-07, one session, 812×375 logical viewport in the browser pane with
+  `?mobile=1`, dpr 2; AGENTS.md method, 8 warm-ups then 30–40 `fx.render` closed by a 1-px
+  `readPixels`, best of 2–3 runs, which agreed to ~0.05 ms; the GPU stayed in one mode, about
+  half the throttled numbers above):
+
+  | Preset | `high` draws | `high` ms | `mobile` draws | `mobile` ms | `mobile` + `msaa:0` ms |
+  |---|---|---|---|---|---|
+  | `gate` | 123 | 6.63 | 121 | 4.19 (−37%) | 3.32 |
+  | `fire` | 112 | 6.09 | 110 | 3.73 (−39%) | 3.11 |
+  | `holyplace` | 105 | 5.26 | 103 | 3.26 (−38%) | 2.77 |
+  | `holyofholies` | 95 | 4.77 | 93 | 2.83 (−41%) | 2.45 |
+  | `camp` | 123 | 5.70 | 121 | 3.38 (−41%) | 2.86 |
+
+  One knob at a time on top of `high` (`gate` / `fire`, ms saved; `high` re-measured in the
+  same session at 6.61 / 6.05): pixel ratio 1.5 −1.80 / −1.58; MSAA 2 −1.35 / −1.14 (MSAA 0
+  −2.38 / −2.05); bloom 4/6 −0.26 / −0.14; fire 40/4.5 −0.09 / ±0 (`fireclose` ±0); shadow
+  512 −0.12 / ±0; `canvasAA` off ±0. On this desktop GPU only resolution and MSAA matter: the
+  fire, shadow and bloom knobs are kept as cheap insurance for a phone's weaker ALU and
+  bandwidth, since they cost nothing visible. The camp was left alone: `camp` is not heavier
+  than `gate`, so LOD or thinning would not pay.
+- **Dynamic resolution** (`main.js`, opt-in): when the rolling rAF interval stays over 24 ms
+  for 2 s the pixel ratio drops 0.25 (never below 1); it rises again after 6 s under the
+  budget the higher ratio would need (85% of 24 ms scaled by the pixel-count ratio), so it
+  doesn't oscillate. Frames over 100 ms (hidden tab, stalls) are ignored. Off by default:
+  iOS Low Power Mode caps rAF at 30 fps (33 ms), which would read as "over budget" and drop
+  the resolution for nothing.
+- **`?fps=1`** (`debug/overlay.js` `createFpsReadout`): rolling average of the last 60 real rAF
+  intervals (ms and fps), draw calls, the current pixel ratio and tier, updated twice a
+  second. It lives in `#app` at the rotated safe area's top-left (the menu button is top-right),
+  so it reads correctly in both orientations and on desktop. `?debug=1` stays as it was.

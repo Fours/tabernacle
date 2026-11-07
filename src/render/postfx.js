@@ -4,6 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { MipBloomPass } from './bloom.js';
+import { QUALITY } from '../config/quality.js';
 import { createEyeAdaptation } from './exposure.js';
 import { GradeShader, FinishShader, createLensDirtTexture } from './grade.js';
 
@@ -26,7 +27,7 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
   const pr = renderer.getPixelRatio();
   const target = new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, {
     type: THREE.HalfFloatType,
-    samples: 4,
+    samples: QUALITY.msaa, // 4 (high)
   });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
@@ -34,7 +35,9 @@ export function createPostFX(renderer, scene, camera, { enabled = true, shimmerS
   // Bloom: threshold in linear HDR with a soft knee (1.5–2.5). Flames, embers, the torch-head
   // cracks and the pillar's core are well above it; firelit linen, metal highlights and the
   // pillar's thin shaft are not.
-  const bloom = new MipBloomPass(size.x * pr, size.y * pr, { threshold: 2.0, knee: 0.5, scatter: 0.7 });
+  const bloom = new MipBloomPass(size.x * pr, size.y * pr, {
+    threshold: 2.0, knee: 0.5, scatter: 0.7, start: QUALITY.bloomStart, levels: QUALITY.bloomLevels,
+  });
   composer.addPass(bloom);
 
   const adaptation = createEyeAdaptation();

@@ -36,5 +36,11 @@ export function getParams() {
     mobile: p.get('mobile') === '1' ? true : p.get('mobile') === '0' ? false : null,
     // `?rot=cw|ccw`: which way the phone is turned in portrait (mobile/device.js). Default ccw.
     rot: p.get('rot') === 'cw' ? 'cw' : 'ccw',
+    // `?quality=high|mobile` (config/quality.js; default mobile in mobile mode, else high) and
+    // `?qk=knob:value,...` to override single knobs for A/B tests.
+    quality: p.get('quality') || null,
+    qk: p.get('qk') || null,
+    // `?fps=1`: a small frame-time readout inside #app, in the rotated safe area.
+    fps: p.get('fps') === '1',
   };
 }

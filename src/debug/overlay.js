@@ -31,3 +31,34 @@ export function createDebug() {
     },
   };
 }
+
+/**
+ * `?fps=1`: a minimal readout for phones (and desktop): rolling average of the real
+ * requestAnimationFrame interval (ms and fps), draw calls and the current pixel ratio. Lives in
+ * `#app`, so it rotates with the scene, inside the rotated safe area (`--safe-*`).
+ * Returns { update(frameMs, renderer) }; call once per frame. No allocations per frame.
+ */
+export function createFpsReadout(parent, tier) {
+  const el = document.createElement('div');
+  el.className = 'fps-readout';
+  parent.appendChild(el);
+  const N = 60;
+  const samples = new Float32Array(N);
+  let i = 0, filled = 0, sum = 0, last = 0;
+  return {
+    update(frameMs, renderer) {
+      if (frameMs > 0) {
+        sum += frameMs - samples[i];
+        samples[i] = frameMs;
+        i = (i + 1) % N;
+        filled = Math.min(filled + 1, N);
+      }
+      const now = performance.now();
+      if (now - last < 500 || filled === 0) return;
+      last = now;
+      const ms = sum / filled;
+      const r = renderer.info.render;
+      el.textContent = `${ms.toFixed(1)} ms · ${(1000 / ms).toFixed(0)} fps\n${r.calls} draws · ${renderer.getPixelRatio().toFixed(2)}x · ${tier}`;
+    },
+  };
+}
