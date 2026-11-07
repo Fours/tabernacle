@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { PILLAR_OF_FIRE as P, m } from '../config/dimensions.js';
-import { getParams } from '../debug/params.js';
 import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, HASH_GLSL, fogUniforms, rng, randAttribute, createNoiseTexture } from './fireCommon.js';
 
 // The pillar of fire over the tent by night (Num 9:15-16): a tall column of slowly churning fire
@@ -34,11 +33,7 @@ import { NOISE_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL, HASH_GLSL, f
 // Fog: half the scene's fog, faded to black. Full fog would bury the shaft from the courtyard
 // (60-80 m away, ~50% fog), none would make the column's foot look pasted on.
 
-// `?pillar=1..10` (debug/params.js) scales the column's complexity for testing on phones: level/10
-// of the raymarch samples (longer steps, a lower step cap) and of the embers. 10 is unchanged.
-const PILLAR_K = getParams().pillar / 10;
-const MAX_STEPS = Math.max(8, Math.round(96 * PILLAR_K));
-const STEP_SCALE = (1 / PILLAR_K).toFixed(4); // GLSL float literal
+const MAX_STEPS = 96;
 const REACH = 1.0; // m: how far tongues can lick outside the column's envelope
 const viewport = new THREE.Vector4();
 
@@ -184,7 +179,7 @@ void main() {
       // Level of detail by distance: steps of ~2.5 px (0.1-0.5 m); the warp and the fine
       // noise fade out as a flame height shrinks below ~45 px (they would only shimmer).
       float pix = uPix * max(t0, 1.0);
-      float dt = clamp(2.5 * pix, 0.1, 0.5) * ${STEP_SCALE};
+      float dt = clamp(2.5 * pix, 0.1, 0.5);
       float detail = smoothstep(15.0, 45.0, uFlame.x / pix);
       // Interleaved gradient noise: per-pixel jitter, stable over time.
       float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
@@ -422,7 +417,7 @@ export function createPillarOfFire() {
   };
   group.add(mesh);
 
-  const embers = createEmbers(Math.round(480 * PILLAR_K), 71);
+  const embers = createEmbers(480, 71);
   group.add(embers.mesh);
 
   // Warm light in the column: softly lights the roof coverings and the courtyard. Above the

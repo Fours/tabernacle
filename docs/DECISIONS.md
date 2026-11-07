@@ -786,3 +786,6 @@ Branch `mobile-spike` only; not on `main`.
   It's the mobile default from Step 4.
 - **MSAA stays at 2 on the phone:** turning it off on top of pixel ratio 1 gained only a few fps
   and looked significantly worse (Kyle).
+- **The pillar of fire stays out of the mobile tier:** a temporary `?pillar=1..10` (level/10 of
+  its raymarch samples and embers) gained only a few fps on the phone and looked grainier, so it
+  was removed. On the Mac it cost under 1 ms at `firepillarfoot`.

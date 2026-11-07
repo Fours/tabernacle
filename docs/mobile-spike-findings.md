@@ -77,7 +77,9 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
   readout and a LAN server for the production build. Likely fixes: compile in the background
   while the loader is up, and fewer shader variants on mobile.
 - **Walk-to-run step** (a jump at 85% deflection, no ramp) has not been judged on the phone.
-- **Pillar of fire raymarch** (`MAX_STEPS` 96 in `pillarOfFire.js`) is not in the tier yet.
+- **Pillar of fire raymarch** isn't the bottleneck: a temporary `?pillar=1..10` setting (level/10
+  of its samples and embers) changed the phone's fps by only a few frames even at low levels, not
+  worth the grainier look, so it was removed and the pillar stays out of the tier.
 - **Camp cap at 34 fps** is unexplained.
 - **One phone only**, model unknown. No other device, GPU class or browser tried.
 - **iPad / tablet layout** not designed or tested (a tablet is coarse-pointer, so it enters
@@ -97,7 +99,7 @@ Sizes are rough estimates, not measured.
    background shader compile). Medium: about a day or two.
 2. Test a device matrix (a couple of iPhones, a mid-range Android, an older phone); decide a
    low-end fallback. Small to medium, mostly waiting on devices.
-3. Decide the 30 fps story: accept it, or add the pillar-of-fire knob and look into the camp cap.
+3. Decide the 30 fps story: accept it, or look into the camp cap (the pillar of fire isn't it).
    Small.
 4. Rotation direction: add a switch (menu button) or a sensor-based guess. Small.
 5. Tablet layout and a check on a notched device. Small.
