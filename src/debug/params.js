@@ -42,5 +42,8 @@ export function getParams() {
     qk: p.get('qk') || null,
     // `?fps=1`: a small frame-time readout inside #app, in the rotated safe area.
     fps: p.get('fps') === '1',
+    // `?pillar=1..10`: the pillar of fire's complexity (scene/pillarOfFire.js). 10 = full
+    // (default); 5 takes half the raymarch samples and half the embers.
+    pillar: p.get('pillar') ? Math.min(10, Math.max(1, Math.round(parseFloat(p.get('pillar')) || 10))) : 10,
   };
 }

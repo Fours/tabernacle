@@ -189,6 +189,7 @@ src/
 | `?quality=high\|mobile` | Render quality tier (`config/quality.js`; default `mobile` in mobile mode, else `high`). `high` is the desktop exactly |
 | `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution) |
 | `?fps=1` | Small readout (rolling rAF frame time, fps, draw calls, pixel ratio, tier) in `#app`'s rotated safe area; works on desktop too |
+| `?pillar=1..10` | The pillar of fire's complexity: level/10 of its raymarch samples and embers (`scene/pillarOfFire.js`). 10 = full (default) |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:
