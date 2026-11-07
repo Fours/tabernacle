@@ -73,8 +73,7 @@ exactly as before).
   - `npm run lint` and `npm run build` pass, and the console is clean.
   **Carry-over notes:**
 
-- [ ] **Step 2: Touch controls and touch title screen** — model: Opus / effort: medium
-  *(Built and verified in emulation, 562c8d2; waiting on Kyle's phone checkpoint before ticking.)*
+- [x] **Step 2: Touch controls and touch title screen** — model: Opus / effort: medium
   **Goal:** Make walking and looking work on a phone.
   - New `src/mobile/touchControls.js`, used by `firstPerson.js` in mobile mode. It handles
     multi-touch by `pointerId` (Pointer Events) and maps every point through
@@ -161,6 +160,12 @@ exactly as before).
   - **Checkpoint:** Kyle loads `?fps=1` on his phone at `walk`, near the altar, in the Holy
     Place, and looking over the camp, and reports the readings.
   **Carry-over notes:**
+  - Phone checkpoint after Step 2 (Kyle, 2026-11-07): the `ccw` rotation default reads correctly,
+    look speed and direction (drag up looks up) are right, and the stick size is right. Keep
+    all of them. Reported "nope" to the last question (taken as: nothing else in the way).
+    Smoothness wasn't judged yet: this step's `?fps=1` readout gives the real numbers.
+  - `debug/overlay.js` still appends its readout to `body`, so it doesn't rotate. Put `?fps=1`
+    inside `#app`, in the rotated safe area (`--safe-*`).
 
 - [ ] **Step 4: Phone tuning and findings note** — model: Sonnet / effort: medium
   **Goal:** Apply Kyle's phone feedback from Steps 2 and 3 (look speed, stick size, rotation
