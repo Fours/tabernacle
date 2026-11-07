@@ -739,7 +739,7 @@ Branch `mobile-spike` only; not on `main`.
 
   | Knob | `high` | `mobile` | Why |
   |---|---|---|---|
-  | `pixelRatio` (cap on dpr) | 2 | 1.5 | The biggest single cost is fill |
+  | `pixelRatio` (cap on dpr) | 2 | 1 | The biggest single cost is fill. Started at 1.5; Kyle's phone ran 24-26 fps there and 30-32 at 1 (still looks good), so 1 is the default. The Mac tables below were measured at 1.5 |
   | `msaa` (HDR scene target) | 4 | 2 | `0` saves more but the cords and gate rods stair-step visibly at 1.5×; the CAS sharpen doesn't hide it. Tile GPUs resolve MSAA on chip, so 2 should be cheap on a phone |
   | `canvasAA` | on | off | The post chain draws into the canvas; its own MSAA only matters with `?fx=0` |
   | `bloomStart` / `bloomLevels` | 2 / 7 | 4 / 6 | Half-res prefilter (taps spread ×2), still down to 1/128; lens dirt still reads the 1/16 level. 2 fewer draws |
@@ -748,7 +748,7 @@ Branch `mobile-spike` only; not on `main`.
   | `probeSize` (gold room) | 256 | 128 | One capture at load; saves ~3 MB of half-float cube |
   | `dynamicResolution` | off | off | Opt-in (`?qk=dynamicResolution:1`) |
 
-- **Measured cost** (2026-11-07, one session, 812×375 logical viewport in the browser pane with
+- **Measured cost** (mobile tier at its original pixel ratio 1.5; 2026-11-07, one session, 812×375 logical viewport in the browser pane with
   `?mobile=1`, dpr 2; AGENTS.md method, 8 warm-ups then 30–40 `fx.render` closed by a 1-px
   `readPixels`, best of 2–3 runs, which agreed to ~0.05 ms; the GPU stayed in one mode, about
   half the throttled numbers above):
@@ -778,7 +778,7 @@ Branch `mobile-spike` only; not on `main`.
   intervals (ms and fps), draw calls, the current pixel ratio and tier, updated twice a
   second. It lives in `#app` at the rotated safe area's top-left (the menu button is top-right),
   so it reads correctly in both orientations and on desktop. `?debug=1` stays as it was.
-- **Phone readings, mobile tier (Kyle's phone, dev server, `?fps=1`):** start 24 fps, altar
+- **Phone readings, mobile tier at pixel ratio 1.5 (Kyle's phone, dev server, `?fps=1`):** start 24 fps, altar
   fire 26, Holy Place 25, camp 34. Roughly 30–40 ms a frame against ~4 ms on the Mac at the
   same tier and size, so a phone GPU is ~8–10× slower here and probably fill-rate bound.
 - **Pixel ratio 1 on the phone** (`?qk=pixelRatio:1`): start 30 fps, altar 32, Holy Place 31,

@@ -27,7 +27,7 @@ const TIERS = {
     dynamicResolution: false, // drop the pixel ratio when frames run long (main.js)
   },
   mobile: {
-    pixelRatio: 1.5,
+    pixelRatio: 1, // phone-tested: 1.5 ran 24-26 fps, 1 runs 30-32 and still looks good
     canvasAA: false,
     msaa: 2,
     bloomStart: 4, // half-resolution prefilter: 1/4 of the frame...
