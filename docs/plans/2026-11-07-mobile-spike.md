@@ -187,6 +187,10 @@ exactly as before).
     30–40 ms a frame against ~4 ms for the same tier on the Mac, so the phone is likely
     fill-rate bound. Next levers to try: `?qk=pixelRatio:1`, `?qk=msaa:0`, then the pillar of
     fire's raymarch (`MAX_STEPS` 96 in `pillarOfFire.js`, not in the tier yet).
+  - With `?qk=pixelRatio:1` (Kyle, 2026-11-07): start 30 fps, altar 32, Holy Place 31, camp 34.
+    Kyle: "still looks pretty good and it's probably necessary on mobile". **Make pixel ratio 1
+    the mobile tier's default** (`src/config/quality.js`). The camp didn't change (34 both
+    ways), so something other than pixel count caps it there.
   - The walk-to-run step at 85% stick deflection hasn't been judged on the phone yet.
   - **Slow loading on the phone (saved for later, goes in the findings note):** the dev server
     sends ~72 unminified modules (6.4 MB) against one 1.1 MB file (325 KB gzipped) in

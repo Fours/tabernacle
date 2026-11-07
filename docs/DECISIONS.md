@@ -781,3 +781,6 @@ Branch `mobile-spike` only; not on `main`.
 - **Phone readings, mobile tier (Kyle's phone, dev server, `?fps=1`):** start 24 fps, altar
   fire 26, Holy Place 25, camp 34. Roughly 30–40 ms a frame against ~4 ms on the Mac at the
   same tier and size, so a phone GPU is ~8–10× slower here and probably fill-rate bound.
+- **Pixel ratio 1 on the phone** (`?qk=pixelRatio:1`): start 30 fps, altar 32, Holy Place 31,
+  camp 34 (was 24/26/25/34 at 1.5). Kyle: still looks good, probably necessary on mobile.
+  It's the mobile default from Step 4.
