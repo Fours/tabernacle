@@ -133,6 +133,7 @@ src/
                         FinishShader (S-curve, cool black lift, CAS sharpen), lens-dirt texture
     environment.js      generated night environment map
     atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
+  mobile/device.js      mobile mode, forced landscape: isMobile, rotation, getViewport() (logical landscape size), toLogical(x, y) (screen point -> rotated frame), onViewportChange(cb); sizes/rotates #app
   debug/params.js       URL parameters
   debug/overlay.js      grid, axes, fps/draw-call readout
 ```
@@ -181,6 +182,8 @@ src/
 | `?wind=0` | Still the cloth (wind strength 0; `scene/cloth.js`) |
 | `?ao=0` | Turn off contact, room and crease ambient occlusion (`window.__tabernacle.ao` holds the strength uniforms) |
 | `?skyt=<s>` | Pin the sky's clock (twinkle, meteors, haze drift); e.g. `?view=sky&skyt=340.03` shows a meteor |
+| `?mobile=1` / `?mobile=0` | Force mobile mode on or off (default: on for coarse-pointer touch devices). Mobile mode forces landscape: in portrait `#app` is rotated 90° by CSS (`mobile/device.js`). Test in the browser pane with `resize_window` 375×812 |
+| `?rot=cw\|ccw` | Which way the phone is turned in portrait (default `ccw`: top of the phone to the left, so the content's top edge is the screen's right edge) |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 
 The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can be compared:

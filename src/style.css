@@ -12,6 +12,51 @@ body {
   background: #0b0d12;
 }
 
+/* The logical screen (mobile/device.js sizes and rotates it in mobile portrait). Overlays live
+   inside it, positioned absolutely, so they rotate with the scene. */
+#app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* Overlay sizes use cqw/cqh (the app's own size), since vw/vh are the physical screen's. */
+  container-type: size;
+  /* Safe-area insets in the logical (rotated) frame, for touch controls and HUD. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* +90 (phone turned counter-clockwise): content top is the screen's right edge, content right
+   the screen's bottom, content bottom the screen's left, content left the screen's top. */
+#app.rot-ccw {
+  --safe-top: env(safe-area-inset-right, 0px);
+  --safe-right: env(safe-area-inset-bottom, 0px);
+  --safe-bottom: env(safe-area-inset-left, 0px);
+  --safe-left: env(safe-area-inset-top, 0px);
+}
+
+/* -90 (phone turned clockwise): content top is the screen's left edge, content right the
+   screen's top, content bottom the screen's right, content left the screen's bottom. */
+#app.rot-cw {
+  --safe-top: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-right, 0px);
+  --safe-left: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch devices: no scrolling, pull-to-refresh, text selection, callouts or tap flashes. */
+.is-mobile,
+.is-mobile body,
+.is-mobile #app {
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 #scene {
   display: block;
   width: 100vw;
@@ -20,7 +65,7 @@ body {
 
 /* Title and controls overlay (camera/firstPerson.js): at the start and after Esc. */
 .fp-intro {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 10;
   display: flex;
@@ -45,7 +90,7 @@ body {
   flex-direction: column;
   align-items: center;
   /* Puts the title in the top third of the screen. */
-  padding-top: max(8vh, calc(33vh - 110px));
+  padding-top: max(8cqh, calc(33cqh - 110px));
 }
 
 .fp-title {
@@ -61,7 +106,7 @@ body {
 }
 
 .fp-title__the {
-  font-size: clamp(18px, 2.4vw, 30px);
+  font-size: clamp(18px, 2.4cqw, 30px);
   font-style: italic;
   letter-spacing: 0.08em;
   margin-bottom: 0.15em;
@@ -69,7 +114,7 @@ body {
 }
 
 .fp-title__main {
-  font-size: clamp(40px, 6.4vw, 84px);
+  font-size: clamp(40px, 6.4cqw, 84px);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   /* Letter-spacing adds space after the last letter; balance it so the word stays centred. */
@@ -84,7 +129,7 @@ body {
 .fp-rule {
   display: flex;
   align-items: center;
-  width: min(360px, 70vw);
+  width: min(360px, 70cqw);
   margin: 26px 0 30px;
 }
 
@@ -156,14 +201,14 @@ body {
 
 .fp-verse {
   margin: 90px 0 0 0;
-  max-width: min(560px, 86vw);
+  max-width: min(560px, 86cqw);
   text-align: center;
   font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
 }
 
 .fp-verse blockquote {
   margin: 0;
-  font-size: clamp(17px, 1.6vw, 21px);
+  font-size: clamp(17px, 1.6cqw, 21px);
   line-height: 1.5;
   font-style: italic;
   color: #e3d6b8;

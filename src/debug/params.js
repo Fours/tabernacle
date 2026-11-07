@@ -32,5 +32,9 @@ export function getParams() {
     tm: p.get('tm') || null,
     // Exposure override (number).
     exposure: p.get('exposure') ? parseFloat(p.get('exposure')) : null,
+    // `?mobile=1` / `?mobile=0` force mobile mode on or off (null: auto, coarse pointer).
+    mobile: p.get('mobile') === '1' ? true : p.get('mobile') === '0' ? false : null,
+    // `?rot=cw|ccw`: which way the phone is turned in portrait (mobile/device.js). Default ccw.
+    rot: p.get('rot') === 'cw' ? 'cw' : 'ccw',
   };
 }

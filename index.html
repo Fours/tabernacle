@@ -2,14 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
     <title>Tabernacle</title>
     <link rel="stylesheet" href="/src/style.css" />
     <!-- Inline so the loading screen is black from the very first paint. -->
     <style>
       html, body { margin: 0; background: #000; }
       #loader {
-        position: fixed; inset: 0; z-index: 1000;
+        position: absolute; inset: 0; z-index: 1000;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
         background: #000; color: #aaa;
         font: 13px/1 system-ui, sans-serif; letter-spacing: 0.32em; text-transform: uppercase;
@@ -27,10 +27,13 @@
     </style>
   </head>
   <body>
-    <canvas id="scene"></canvas>
-    <div id="loader" role="status" aria-live="polite">
-      <div class="spinner"></div>
-      <div class="label">Loading</div>
+    <!-- #app is the logical screen: src/mobile/device.js rotates it in portrait on phones. -->
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <div id="loader" role="status" aria-live="polite">
+        <div class="spinner"></div>
+        <div class="label">Loading</div>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

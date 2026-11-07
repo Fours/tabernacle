@@ -28,6 +28,7 @@ import { createNightEnvironment } from './render/environment.js';
 import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
 import { createDustMotes } from './scene/dustMotes.js';
 import { WIND, updateWind } from './scene/cloth.js';
+import { getViewport, onViewportChange } from './mobile/device.js';
 
 const params = getParams();
 // Ground haze and the fires' glow in the air live in the fog chunks (render/atmosphere.js);
@@ -37,7 +38,8 @@ const canvas = document.querySelector('#scene');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
+const viewport = getViewport();
+renderer.setSize(viewport.width, viewport.height);
 // One shadow-casting light: the altar fire (PCFSoftShadowMap was removed in three r18x).
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -57,7 +59,7 @@ scene.fog = new THREE.FogExp2(FOG_COLOR, 0.012);
 scene.environment = createNightEnvironment(renderer);
 scene.environmentIntensity = 0.35;
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(60, viewport.width / viewport.height, 0.1, 1000);
 
 // Scene elements
 const altar = createAltar();
@@ -243,11 +245,12 @@ if (debug) scene.add(debug.group);
 const shimmerSource = new THREE.Vector3(altar.userData.hearth.x, altar.userData.hearth.y + 1.3, altar.userData.hearth.z);
 const fx = createPostFX(renderer, scene, camera, { enabled: params.fx, shimmerSource, ae: params.ae, lens: params.lens });
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+// The logical landscape size (mobile/device.js): resize, orientation change, visual viewport.
+onViewportChange(({ width, height }) => {
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  fx.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(width, height);
+  fx.setSize(width, height);
 });
 
 // Small debug handle for automated verification.

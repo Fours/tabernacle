@@ -48,7 +48,8 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
         <figcaption>Psalm 100:4</figcaption>
       </figure>
     </div>`;
-  document.body.appendChild(intro);
+  // Inside #app, so the title screen rotates with the scene on phones in portrait.
+  (document.getElementById('app') ?? document.body).appendChild(intro);
   const startLine = intro.querySelector('.fp-start');
   // While the overlay is up the player can't move: held keys are released and new presses ignored.
   let introShown = true;
