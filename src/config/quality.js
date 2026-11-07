@@ -3,7 +3,7 @@ import { isMobile } from '../mobile/device.js';
 
 /**
  * Render quality tier, read once at startup by the systems it tunes (main.js, render/postfx.js,
- * render/bloom.js, scene/fireVolume.js, scene/altarFire.js).
+ * render/bloom.js, scene/fireVolume.js, scene/altarFire.js, scene/groundScatter.js).
  *
  * `?quality=high|mobile`; the default is `mobile` in mobile mode (mobile/device.js), else `high`.
  * `high` holds the desktop values exactly, so desktop runs the same code paths as before.
@@ -11,7 +11,8 @@ import { isMobile } from '../mobile/device.js';
  * "Mobile (spike)" has each knob's measured cost).
  *
  * For A/B tests one knob can be overridden from the URL: `?qk=msaa:4,bloomLevels:7` (numbers;
- * `canvasAA`, `dynamicResolution`, `scatter` and `furnishings` take 0/1).
+ * `canvasAA`, `dynamicResolution`, `scatter` and `furnishings` take 0/1; `grassFar:0` etc. turn
+ * the scatter's distance culling off).
  */
 const TIERS = {
   high: {
@@ -27,6 +28,11 @@ const TIERS = {
     dynamicResolution: false, // drop the pixel ratio when frames run long (main.js)
     // Phone A/B switches (`?qk=...`).
     scatter: true, // `scatter:0` hides the rocks, grass and shrubs (scene/groundScatter.js)
+    // Ground scatter distance culling per kind (m from the camera; 0 = off; scene/groundScatter.js `cull`).
+    rockFar: 0,
+    pebbleFar: 0,
+    grassFar: 0,
+    shrubFar: 0,
     furnishings: true, // false: the Holy Place stays hidden from outside, even through the door
   },
   mobile: {
@@ -41,6 +47,10 @@ const TIERS = {
     probeSize: 128,
     dynamicResolution: false, // opt in with `?qk=dynamicResolution:1` (see DECISIONS.md)
     scatter: true,
+    rockFar: 30, // the ground scatter's distance culling (see `high`); A/B'd in the browser at
+    pebbleFar: 15, // `walk`, `campwalk`, `horizon`, `ground`: no visible change
+    grassFar: 35, // (far tufts already drop half their blades in the shader past 35 m)
+    shrubFar: 55,
     furnishings: false, // phone-tested: several fps from outside the tent (~320k triangles)
   },
 };

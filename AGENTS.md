@@ -82,7 +82,7 @@ src/
     ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden
     terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes (sand mesh baked in ground.js) from ~10 m outside the court, lanes kept near-level
     dustMotes.js        dust drifting in the firelight round the altar, lit torches and menorah (1 instanced draw, lit by the atmosphere's glow sources)
-    groundScatter.js    rocks, grass tufts, shrubs (4 instanced draws, seeded clumps, keep-outs, removeWhere)
+    groundScatter.js    rocks, grass tufts, shrubs (4 kinds in 24 spatial tiles, culled by box each frame; mobile drops far ones; seeded clumps, keep-outs, removeWhere)
     camp.js             camp of Israel (Num 2-3): ~4,500 tents, 3 variants x near/far LOD = 6 instanced draws, grid collider
     courtyard.js        pillars, fillets, hooks, hangings, open gate, pegs/cords (instanced)
     drape.js            addGatheredDrape: pleated, tied-back screen halves (gate and tent door)
@@ -148,9 +148,9 @@ src/
   up automatically.
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`, `embroidery.js` and `cherubimWeave.js`. Use
   `addMacroVariation` on large tiled surfaces.
-- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 78–122
-  times per frame (`gate`, `iso`, `camp` 122; interior views 90–104; the camp's 6 are in every
-  view). Baseline and frame times: `docs/DECISIONS.md` "Performance baseline".
+- Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 81–143
+  times per frame (`camp` 143, `iso` 141, `gate` 139, `horizon` 81; interior views 97–115; the
+  camp's 6 are in every view; the ground scatter's tiles in view add 0–20 over its old 4). Baseline and frame times: `docs/DECISIONS.md` "Performance baseline".
 - **Light budget:** 8 point lights (altar fire + fill, 4 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
   materials (bloom picks up values above 2.0) and, for light in the air, the atmosphere's glow
@@ -187,7 +187,7 @@ src/
 | `?mobile=1` / `?mobile=0` | Force mobile mode on or off (default: on for coarse-pointer touch devices). Mobile mode forces landscape: in portrait `#app` is rotated 90° by CSS (`mobile/device.js`). Test in the browser pane with `resize_window` 375×812 |
 | `?rot=cw\|ccw` | Which way the phone is turned in portrait (default `ccw`: top of the phone to the left, so the content's top edge is the screen's right edge) |
 | `?quality=high\|mobile` | Render quality tier (`config/quality.js`; default `mobile` in mobile mode, else `high`). `high` is the desktop exactly |
-| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `furnishings:0|1` hides or shows the Holy Place seen through the door from outside (off by default in the mobile tier) |
+| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `rockFar`, `pebbleFar`, `grassFar`, `shrubFar` (m, 0 = off) set the scatter's distance culling; `furnishings:0|1` hides or shows the Holy Place seen through the door from outside (off by default in the mobile tier) |
 | `?fps=1` | Small readout (rolling rAF frame time, fps, draw calls, pixel ratio, tier) in `#app`'s rotated safe area; works on desktop too |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 

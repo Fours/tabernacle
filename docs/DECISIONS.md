@@ -747,6 +747,7 @@ Branch `mobile-spike` only; not on `main`.
   | `shadowMapSize` (altar fire) | 1024 | 512 | Soft (radius 5) shadows look the same |
   | `probeSize` (gold room) | 256 | 128 | One capture at load; saves ~3 MB of half-float cube |
   | `dynamicResolution` | off | off | Opt-in (`?qk=dynamicResolution:1`) |
+  | `rockFar` / `pebbleFar` / `grassFar` / `shrubFar` (m) | 0 (off) | 30 / 15 / 35 / 55 | Ground scatter distance culling ("Ground scatter tiles" below) |
 
 - **Measured cost** (mobile tier at its original pixel ratio 1.5; 2026-11-07, one session, 812×375 logical viewport in the browser pane with
   `?mobile=1`, dpr 2; AGENTS.md method, 8 warm-ups then 30–40 `fx.render` closed by a 1-px
@@ -798,3 +799,50 @@ Branch `mobile-spike` only; not on `main`.
   - `scatter:0` gained fps over the camp only, similar elsewhere. Kept as a switch; the real fix
     would be tiling the scatter so off-screen tiles are culled.
   - Redrawing the altar shadow every 3rd frame gained nothing and looked choppy. Removed.
+- **Ground scatter tiles** (`scene/groundScatter.js`, both tiers): three culls an InstancedMesh
+  only as a whole, so all ~22k scatter instances (1.27 M triangles) ran their vertices every
+  frame. Each kind is now cut into tiles, one InstancedMesh each, sharing the kind's geometry
+  attributes and material (grass and shrubs: a per-tile geometry holding only its own
+  `aParams`). Layout (`TILES`): grass, shrubs 3×3 split at x = ±25, z = ±15 (the lines run
+  through the bare band round the hangings, so the middle tile is the court; the outer rows and
+  columns run on to the edge of the scatter); rocks and pebbles 3 columns at x = ±25 (rocks only
+  lie within ~30 m of the court; pebbles are mostly near). 24 tiles. Tiles are fixed at creation;
+  `removeWhere` only empties them (nothing replaced).
+  - **Culling by box, not sphere:** `cull` (from `userData.update` and main.js's `rig.apply` /
+    `reset` / `setPosition` wrapper) tests each tile's Box3 (every instance at 1.5× its largest
+    scale + 0.1 m, covering the rock lumps and wind sway) against the camera frustum each frame
+    and sets `visible`; three's own sphere test (also padded) stays on. The long outer tiles'
+    spheres would contain the camera, so a sphere-only first try culled nothing at `walk` and
+    `gate`. The probe capture shows every tile (`cull(null)`).
+  - **Mobile distance culling** (QUALITY knobs): a tile is hidden when its footprint is farther
+    than its kind's limit. Otherwise each tile's instances are sorted by court distance and it
+    draws the prefix within courtDistance(camera) + limit (court distance changes no faster than
+    distance, so nothing nearer than the limit goes), which drops the far outer ground without
+    more tiles. Rocks 30, pebbles 15, grass 35 (far tufts already drop half their blades past
+    35 m in the shader), shrubs 55 m. Block-averaged pixel diffs against the old build
+    (64×48 blocks, 12 views/yaws at `walk`, `campwalk`, `ground`, `horizon`) stay under 1/255,
+    and screenshots look the same. Thinning far shrubs to half was dropped: the prefix order is
+    by distance, not random.
+  - **Desktop unchanged:** same block diffs ≤ 0.01/255 at all 12 views and yaws (instance order
+    within a tile is now by court distance); no popping while turning.
+  - **Measured** (Mac, one session, AGENTS.md method, best of 3; before = the previous commit):
+
+    | View | mobile draws | mobile ms | mobile triangles | `scatter:0` ms |
+    |---|---|---|---|---|
+    | `walk` | 113 → 122 | 2.98 → 2.59 | 2.66 M → 2.06 M | 2.16 |
+    | `campwalk` | 90 → 100 | 2.14 → 1.85 | 2.51 M → 1.91 M | 1.48 |
+    | `gate` | 113 → 121 | 2.81 → 2.43 | 2.66 M → 2.01 M | 2.06 |
+    | `camp` | 113 → 118 | 2.38 → 1.97 | 2.66 M → 1.83 M | 1.84 |
+    | `horizon` | 75 → 81 | 1.85 → 1.47 | 2.35 M → 1.54 M | 1.08 |
+    | `ground` | 109 → 120 | 2.70 → 2.44 | 2.66 M → 2.12 M | 2.10 |
+
+    `high` at 1024×768: draws `walk` / `gate` 123 → 139, `campwalk` 82 → 94, `camp` 123 → 143,
+    `horizon` 77 → 81, `ground` 117 → 129; triangles `walk` 3.05 M → 2.85 M, `campwalk`
+    2.42 M → 2.07 M, `horizon` 2.35 M → 1.52 M; ms within noise (12.25 → 12.17 at `walk`, 9.45 →
+    9.31 at `campwalk`): this GPU is fill bound at that size. On the phone, which looked
+    geometry bound over the camp, the scatter's share of the mobile frame (`scatter:0` delta)
+    fell by about half or more at every view. Not yet tried on the phone.
+  - **Limits:** a 1-D sort can't see that a tile across the court is far, so at `walk` the
+    court and the north/south rows still draw most of their grass and shrubs. Finer tiles would
+    cull more but add draws in every view (`camp` sees them all); 24 kept the increase within
+    +20.

@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { COURTYARD as C, TORCHES, m } from '../config/dimensions.js';
+import { QUALITY } from '../config/quality.js';
 import { courtDistance, groundHeight } from './terrain.js';
 
 export { courtDistance };
 
 // Rocks and low scrub on the desert floor: "the wilderness of Sinai" read as stony steppe, not
 // dunes (DECISIONS.md "World"). Seeded and deterministic; no colliders, no shadows cast.
-// 4 draws: rocks, pebbles (one shared material), grass, shrubs. Each rock's shape is made in
+// 4 kinds: rocks, pebbles (one shared material), grass, shrubs, each split into spatial tiles
+// (TILES; one InstancedMesh and draw per tile in view) so off-screen ground costs no vertex
+// work; the mobile tier also drops far scatter by tile (`cull`). Each rock's shape is made in
 // the vertex shader from its own position (noise displacement plus flat cuts), so every stone
 // differs while all share one icosphere.
 //
@@ -81,6 +84,24 @@ function density(d) {
 /** Rocks farther than this (m from the court) use the coarse 20-triangle mesh. */
 const ROCK_LOD = 30;
 const gauss = (rnd) => (rnd() + rnd() + rnd() - 1.5) / 1.5; // ~[-1, 1], peaked
+
+/**
+ * Tile layout (DECISIONS.md "Mobile (spike)"): each kind is cut into a grid by these x and z
+ * lines (m); the outer rows and columns run on to the edge of the scatter. ±25 / ±15 fall in
+ * the bare band round the hangings, so the middle tile is the court.
+ */
+const TILES = {
+  rocks: { xs: [-25, 25], zs: [] }, // only within ~30 m of the court
+  pebbles: { xs: [-25, 25], zs: [] }, // mostly near; the far field's few coarse rocks
+  grass: { xs: [-25, 25], zs: [-15, 15] },
+  shrubs: { xs: [-25, 25], zs: [-15, 15] },
+};
+const cellOf = (lines, v) => {
+  let i = 0;
+  while (i < lines.length && v >= lines[i]) i++;
+  return i;
+};
+const tileOf = (key, x, z) => `${cellOf(TILES[key].xs, x)}${cellOf(TILES[key].zs, z)}`;
 
 // ---- Geometry ---------------------------------------------------------------------------------
 /** Grass tuft: N thin tapered blades, unit height. aBlade = blade index / N (per-instance culling). */
@@ -309,11 +330,13 @@ const GRASS_TINTS = [0xc4ad78, 0xa99a64, 0x9c9466, 0x8f8360, 0xb8a170];
 const SHRUB_TINTS = { broom: [0x7f8a50, 0x737d4a, 0x8a8d5c], wormwood: [0x8a8e66, 0x959470, 0x7c815c] };
 
 /**
- * Create the ground scatter. Options: `seed`, and `exclude(x, z, r)` returning true for extra
- * keep-out areas. Returns a Group with userData.update (wind), userData.colliders = [],
- * userData.stats, and userData.removeWhere(test) to drop instances (e.g. under camp tents).
+ * Create the ground scatter. Options: `seed`, `exclude(x, z, r)` returning true for extra
+ * keep-out areas, and `camera` (the view the tiles are culled to each frame). Returns a Group
+ * with userData.update (wind + cull), userData.cull(cam?) (`null` shows every tile), userData.tiles,
+ * userData.colliders = [], userData.stats, and userData.removeWhere(test) to drop instances
+ * (e.g. under camp tents).
  */
-export function createGroundScatter({ seed = 1907, exclude = null } = {}) {
+export function createGroundScatter({ seed = 1907, exclude = null, camera = null } = {}) {
   const t0 = performance.now();
   const rnd = rng(seed);
   const clear = (x, z, r) => isScatterClear(x, z, r) && !(exclude && exclude(x, z, r));
@@ -420,7 +443,7 @@ export function createGroundScatter({ seed = 1907, exclude = null } = {}) {
     const roll = rnd(), size = 0.03 + Math.pow(rnd(), 2.5) * 0.06, kind = rnd() < 0.5 ? 'flint' : 'lime';
     if (d < 40 && roll < 0.8 * density(d) && clear(x, z, size)) addStone(x, z, size, kind);
   }
-  // ---- Build the instanced meshes ---------------------------------------------------------
+  // ---- Build the instanced meshes, one per tile -------------------------------------------
   const group = new THREE.Group();
   group.name = 'groundScatter';
   const wind = { time: { value: 0 } };
@@ -433,51 +456,139 @@ export function createGroundScatter({ seed = 1907, exclude = null } = {}) {
   };
   const mats = { rocks: rockMat, pebbles: rockMat, grass: foliageMaterial('grass', wind), shrubs: foliageMaterial('shrub', wind) };
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
-  const meshes = {};
-  const write = (key) => {
-    const mesh = meshes[key], list = sets[key];
+
+  // Each tile is its own InstancedMesh (same geometry attributes and material as the rest of its
+  // kind), so tiles off screen are skipped and the mobile tier can drop far ones (`cull`). Tiles are fixed at creation; removeWhere only empties them.
+  const tiles = [];
+  for (const key of Object.keys(sets)) {
+    const byTile = new Map();
+    for (const it of sets[key]) {
+      const id = tileOf(key, it.x, it.z);
+      if (!byTile.has(id)) byTile.set(id, []);
+      byTile.get(id).push(it);
+    }
+    const base = geos[key];
+    for (const [id, list] of byTile) {
+      // Per-tile geometry: shares the kind's vertex attributes, owns the per-instance aParams.
+      let geo = base;
+      if (key === 'grass' || key === 'shrubs') {
+        geo = new THREE.BufferGeometry();
+        for (const name of Object.keys(base.attributes)) geo.setAttribute(name, base.attributes[name]);
+        geo.setAttribute('aParams', new THREE.InstancedBufferAttribute(new Float32Array(list.length * 2), 2));
+        geo.boundingSphere = base.boundingSphere || (base.computeBoundingSphere(), base.boundingSphere);
+      }
+      const mesh = new THREE.InstancedMesh(geo, mats[key], list.length);
+      mesh.name = `scatter-${key}-${id}`;
+      mesh.receiveShadow = true; // the hangings' shadows fall on them, as on the sand
+      mesh.castShadow = false;
+      const tile = { key, mesh, list, n: 0, box: new THREE.Box3() };
+      mesh.userData.tile = tile;
+      tiles.push(tile);
+      group.add(mesh);
+    }
+  }
+  const lo = new THREE.Vector3(), hi = new THREE.Vector3();
+  const write = (tile) => {
+    const { mesh, box } = tile;
     const params = mesh.geometry.getAttribute('aParams');
+    // Nearest the court first, so the mobile tier can draw a prefix of each tile (`cull`).
+    for (const it of tile.list) it.cd ??= courtDistance(it.x, it.z);
+    const list = (tile.list = tile.list.sort((a, b) => a.cd - b.cd));
+    tile.cds = Float32Array.from(list, (it) => it.cd);
+    box.makeEmpty();
     list.forEach((it, i) => {
-      M.compose(v.set(it.x, it.y + groundHeight(it.x, it.z), it.z), q.setFromEuler(e.set(it.rx, it.ry, it.rz)), s.set(...it.s));
+      const y = it.y + groundHeight(it.x, it.z);
+      M.compose(v.set(it.x, y, it.z), q.setFromEuler(e.set(it.rx, it.ry, it.rz)), s.set(...it.s));
       mesh.setMatrixAt(i, M);
       mesh.setColorAt(i, color.setRGB(...it.c));
       if (params) params.setXY(i, it.p[0], it.p[1]);
+      // Bounds: the geometry is within ~1.4 x its largest scale of the origin (rock lumps,
+      // grass lean, wind sway), plus a margin, so nothing pops at the screen edges.
+      const rr = 1.5 * Math.max(...it.s) + 0.1;
+      box.expandByPoint(lo.set(it.x - rr, y - rr, it.z - rr)).expandByPoint(hi.set(it.x + rr, y + rr, it.z + rr));
     });
-    mesh.count = list.length;
+    tile.n = mesh.count = list.length;
+    mesh.visible = list.length > 0;
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     if (params) params.needsUpdate = true;
+    // three's own test: every instance's transformed geometry sphere, padded as above.
     mesh.computeBoundingSphere();
+    mesh.boundingSphere.radius += 0.5;
   };
-  for (const key of Object.keys(sets)) {
-    const n = Math.max(sets[key].length, 1);
-    if (key === 'grass' || key === 'shrubs') geos[key].setAttribute('aParams', new THREE.InstancedBufferAttribute(new Float32Array(n * 2), 2));
-    const mesh = new THREE.InstancedMesh(geos[key], mats[key], n);
-    mesh.name = `scatter-${key}`;
-    mesh.receiveShadow = true; // the hangings' shadows fall on them, as on the sand
-    mesh.castShadow = false;
-    meshes[key] = mesh;
-    write(key);
-    group.add(mesh);
-  }
+  tiles.forEach(write);
+
+  // Per-frame tile culling (`cull`, from update and main.js's rig calls), before three's own:
+  // 1. Frustum against each tile's box (both tiers). A box is much tighter than three's sphere
+  //    for the long outer tiles, whose spheres would contain the camera.
+  // 2. Distance (QUALITY knobs in m, 0 = off; all off in `high`): a tile is hidden when the
+  //    nearest point of its xz footprint is farther than its kind's limit. Otherwise it draws
+  //    the prefix of its instances (sorted by court distance) within courtDistance(camera) +
+  //    the limit: court distance changes no faster than distance, so everything nearer than the
+  //    limit is kept, and the far outer ground is dropped without more tiles.
+  const FAR = { rocks: QUALITY.rockFar, pebbles: QUALITY.pebbleFar, grass: QUALITY.grassFar, shrubs: QUALITY.shrubFar };
+  const frustum = new THREE.Frustum(), viewProj = new THREE.Matrix4();
+  const upTo = (cds, v) => { // number of entries <= v (ascending array)
+    let a = 0, b = cds.length;
+    while (a < b) {
+      const mid = (a + b) >> 1;
+      if (cds[mid] <= v) a = mid + 1;
+      else b = mid;
+    }
+    return a;
+  };
+  /** Show the tiles `cam` can see (default: the camera passed in); `cull(null)` shows them all. */
+  const cull = (cam = camera) => {
+    let camCd = 0;
+    if (cam) {
+      cam.updateMatrixWorld();
+      frustum.setFromProjectionMatrix(viewProj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+      camCd = courtDistance(cam.position.x, cam.position.z);
+    }
+    for (const tile of tiles) {
+      const { box, mesh, n } = tile;
+      if (n === 0) continue;
+      mesh.count = n;
+      if (!cam) {
+        mesh.visible = true;
+        continue;
+      }
+      mesh.visible = frustum.intersectsBox(box);
+      const far = FAR[tile.key];
+      if (!(far > 0) || !mesh.visible) continue;
+      const p = cam.position;
+      const dx = Math.max(box.min.x - p.x, 0, p.x - box.max.x), dz = Math.max(box.min.z - p.z, 0, p.z - box.max.z);
+      mesh.count = dx * dx + dz * dz > far * far ? 0 : upTo(tile.cds, camCd + far);
+      mesh.visible = mesh.count > 0;
+    }
+  };
 
   const stats = () => {
-    const out = { ms: 0, instances: {}, triangles: 0 };
-    for (const [key, mesh] of Object.entries(meshes)) {
+    const out = { ms: 0, instances: {}, triangles: 0, tiles: {} };
+    for (const { key, mesh, n } of tiles) {
       const tris = mesh.geometry.attributes.position.count / 3;
-      out.instances[key] = mesh.count;
-      out.triangles += tris * mesh.count;
+      out.instances[key] = (out.instances[key] || 0) + n;
+      out.tiles[key] = (out.tiles[key] || 0) + (n > 0 ? 1 : 0);
+      out.triangles += tris * n;
     }
     return out;
   };
   group.userData.colliders = [];
-  group.userData.update = (dt, t) => { wind.time.value = t; };
+  group.userData.tiles = tiles;
+  group.userData.cull = cull;
+  group.userData.update = (dt, t) => {
+    wind.time.value = t;
+    cull();
+  };
   /** Remove every instance for which test(x, z, r) is true (e.g. under a tent). */
   group.userData.removeWhere = (test) => {
-    for (const key of Object.keys(sets)) {
-      sets[key] = sets[key].filter((it) => !test(it.x, it.z, it.r));
-      write(key);
+    for (const tile of tiles) {
+      const kept = tile.list.filter((it) => !test(it.x, it.z, it.r));
+      if (kept.length === tile.list.length) continue;
+      tile.list = kept;
+      write(tile);
     }
+    cull();
     group.userData.stats = { ...stats(), ms: group.userData.stats.ms };
   };
   group.userData.stats = { ...stats(), ms: +(performance.now() - t0).toFixed(1) };

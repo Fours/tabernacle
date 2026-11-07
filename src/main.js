@@ -72,7 +72,7 @@ const menorah = createMenorah();
 const tabernacle = createTabernacle();
 const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
 const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holies
-const groundScatter = createGroundScatter(); // rocks and scrub
+const groundScatter = createGroundScatter({ camera }); // rocks and scrub
 groundScatter.visible = QUALITY.scatter; // `?qk=scatter:0` (test switch) hides it
 const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
 groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
@@ -210,7 +210,9 @@ const probe = {
     cam.position.copy(PROBE_POS);
     cam.updateMatrixWorld(true);
     for (const o of interiorMeshes) o.visible = true;
+    groundScatter.userData.cull(null); // all tiles: the tiles are culled to the main camera
     cam.update(renderer, scene);
+    groundScatter.userData.cull();
     interiorShown = null;
     updateInteriorVisibility();
     INTERIOR.uIlProbePos.value.copy(PROBE_POS);
@@ -239,7 +241,7 @@ if (params.cam === 'fp') {
 for (const k of ['apply', 'reset', 'setPosition']) {
   if (typeof rig[k] !== 'function') continue;
   const fn = rig[k].bind(rig);
-  rig[k] = (...a) => { const r = fn(...a); updateInteriorVisibility(); return r; };
+  rig[k] = (...a) => { const r = fn(...a); updateInteriorVisibility(); groundScatter.userData.cull(); return r; };
 }
 updateInteriorVisibility();
 
