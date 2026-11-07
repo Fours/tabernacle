@@ -70,12 +70,15 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
 
 ## Known gaps and open questions
 
-- **Slow loading on the phone.** Not yet measured on the phone. The dev server sends ~72
-  unminified modules (6.4 MB) against one 1.1 MB file (325 KB gzipped) in production. The phone
-  also compiles 65 shader programs, generates ~50 textures in code, bakes the ground AO and
-  captures the probe before the first frame. To measure: per-phase startup timings on the `?fps=1`
-  readout and a LAN server for the production build. Likely fixes: compile in the background
-  while the loader is up, and fewer shader variants on mobile.
+- **Slow loading on the phone (up to ~10 s on the loading screen).** The production build
+  (`npm run preview:lan`, one 1.1 MB file, 330 KB gzipped) took as long as the dev server (~72
+  modules, 6.4 MB), and the page itself arrives quickly, so it isn't the download. The time goes
+  to the phone building the scene before the first frame: compiling 65 shader programs,
+  generating ~50 textures in code, baking the ground AO, building the scatter and camp, and
+  capturing the reflection probe. Accepted for now. Not yet broken down by phase on the phone; if
+  it's revisited, time each phase on the `?fps=1` readout first. Likely fixes then: compile
+  shaders in parallel (`renderer.compileAsync`) while the loader is up, cache the generated
+  textures, and fewer shader variants on mobile.
 - **Walk-to-run step** (a jump at 85% deflection, no ramp) has not been judged on the phone.
 - **Pillar of fire raymarch** isn't the bottleneck: a temporary `?pillar=1..10` setting (level/10
   of its samples and embers) changed the phone's fps by only a few frames even at low levels, not
@@ -100,8 +103,8 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
 Sizes are rough estimates, not measured.
 
 
-1. Measure and fix load time on the phone (production build over LAN, per-phase timings;
-   background shader compile). Medium: about a day or two.
+1. Optional: shorten the ~10 s phone load (per-phase timings first; parallel shader compile,
+   cached textures). The download isn't the cause. Medium: about a day or two.
 2. Test a device matrix (a couple of iPhones, a mid-range Android, an older phone); decide a
    low-end fallback. Small to medium, mostly waiting on devices.
 3. Decide the 30 fps story: accept it, or tile the ground scatter for the camp views (the pillar
