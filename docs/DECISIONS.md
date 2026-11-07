@@ -794,8 +794,9 @@ Branch `mobile-spike` only; not on `main`.
   ~1.27 M, the altar's 6-face shadow ~0.86 M, the Holy Place's gold furnishings ~0.32 M (seen
   through the door), the camp only ~60 k. CPU submit 0.3–0.8 ms, so not CPU bound.
 - **Phone A/B of the test switches (Kyle):**
-  - `furnishings:0` gained several fps from outside the tent, so it's the **mobile default**: from
-    outside, the Holy Place stays hidden even through the open door (seen again once inside).
+  - `furnishings:0` gained several fps from outside the tent. It was the mobile default briefly,
+    but Kyle wants the Holy Place always visible through the door, so it stays a test switch only
+    and every tier shows it.
   - `scatter:0` gained fps over the camp only, similar elsewhere. Kept as a switch; the real fix
     would be tiling the scatter so off-screen tiles are culled.
   - Redrawing the altar shadow every 3rd frame gained nothing and looked choppy. Removed.

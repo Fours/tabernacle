@@ -83,9 +83,9 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
 - **Camp cap at 34 fps:** largely the ground scatter (~1.27 M triangles; hiding it raised fps
   over the camp on the phone). Fix: tile it so off-screen tiles are culled, with fewer blades and
   no pebbles far away. The camp's tents themselves are cheap (~60 k triangles).
-- **Holy Place hidden from outside on mobile:** the gold furnishings (~320 k triangles) only show
-  once inside the tent, which gained several fps; a low-poly or distance-based version would let
-  the door view keep them.
+- **Holy Place seen through the door:** the gold furnishings (~320 k triangles) cost several fps
+  from outside the tent on the phone. They stay visible by choice; a low-poly version for distant
+  views would win most of that back without hiding them.
 - **One phone only**, model unknown. No other device, GPU class or browser tried.
 - **iPad / tablet layout** not designed or tested (a tablet is coarse-pointer, so it enters
   mobile mode).

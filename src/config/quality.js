@@ -51,7 +51,7 @@ const TIERS = {
     pebbleFar: 15, // `walk`, `campwalk`, `horizon`, `ground`: no visible change
     grassFar: 35, // (far tufts already drop half their blades in the shader past 35 m)
     shrubFar: 55,
-    furnishings: false, // phone-tested: several fps from outside the tent (~320k triangles)
+    furnishings: true, // kept visible by choice, though hiding them gained several fps on the phone
   },
 };
 

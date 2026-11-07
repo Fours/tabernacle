@@ -182,7 +182,7 @@ let interiorShown = null;
 function updateInteriorVisibility() {
   const p = camera.position;
   const inside = p.x > INSIDE.x0 && p.x < INSIDE.x1 && Math.abs(p.z) < INSIDE.z && p.y < INSIDE.y;
-  // QUALITY.furnishings false (mobile default): from outside, the Holy Place stays hidden even through the door.
+  // `?qk=furnishings:0` (test switch): from outside, the Holy Place stays hidden even through the door.
   const state = inside ? 2 : p.x > FRONT_X && QUALITY.furnishings ? 1 : 0;
   if (state === interiorShown) return;
   interiorShown = state;

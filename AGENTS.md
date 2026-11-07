@@ -187,7 +187,7 @@ src/
 | `?mobile=1` / `?mobile=0` | Force mobile mode on or off (default: on for coarse-pointer touch devices). Mobile mode forces landscape: in portrait `#app` is rotated 90° by CSS (`mobile/device.js`). Test in the browser pane with `resize_window` 375×812 |
 | `?rot=cw\|ccw` | Which way the phone is turned in portrait (default `ccw`: top of the phone to the left, so the content's top edge is the screen's right edge) |
 | `?quality=high\|mobile` | Render quality tier (`config/quality.js`; default `mobile` in mobile mode, else `high`). `high` is the desktop exactly |
-| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `rockFar`, `pebbleFar`, `grassFar`, `shrubFar` (m, 0 = off) set the scatter's distance culling; `furnishings:0|1` hides or shows the Holy Place seen through the door from outside (off by default in the mobile tier) |
+| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `rockFar`, `pebbleFar`, `grassFar`, `shrubFar` (m, 0 = off) set the scatter's distance culling; `furnishings:0` hides the Holy Place seen through the door from outside |
 | `?fps=1` | Small readout (rolling rAF frame time, fps, draw calls, pixel ratio, tier) in `#app`'s rotated safe area; works on desktop too |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 
