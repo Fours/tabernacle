@@ -122,6 +122,7 @@ exactly as before).
     touch title variant must fit a short landscape screen (check 812×375 and 667×375).
 
 - [ ] **Step 3: Mobile quality tier and on-phone frame readout** — model: Opus / effort: medium
+  *(Built and verified in emulation, 2d7380c: mobile renders 37–41% faster than high at 812×375. Waiting on Kyle's phone readings before ticking.)*
   **Goal:** A `?quality=mobile` tier (the default in mobile mode) that keeps the night look while
   cutting GPU cost, plus a way to read frame time on the phone itself.
   - One `QUALITY` object (in `src/mobile/device.js` or a new `src/config/quality.js`) read at
