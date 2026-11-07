@@ -8,10 +8,10 @@ import { isMobile } from '../mobile/device.js';
  * `?quality=high|mobile`; the default is `mobile` in mobile mode (mobile/device.js), else `high`.
  * `high` holds the desktop values exactly, so desktop runs the same code paths as before.
  * `mobile` keeps the look and drops only resolution and sample counts (docs/DECISIONS.md
- * "Mobile (spike)" has each knob's measured cost).
+ * "Mobile" has each knob's measured cost).
  *
  * For A/B tests one knob can be overridden from the URL: `?qk=msaa:4,bloomLevels:7` (numbers;
- * `canvasAA`, `dynamicResolution`, `scatter` and `furnishings` take 0/1; `grassFar:0` etc. turn
+ * `canvasAA`, `dynamicResolution` and `scatter` take 0/1; `grassFar:0` etc. turn
  * the scatter's distance culling off).
  */
 const TIERS = {
@@ -33,7 +33,6 @@ const TIERS = {
     pebbleFar: 0,
     grassFar: 0,
     shrubFar: 0,
-    furnishings: true, // false: the Holy Place stays hidden from outside, even through the door
   },
   mobile: {
     pixelRatio: 1, // phone-tested: 1.5 ran 24-26 fps, 1 runs 30-32 and still looks good
@@ -51,7 +50,6 @@ const TIERS = {
     pebbleFar: 15, // `walk`, `campwalk`, `horizon`, `ground`: no visible change
     grassFar: 35, // (far tufts already drop half their blades in the shader past 35 m)
     shrubFar: 55,
-    furnishings: true, // kept visible by choice, though hiding them gained several fps on the phone
   },
 };
 

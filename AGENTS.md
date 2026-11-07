@@ -22,7 +22,10 @@ Three.js.
   glow in the air, baked contact AO, and a post chain (bloom, eye adaptation, colour grade,
   lens touches, sharpening).
 - **How it's experienced:** the player walks in first person at eye height (1.6 m) and can't
-  walk through objects.
+  walk through objects. On a phone or other touch device (`src/mobile/`) the view is forced to
+  landscape (rotated by CSS when the phone is upright), walking is a thumbstick and drag-to-look,
+  and a lighter quality tier is used (`src/config/quality.js`; `docs/DECISIONS.md` "Mobile").
+  Desktop must stay unchanged by mobile work.
 - **Accuracy to the text comes first.** Biblical reference: `docs/SPEC.md`. The choices
   actually made, and why: `docs/DECISIONS.md`. Record any new interpretive or technical
   choice there.
@@ -47,6 +50,9 @@ Three.js.
   Delete `dist/` afterwards. Lint rules: no file over 1000 lines of code (blank lines and comments
   don't count); split a module before it gets there.
 - `npm run preview` serves the production build.
+- Testing on a phone (same Wi-Fi): `.claude/launch.json` config `vite-lan` serves the dev server on
+  the LAN at port 5180; `vite-lan-prod` (`npm run preview:lan`) builds and serves the production
+  build at port 5181. Add `?fps=1` for a frame readout. Delete `dist/` when done.
 - Prefer procedural geometry, materials and textures. Any external asset must be CC0, live in
   `public/assets/`, and be listed in `CREDITS.md`.
 - Add npm dependencies only when clearly worth it.
@@ -149,7 +155,7 @@ src/
 - **Reuse** the shared materials in `materials.js` and the textures in `textiles.js`, `embroidery.js` and `cherubimWeave.js`. Use
   `addMacroVariation` on large tiled surfaces.
 - Use **InstancedMesh** or merged geometry for repeated parts. The current scene draws 81–143
-  times per frame (`camp` 143, `iso` 141, `gate` 139, `horizon` 81; interior views 97–115; the
+  times per frame (`camp` 143, `iso` 143, `gate` 139, `horizon` 81; interior views 99–117; the
   camp's 6 are in every view; the ground scatter's tiles in view add 0–20 over its old 4). Baseline and frame times: `docs/DECISIONS.md` "Performance baseline".
 - **Light budget:** 8 point lights (altar fire + fill, 4 torches, the menorah, the pillar of fire), and only one
   shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
@@ -187,7 +193,7 @@ src/
 | `?mobile=1` / `?mobile=0` | Force mobile mode on or off (default: on for coarse-pointer touch devices). Mobile mode forces landscape: in portrait `#app` is rotated 90° by CSS (`mobile/device.js`). Test in the browser pane with `resize_window` 375×812 |
 | `?rot=cw\|ccw` | Which way the phone is turned in portrait (default `ccw`: top of the phone to the left, so the content's top edge is the screen's right edge) |
 | `?quality=high\|mobile` | Render quality tier (`config/quality.js`; default `mobile` in mobile mode, else `high`). `high` is the desktop exactly |
-| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `rockFar`, `pebbleFar`, `grassFar`, `shrubFar` (m, 0 = off) set the scatter's distance culling; `furnishings:0` hides the Holy Place seen through the door from outside |
+| `?qk=knob:value,...` | Override single quality knobs for A/B tests, e.g. `?qk=msaa:0,pixelRatio:1` (booleans 0/1; `dynamicResolution:1` turns on dynamic resolution). Switches: `scatter:0` hides the rocks and scrub; `rockFar`, `pebbleFar`, `grassFar`, `shrubFar` (m, 0 = off) set the scatter's distance culling |
 | `?fps=1` | Small readout (rolling rAF frame time, fps, draw calls, pixel ratio, tier) in `#app`'s rotated safe area; works on desktop too |
 | `?haze=0` | Plain FogExp2: no ground haze, no glow of the fires in the air and no interior haze (`render/atmosphere.js`) |
 

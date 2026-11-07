@@ -86,7 +86,7 @@ const ROCK_LOD = 30;
 const gauss = (rnd) => (rnd() + rnd() + rnd() - 1.5) / 1.5; // ~[-1, 1], peaked
 
 /**
- * Tile layout (DECISIONS.md "Mobile (spike)"): each kind is cut into a grid by these x and z
+ * Tile layout (DECISIONS.md "Mobile"): each kind is cut into a grid by these x and z
  * lines (m); the outer rows and columns run on to the edge of the scatter. ±25 / ±15 fall in
  * the bare band round the hangings, so the middle tile is the court.
  */

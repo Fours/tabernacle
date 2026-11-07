@@ -13,6 +13,13 @@
       "runtimeArgs": ["run", "dev", "--", "--host", "--port", "5180", "--strictPort"],
       "port": 5180,
       "autoPort": false
+    },
+    {
+      "name": "vite-lan-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview:lan"],
+      "port": 5181,
+      "autoPort": false
     }
   ]
 }

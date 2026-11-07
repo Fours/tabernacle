@@ -1,7 +1,7 @@
 # Mobile spike: findings
 
-Branch `mobile-spike` (not merged). Details and every decision are in `docs/DECISIONS.md`
-"Mobile (spike)"; the plan is `docs/plans/2026-11-07-mobile-spike.md`.
+Built on branch `mobile-spike` and merged to `main`. Details and every decision are in
+`docs/DECISIONS.md` "Mobile"; the plan is `docs/plans/archive/2026-11-07-mobile-spike.md`.
 
 ## Summary
 

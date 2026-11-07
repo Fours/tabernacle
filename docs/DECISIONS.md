@@ -656,6 +656,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Performance baseline (2026-11-05, after the fire plan)
 
+- 2026-11-07, after the mobile work (desktop, `high` tier, throttled mode, 1024×768 at pixel ratio
+  2): draws / ms `gate` 139 / 12.4, `iso` 143 / 12.8, `tent` 120 / 10.7, `firepillar` 130 / 10.7,
+  `firepillarfoot` 97 / 7.6, `holyplace` 117 / 10.3, `holyofholies` 99 / 9.3, `camp` 143 / 11.6,
+  `campwalk` 94 / 9.3, `horizon` 81 / 8.7, `fire` 122 / 11.1, `fireclose` 118 / 10.7, `torch`
+  130 / 11.5. Draws rose by up to 20 because the ground scatter is drawn in 24 culled tiles
+  (interior views +10 from tiles behind the tent walls); frame times are within ~0.3 ms of the
+  2026-11-06 run, and the picture is unchanged. This is the baseline to compare against.
 - 2026-11-06, after the tent furnishings plan (ornament, wear, mercy seat, hem rings): draws
   `gate` 123, `iso` 123, `tent` 107, `firepillar` 116, `firepillarfoot` 93, `holyplace` 105,
   `holyofholies` 91, `camp` 123, `campwalk` 82, `horizon` 78, `fire` 112, `fireclose` 109,
@@ -705,9 +712,10 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   `camp` (~4,500 tents, ~119k triangles, ~11 ms to build plus ~12 ms to clear the scatter
   under it at load). The camp's 6 instanced draws are in every view.
 
-## Mobile (spike)
+## Mobile
 
-Branch `mobile-spike` only; not on `main`.
+Built as a spike on branch `mobile-spike` (2026-11-07) and merged to `main`. Findings and
+known gaps: `docs/mobile-spike-findings.md`.
 
 - **Mobile mode** is on for `(pointer: coarse)`; `?mobile=1` / `?mobile=0` force it. No Screen
   Orientation API (iPhone Safari has neither orientation lock nor page fullscreen): CSS
@@ -794,9 +802,8 @@ Branch `mobile-spike` only; not on `main`.
   ~1.27 M, the altar's 6-face shadow ~0.86 M, the Holy Place's gold furnishings ~0.32 M (seen
   through the door), the camp only ~60 k. CPU submit 0.3–0.8 ms, so not CPU bound.
 - **Phone A/B of the test switches (Kyle):**
-  - `furnishings:0` gained several fps from outside the tent. It was the mobile default briefly,
-    but Kyle wants the Holy Place always visible through the door, so it stays a test switch only
-    and every tier shows it.
+  - Hiding the Holy Place seen through the door from outside gained several fps. It was the
+    mobile default briefly, but Kyle wants it always visible, so the switch was removed.
   - `scatter:0` gained fps over the camp only, similar elsewhere. Kept as a switch; the real fix
     would be tiling the scatter so off-screen tiles are culled.
   - Redrawing the altar shadow every 3rd frame gained nothing and looked choppy. Removed.
