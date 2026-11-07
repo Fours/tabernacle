@@ -704,3 +704,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   load), the open door +0.15 ms at `gate`, the camp +0.1 ms at `gate` and +0.2–0.3 ms at
   `camp` (~4,500 tents, ~119k triangles, ~11 ms to build plus ~12 ms to clear the scatter
   under it at load). The camp's 6 instanced draws are in every view.
+
+## Mobile (spike)
+
+Branch `mobile-spike` only; not on `main`.
+
+- **Mobile mode** is on for `(pointer: coarse)`; `?mobile=1` / `?mobile=0` force it. No Screen
+  Orientation API (iPhone Safari has neither orientation lock nor page fullscreen): CSS
+  rotation of `#app` is the one mechanism.
+- **Forced landscape:** in portrait `#app` is sized to the swapped dimensions and rotated.
+  Default `ccw`: reads correctly with the phone turned counter-clockwise (top to the left), so
+  the content's top is at the portrait screen's right edge, CSS `rotate(+90deg)`. `?rot=cw` is
+  the mirror. A real landscape viewport is never rotated.
+- **One logical viewport:** renderer, camera aspect and post chain size from `getViewport()`
+  (`src/mobile/device.js`); pointer input goes through `toLogical()`. Mobile reads
+  `visualViewport` (Safari's toolbar resizes it); desktop reads `innerWidth/innerHeight`, so
+  desktop pinch-zoom doesn't shrink the canvas.
+- **Overlays** live inside `#app`, positioned absolutely and sized in `cqw`/`cqh` (`#app` is a
+  size container), so they rotate and size with the scene. Desktop sizes are unchanged.

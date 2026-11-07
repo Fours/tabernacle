@@ -37,7 +37,7 @@ exactly as before).
 
 ## Steps
 
-- [ ] **Step 1: Mobile shell and forced landscape** — model: Sonnet / effort: high
+- [x] **Step 1: Mobile shell and forced landscape** — model: Sonnet / effort: high
   **Goal:** Add the scaffolding every later step uses.
   - New `src/mobile/device.js`: `isMobile` (coarse pointer or `?mobile=1`, off with
     `?mobile=0`), `rotation` (0 or ±90°, from the visual viewport's aspect and `?rot`) and
@@ -113,6 +113,13 @@ exactly as before).
   - **Checkpoint:** Kyle tries it on his phone over `npm run dev -- --host`. Record his feedback
     on look speed, stick size and rotation direction in the carry-over notes for Step 3.
   **Carry-over notes:**
+  - Step 1 API (`src/mobile/device.js`): `isMobile`, live `rotation` (0 | 90 for `ccw` | -90 for
+    `cw`), `getViewport()`, `toLogical(clientX, clientY, out?)` (pass `out`, no allocations),
+    `onViewportChange(cb)` → unsubscribe. `#app` gets classes `rot-ccw` / `rot-cw`, `<html>` gets
+    `is-mobile`. Overlays go in `#app`, `position: absolute`, sized in `cqw`/`cqh` (`#app` is a
+    size container). `--safe-top/right/bottom/left` are already mapped through the rotation.
+  - On the 812×375 logical screen the desktop title screen's verse is clipped at the bottom: the
+    touch title variant must fit a short landscape screen (check 812×375 and 667×375).
 
 - [ ] **Step 3: Mobile quality tier and on-phone frame readout** — model: Opus / effort: medium
   **Goal:** A `?quality=mobile` tier (the default in mobile mode) that keeps the night look while
