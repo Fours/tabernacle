@@ -73,6 +73,7 @@ const tabernacle = createTabernacle();
 const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
 const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holies
 const groundScatter = createGroundScatter(); // rocks and scrub
+groundScatter.visible = QUALITY.scatter; // `?qk=scatter:0` (test switch) hides it
 const camp = createCamp(); // the camp of Israel around the court (Num 2-3)
 groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub under the tents
 groundScatter.userData.removeWhere(isTrodden); // the court's trodden paths are worn bare
@@ -181,7 +182,8 @@ let interiorShown = null;
 function updateInteriorVisibility() {
   const p = camera.position;
   const inside = p.x > INSIDE.x0 && p.x < INSIDE.x1 && Math.abs(p.z) < INSIDE.z && p.y < INSIDE.y;
-  const state = inside ? 2 : p.x > FRONT_X ? 1 : 0;
+  // `?qk=furnishings:0` (test switch): from outside, the Holy Place stays hidden even through the door.
+  const state = inside ? 2 : p.x > FRONT_X && QUALITY.furnishings ? 1 : 0;
   if (state === interiorShown) return;
   interiorShown = state;
   for (const o of holyPlaceMeshes) o.visible = state > 0;
@@ -308,6 +310,7 @@ function hideLoader() {
 const timer = new THREE.Timer();
 timer.connect(document);
 let lastFrame = null;
+let shadowFrame = 0;
 renderer.setAnimationLoop((time) => {
   const frameMs = lastFrame === null ? 0 : time - lastFrame;
   lastFrame = time;
@@ -321,6 +324,8 @@ renderer.setAnimationLoop((time) => {
   if (probe.captureMs === null) probe.capture();
   renderer.info.reset();
   fx.setInside(interiorShown === 2);
+  // `?qk=shadowEvery:N` (test switch): redraw the altar fire's shadow every Nth frame only.
+  if (QUALITY.shadowEvery > 1) renderer.shadowMap.autoUpdate = shadowFrame++ % QUALITY.shadowEvery === 0;
   fx.render(t);
   if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);
