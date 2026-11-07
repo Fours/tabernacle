@@ -1,6 +1,6 @@
 # Plan: Mobile spike
 
-**Status:** active (branch `mobile-spike`, not merged to `main`)
+**Status:** complete (branch `mobile-spike`, not merged to `main`)
 **Goal:** Find out how the Tabernacle works on a phone. On a touch device the scene shows in
 landscape whichever way the phone is held: in portrait it is rotated 90° by CSS. You walk with
 a thumbstick and drag to look, and a mobile quality tier keeps the night look at a playable
@@ -167,7 +167,7 @@ exactly as before).
   - `debug/overlay.js` still appends its readout to `body`, so it doesn't rotate. Put `?fps=1`
     inside `#app`, in the rotated safe area (`--safe-*`).
 
-- [ ] **Step 4: Phone tuning and findings note** — model: Sonnet / effort: medium
+- [x] **Step 4: Phone tuning and findings note** — model: Sonnet / effort: medium
   **Goal:** Apply Kyle's phone feedback from Steps 2 and 3 (look speed, stick size, rotation
   direction, quality knobs), then write `docs/mobile-spike-findings.md`:
   - What was built and how (rotation, input mapping, quality tier).
@@ -201,3 +201,22 @@ exactly as before).
     on the phone yet. To measure: per-phase startup timings on the `?fps=1` readout, and a
     LAN server for the production build. Likely fixes: compile in the background while the
     loader is up, and fewer shader variants on mobile.
+
+## Outcomes
+
+| Step | Rounds | Sub-agent tokens | Result |
+|---|---|---|---|
+| 1. Mobile shell and forced landscape | 1 | ~107k | CSS-rotated `#app`, logical viewport, `toLogical`; desktop unchanged |
+| 2. Touch controls and title | 1 | ~115k | Stick + drag look, touch title, menu button; phone check passed |
+| 3. Mobile quality tier and readout | 1 | ~153k | 37–41% cheaper on the Mac; phone 24–34 fps at pixel ratio 1.5 |
+| 4. Phone tuning and findings | 1 | ~74k | Pixel ratio 1 (phone 30–34 fps); `docs/mobile-spike-findings.md` |
+
+## Lessons
+
+- State a rotation direction physically ("phone turned counter-clockwise") and let the code
+  derive the screen edge; the Step 1 brief contradicted itself, and the physical wording was right.
+- Mac timings only rank the knobs: on the phone pixel count dominated and MSAA hardly mattered,
+  the reverse of how close they were on the Mac. Get phone numbers before tuning further.
+- Errors from mid-edit hot reloads persist in the pane's console across reloads; check a fresh
+  tab before blaming the code.
+- Measuring load time on the phone needs its own instrumentation (left open in the findings).

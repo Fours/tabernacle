@@ -82,13 +82,16 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
 - **One phone only**, model unknown. No other device, GPU class or browser tried.
 - **iPad / tablet layout** not designed or tested (a tablet is coarse-pointer, so it enters
   mobile mode).
-- **Rotation direction is a fixed guess** (`ccw`) with no sensor; a user holding the phone the
-  other way gets an upside-down-feeling view. `?rot=cw` exists only as a URL flag.
+- **Rotation direction is a fixed guess** (`ccw`) with no sensor; a user who turns the phone the
+  other way (clockwise) sees the scene upside down. `?rot=cw` exists only as a URL flag.
 - **Dynamic resolution is off** because iOS Low Power Mode caps rAF at 30 fps, which would read
   as over budget.
 - **Safe-area mapping** was checked in emulation only, not on a notched device.
 
 ## What shipping would take
+
+Sizes are rough estimates, not measured.
+
 
 1. Measure and fix load time on the phone (production build over LAN, per-phase timings;
    background shader compile). Medium: about a day or two.
