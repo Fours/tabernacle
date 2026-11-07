@@ -80,7 +80,12 @@ up), and the stick size. Pixel ratio 1 "still looks pretty good".
 - **Pillar of fire raymarch** isn't the bottleneck: a temporary `?pillar=1..10` setting (level/10
   of its samples and embers) changed the phone's fps by only a few frames even at low levels, not
   worth the grainier look, so it was removed and the pillar stays out of the tier.
-- **Camp cap at 34 fps** is unexplained.
+- **Camp cap at 34 fps:** largely the ground scatter (~1.27 M triangles; hiding it raised fps
+  over the camp on the phone). Fix: tile it so off-screen tiles are culled, with fewer blades and
+  no pebbles far away. The camp's tents themselves are cheap (~60 k triangles).
+- **Holy Place hidden from outside on mobile:** the gold furnishings (~320 k triangles) only show
+  once inside the tent, which gained several fps; a low-poly or distance-based version would let
+  the door view keep them.
 - **One phone only**, model unknown. No other device, GPU class or browser tried.
 - **iPad / tablet layout** not designed or tested (a tablet is coarse-pointer, so it enters
   mobile mode).
@@ -99,7 +104,8 @@ Sizes are rough estimates, not measured.
    background shader compile). Medium: about a day or two.
 2. Test a device matrix (a couple of iPhones, a mid-range Android, an older phone); decide a
    low-end fallback. Small to medium, mostly waiting on devices.
-3. Decide the 30 fps story: accept it, or look into the camp cap (the pillar of fire isn't it).
+3. Decide the 30 fps story: accept it, or tile the ground scatter for the camp views (the pillar
+   of fire and the shadow rate aren't it).
    Small.
 4. Rotation direction: add a switch (menu button) or a sensor-based guess. Small.
 5. Tablet layout and a check on a notched device. Small.

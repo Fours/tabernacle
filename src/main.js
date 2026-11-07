@@ -182,7 +182,7 @@ let interiorShown = null;
 function updateInteriorVisibility() {
   const p = camera.position;
   const inside = p.x > INSIDE.x0 && p.x < INSIDE.x1 && Math.abs(p.z) < INSIDE.z && p.y < INSIDE.y;
-  // `?qk=furnishings:0` (test switch): from outside, the Holy Place stays hidden even through the door.
+  // QUALITY.furnishings false (mobile default): from outside, the Holy Place stays hidden even through the door.
   const state = inside ? 2 : p.x > FRONT_X && QUALITY.furnishings ? 1 : 0;
   if (state === interiorShown) return;
   interiorShown = state;
@@ -310,7 +310,6 @@ function hideLoader() {
 const timer = new THREE.Timer();
 timer.connect(document);
 let lastFrame = null;
-let shadowFrame = 0;
 renderer.setAnimationLoop((time) => {
   const frameMs = lastFrame === null ? 0 : time - lastFrame;
   lastFrame = time;
@@ -324,8 +323,6 @@ renderer.setAnimationLoop((time) => {
   if (probe.captureMs === null) probe.capture();
   renderer.info.reset();
   fx.setInside(interiorShown === 2);
-  // `?qk=shadowEvery:N` (test switch): redraw the altar fire's shadow every Nth frame only.
-  if (QUALITY.shadowEvery > 1) renderer.shadowMap.autoUpdate = shadowFrame++ % QUALITY.shadowEvery === 0;
   fx.render(t);
   if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);

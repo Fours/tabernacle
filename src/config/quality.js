@@ -25,10 +25,9 @@ const TIERS = {
     shadowMapSize: 1024, // the altar fire's point-light shadow (per cube face)
     probeSize: 256, // the Holy Place's reflection probe (per cube face)
     dynamicResolution: false, // drop the pixel ratio when frames run long (main.js)
-    // Test switches for phone A/B (`?qk=...`); both tiers default to the full scene.
+    // Phone A/B switches (`?qk=...`).
     scatter: true, // `scatter:0` hides the rocks, grass and shrubs (scene/groundScatter.js)
-    shadowEvery: 1, // `shadowEvery:3` redraws the altar fire's shadow every 3rd frame only
-    furnishings: true, // `furnishings:0` hides the Holy Place seen through the door from outside
+    furnishings: true, // false: the Holy Place stays hidden from outside, even through the door
   },
   mobile: {
     pixelRatio: 1, // phone-tested: 1.5 ran 24-26 fps, 1 runs 30-32 and still looks good
@@ -42,8 +41,7 @@ const TIERS = {
     probeSize: 128,
     dynamicResolution: false, // opt in with `?qk=dynamicResolution:1` (see DECISIONS.md)
     scatter: true,
-    shadowEvery: 1,
-    furnishings: true,
+    furnishings: false, // phone-tested: several fps from outside the tent (~320k triangles)
   },
 };
 
