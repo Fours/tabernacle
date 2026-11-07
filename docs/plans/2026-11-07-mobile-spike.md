@@ -121,8 +121,7 @@ exactly as before).
   - On the 812×375 logical screen the desktop title screen's verse is clipped at the bottom: the
     touch title variant must fit a short landscape screen (check 812×375 and 667×375).
 
-- [ ] **Step 3: Mobile quality tier and on-phone frame readout** — model: Opus / effort: medium
-  *(Built and verified in emulation, 2d7380c: mobile renders 37–41% faster than high at 812×375. Waiting on Kyle's phone readings before ticking.)*
+- [x] **Step 3: Mobile quality tier and on-phone frame readout** — model: Opus / effort: medium
   **Goal:** A `?quality=mobile` tier (the default in mobile mode) that keeps the night look while
   cutting GPU cost, plus a way to read frame time on the phone itself.
   - One `QUALITY` object (in `src/mobile/device.js` or a new `src/config/quality.js`) read at
@@ -183,3 +182,16 @@ exactly as before).
   **Accept when:** Kyle's feedback items are each addressed or listed as open in the findings
   note. Lint and build pass, and the console is clean. Desktop is unchanged at `walk` and `gate`.
   **Carry-over notes:**
+  - Phone readings after Step 3 (Kyle, 2026-11-07, `?fps=1`, mobile tier, dev server): start
+    24 fps, by the altar fire 26, inside the Holy Place 25, over the camp 34. That's about
+    30–40 ms a frame against ~4 ms for the same tier on the Mac, so the phone is likely
+    fill-rate bound. Next levers to try: `?qk=pixelRatio:1`, `?qk=msaa:0`, then the pillar of
+    fire's raymarch (`MAX_STEPS` 96 in `pillarOfFire.js`, not in the tier yet).
+  - The walk-to-run step at 85% stick deflection hasn't been judged on the phone yet.
+  - **Slow loading on the phone (saved for later, goes in the findings note):** the dev server
+    sends ~72 unminified modules (6.4 MB) against one 1.1 MB file (325 KB gzipped) in
+    production. On top of that the phone compiles 65 shader programs, generates ~50 textures
+    in code, bakes the ground AO and captures the probe before the first frame. Not measured
+    on the phone yet. To measure: per-phase startup timings on the `?fps=1` readout, and a
+    LAN server for the production build. Likely fixes: compile in the background while the
+    loader is up, and fewer shader variants on mobile.

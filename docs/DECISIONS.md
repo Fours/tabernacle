@@ -778,3 +778,6 @@ Branch `mobile-spike` only; not on `main`.
   intervals (ms and fps), draw calls, the current pixel ratio and tier, updated twice a
   second. It lives in `#app` at the rotated safe area's top-left (the menu button is top-right),
   so it reads correctly in both orientations and on desktop. `?debug=1` stays as it was.
+- **Phone readings, mobile tier (Kyle's phone, dev server, `?fps=1`):** start 24 fps, altar
+  fire 26, Holy Place 25, camp 34. Roughly 30–40 ms a frame against ~4 ms on the Mac at the
+  same tier and size, so a phone GPU is ~8–10× slower here and probably fill-rate bound.
