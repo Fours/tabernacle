@@ -722,3 +722,13 @@ Branch `mobile-spike` only; not on `main`.
   desktop pinch-zoom doesn't shrink the canvas.
 - **Overlays** live inside `#app`, positioned absolutely and sized in `cqw`/`cqh` (`#app` is a
   size container), so they rotate and size with the scene. Desktop sizes are unchanged.
+- **Touch controls** (`src/mobile/touchControls.js`, values in `PLAYER`): a floating stick
+  spawns where a touch lands in the left 40% of the logical screen. Radius 56 px, dead zone
+  0.1, full walk at 0.7, run from 0.85 (a step from walk to run speed, no ramp). Any other touch
+  looks at 0.004 rad per logical px, pitch clamped to ±(π/2 − 0.01), drag up looks up like the
+  mouse. Tracked by `pointerId` (stick + look at once); `blur`/`visibilitychange` release all.
+- **Analog walking:** `step()` takes an analog `{x, y}` (magnitude = fraction of walk speed)
+  as well as the keys, which win when held. Head-bob depth follows speed.
+- **Touch title screen:** "Tap to enter", no pointer lock; compacts below 520 px of logical
+  height (container query). A corner menu button in the safe area replaces Esc.
+- **Phone testing:** `.claude/launch.json` config `vite-lan` serves on the LAN at port 5180.

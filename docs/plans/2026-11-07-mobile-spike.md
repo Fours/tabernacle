@@ -74,6 +74,7 @@ exactly as before).
   **Carry-over notes:**
 
 - [ ] **Step 2: Touch controls and touch title screen** — model: Opus / effort: medium
+  *(Built and verified in emulation, 562c8d2; waiting on Kyle's phone checkpoint before ticking.)*
   **Goal:** Make walking and looking work on a phone.
   - New `src/mobile/touchControls.js`, used by `firstPerson.js` in mobile mode. It handles
     multi-touch by `pointerId` (Pointer Events) and maps every point through
