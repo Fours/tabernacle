@@ -654,6 +654,34 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 - 2026-11-04: The `top` preset uses a very high camera with a narrow field of view, close to
   orthographic, so proportions can be measured from screenshots.
 
+## Sound
+
+Plan: `docs/plans/2026-11-08-sound.md`.
+
+- **Sources:** all recorded CC0 Freesound recordings, chosen by Kyle by ear and listed in
+  `CREDITS.md`. Altar fire: ahriik; torch: SKrafft; pops: YouMightLikeThis; pillar: Aegersum;
+  wind: dhallcomposer; insects: felix.blume (a real desert night, Bagdad, California). Raw
+  downloads stay in the gitignored `audio-src/`.
+- **Files:** `public/assets/audio/*.m4a` and `manifest.json` (per file: `url`, `channels`,
+  `duration`, `loopStart`/`loopEnd` or `slices`, `decodedBytes`, `lufs`). 0.91 MB to download,
+  23.6 MB decoded as float32 at 48 kHz (budget 1.5 MB / 25 MB; only ~1.4 MB decoded headroom,
+  so a longer loop or a new bed must shorten another).
+- **Format:** AAC `.m4a` from ffmpeg's `aac_at` (fires and pops 64 kbps mono; wind and insects
+  112 kbps stereo), the one format iPhone Safari is sure to decode. The 2112-sample encoder
+  priming is in an MP4 edit list, which Chrome's `decodeAudioData` trims (measured to the
+  sample); Safari and Firefox not yet checked.
+- **Loops** are 8 s (altar, torch), 10 s (pillar), 22 s (wind), 24 s (insects), crossfaded at
+  the seam (equal power, 0.4–1.5 s). Each is encoded with 0.1 s of its own wrap-around audio on
+  both sides, because AAC smeared an abrupt loop start into a click; so `loopStart` is 0.1 and
+  `loopEnd` is length + 0.1, in seconds of the decoded buffer. Seam check (two cycles rendered
+  offline): the largest step at the seam is ≤ 1.11× the 99.9th-percentile step elsewhere.
+- **Loudness:** fire loops and wind −23 LUFS, insects −26, pops peak −3 dBFS. The altar and
+  torch loops are compressed and limited (their pops sat 30–50 dB above the bed); the torch had
+  light `afftdn` denoise before +47 dB of gain. The engine's per-source gains set the mix.
+- **Pops:** one sprite (`pops.m4a`, 8 slices in `files.pops.slices`) instead of 8 requests.
+- **Pillar of fire:** the text gives it no sound; artistic license, like its size. A steady
+  roar (no wood cracks) slowed an octave and low-passed at 800 Hz: deep and slow.
+
 ## Performance baseline (2026-11-05, after the fire plan)
 
 - 2026-11-07, after the mobile work (desktop, `high` tier, throttled mode, 1024×768 at pixel ratio
