@@ -679,6 +679,22 @@ Plan: `docs/plans/2026-11-08-sound.md`.
   torch loops are compressed and limited (their pops sat 30–50 dB above the bed); the torch had
   light `afftdn` denoise before +47 dB of gain. The engine's per-source gains set the mix.
 - **Pops:** one sprite (`pops.m4a`, 8 slices in `files.pops.slices`) instead of 8 requests.
+- **Engine** (`src/audio/`): nothing is fetched until the loading screen starts to fade (then
+  the manifest and files as ArrayBuffers, ~1 s later, on idle). The `AudioContext` is created in
+  the enter click/tap (`latencyHint: 'playback'`, `navigator.audioSession.type = 'playback'`
+  where it exists), each file is decoded once and shared, and the master fades in over 1.5 s.
+  Graph: buses (fire, wind, insects) → an `outside` chain (low-pass + gain, for the tent
+  interior) → master, with analysers read only on demand; built for any `BaseAudioContext`, so
+  it can be checked offline (`audio.renderOffline`). `?audio=0` fetches nothing.
+- **Wind** follows the cloth: the large-scale terms of the cloth's wave field
+  (0.7 sin a1 + 0.3 sin a2) at the listener drive its gain (0.35–0.9) and a low-pass
+  (650–4200 Hz), updated at 10 Hz with 0.35 s smoothing. `?wind=0` silences it.
+- **Mute:** a speaker button (desktop: a dim 36 px circle bottom-right, shown after entering;
+  mobile: beside the menu button) and `M` on desktop. Ramps 0.2 s down / 0.3 s up, then suspends
+  the context; stored in `localStorage` `tabernacle.muted`. The tab being hidden suspends it too.
+- **Panning:** `QUALITY.audioHrtf` (high: HRTF, mobile: equalpower; `?qk=audioHrtf:0`).
+- **Cost:** `audio.update` 0.01 ms a frame; `gate` 13.00 ms with sound vs 13.04 ms with
+  `?audio=0` (same session), 139 draws either way.
 - **Pillar of fire:** the text gives it no sound; artistic license, like its size. A steady
   roar (no wood cracks) slowed an octave and low-passed at 800 Hz: deep and slow.
 
