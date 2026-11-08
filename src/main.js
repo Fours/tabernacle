@@ -30,6 +30,7 @@ import { createDustMotes } from './scene/dustMotes.js';
 import { WIND, updateWind } from './scene/cloth.js';
 import { getViewport, onViewportChange } from './mobile/device.js';
 import { QUALITY } from './config/quality.js';
+import { track } from './analytics.js';
 
 const params = getParams();
 // Ground haze and the fires' glow in the air live in the fog chunks (render/atmosphere.js);
@@ -306,6 +307,8 @@ function hideLoader() {
   loader.addEventListener('transitionend', () => loader.remove(), { once: true });
   setTimeout(() => loader.remove(), 1500); // in case transitionend never fires (hidden tab)
   loader.classList.add('done');
+  // Time from navigation start until the scene shows (src/analytics.js: bounces during loading).
+  track('scene_loaded', { load_ms: Math.round(performance.now()) });
 }
 
 const timer = new THREE.Timer();
