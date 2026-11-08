@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "preview:lan": "vite build && vite preview --host --port 5181 --strictPort",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "posthog-js": "^1.447.3",
