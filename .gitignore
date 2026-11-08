@@ -14,3 +14,5 @@ npm-debug.log*
 .idea
 .DS_Store
 .VSCodeCounter
+# Raw audio downloads (processed files live in public/assets/audio)
+audio-src/

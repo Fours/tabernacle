@@ -1,0 +1,108 @@
+{
+  "sampleRate": 48000,
+  "note": "Times are seconds in the buffer decodeAudioData returns (AAC priming trimmed by the MP4 edit list). Loops: set loop=true, loopStart, loopEnd. pops: one-shot slices of a single buffer.",
+  "files": {
+    "altarFire": {
+      "url": "/assets/audio/altar-fire.m4a",
+      "channels": 1,
+      "duration": 8.213333,
+      "downloadBytes": 68513,
+      "decodedBytes": 1576960,
+      "lufs": -23.2,
+      "truePeakDb": -4.7,
+      "loopStart": 0.1,
+      "loopEnd": 8.1
+    },
+    "torchFire": {
+      "url": "/assets/audio/torch-fire.m4a",
+      "channels": 1,
+      "duration": 8.213333,
+      "downloadBytes": 68550,
+      "decodedBytes": 1576960,
+      "lufs": -23.1,
+      "truePeakDb": -2.8,
+      "loopStart": 0.1,
+      "loopEnd": 8.1
+    },
+    "pops": {
+      "url": "/assets/audio/pops.m4a",
+      "channels": 1,
+      "duration": 3.328,
+      "downloadBytes": 28515,
+      "decodedBytes": 638976,
+      "lufs": -30.4,
+      "truePeakDb": -2.8,
+      "slices": [
+        {
+          "start": 0.1,
+          "end": 0.335
+        },
+        {
+          "start": 0.485,
+          "end": 0.72
+        },
+        {
+          "start": 0.87,
+          "end": 1.125
+        },
+        {
+          "start": 1.275,
+          "end": 1.51
+        },
+        {
+          "start": 1.66,
+          "end": 1.895
+        },
+        {
+          "start": 2.045,
+          "end": 2.28
+        },
+        {
+          "start": 2.43,
+          "end": 2.665
+        },
+        {
+          "start": 2.815,
+          "end": 3.17
+        }
+      ]
+    },
+    "pillarRoar": {
+      "url": "/assets/audio/pillar-roar.m4a",
+      "channels": 1,
+      "duration": 10.218667,
+      "downloadBytes": 84932,
+      "decodedBytes": 1961984,
+      "lufs": -23,
+      "truePeakDb": -9.4,
+      "loopStart": 0.1,
+      "loopEnd": 10.1
+    },
+    "wind": {
+      "url": "/assets/audio/wind.m4a",
+      "channels": 2,
+      "duration": 22.208,
+      "downloadBytes": 316663,
+      "decodedBytes": 8527872,
+      "lufs": -23,
+      "truePeakDb": -11.3,
+      "loopStart": 0.1,
+      "loopEnd": 22.1
+    },
+    "insects": {
+      "url": "/assets/audio/insects.m4a",
+      "channels": 2,
+      "duration": 24.213333,
+      "downloadBytes": 345113,
+      "decodedBytes": 9297920,
+      "lufs": -26.1,
+      "truePeakDb": -9.7,
+      "loopStart": 0.1,
+      "loopEnd": 24.1
+    }
+  },
+  "totals": {
+    "downloadBytes": 912286,
+    "decodedBytes": 23580672
+  }
+}
