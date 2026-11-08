@@ -141,8 +141,9 @@ src/
     environment.js      generated night environment map
     atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
   audio/
-    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update), mute (button, M, localStorage), suspend when hidden, renderOffline check
+    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update; wind and fires tick at 10 Hz), setInside (0 out, 1 Holy Place, 2 Holy of Holies: drives the outside muffle), mute (button, M, localStorage), suspend when hidden, renderOffline check
     graph.js            createGraph(any BaseAudioContext): buses fire/wind/insects -> outside (lowpass + gain, the tent muffle) -> master; analysers, graphLevels
+    fires.js            positional fires (FIRE_KINDS): a PannerNode per fire (altar, 6 torches, pillar) with its loop (random offset, gain/rate drift, flicker nudge) and random crackles from the pops sprite scheduled 0.2 s ahead (inaudible sources skipped, <= 6 live)
     wind.js             wind bed: the stereo loop, gain + lowpass on a gust envelope from the cloth's WIND field (gustAt)
     muteButton.js       the speaker button (inside #app; bottom-right on desktop, beside the menu button on mobile)
   mobile/device.js      mobile mode, forced landscape: isMobile, rotation, getViewport() (logical landscape size), toLogical(x, y) (screen point -> rotated frame), onViewportChange(cb); sizes/rotates #app
@@ -241,10 +242,15 @@ Every visual change is checked with screenshots in the built-in browser
 composer, menorah, interior, updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp,
 fires, atmosphere, dust, ao, groundAO, wind, quality, setPixelRatio, updateDynamicResolution, audio, inside`. `inside` is true when the camera is inside the tent (what `fx.setInside` gets).
 `audio` (null with `?audio=0`) is the sound engine: `ctx` (null until the enter click/tap), `graph`,
-`buses`, `buffers`, `manifest`, `wind`, `muted`, `mute(bool)`, `unlock()`, `panningModel`,
+`buses`, `buffers`, `manifest`, `wind`, `fires` (`sources` [{name, kind, pos, panner, distance}],
+`oneShots` live crackles, `peakOneShots`, `distances()`), `inside` (0/1/2), `muted`, `mute(bool)`,
+`unlock()`, `panningModel`,
 `levels()` (RMS dBFS per bus and master from the analysers, read on demand; −120 = silence) and
-`renderOffline(seconds, step)` (renders the graph in an `OfflineAudioContext` and returns
-`{t, gust, wind, master}` samples; works without a gesture). In the pane a real click
+`renderOffline(seconds, step, {inside})` (renders the graph, wind and fires at the camera in an
+`OfflineAudioContext`, ticking at 10 Hz like the live loop; returns `{t, gust, wind, fire, master,
+oneShots}` samples, with power-averaged `.fire`/`.wind`/`.master`, `.peakOneShots` and
+`.distances` on the array; works without a gesture). Bus analysers are before the outside muffle,
+so read the tent's muffle on `master`. In the pane a real click
 (`computer` left_click) on the title starts the context; with the free camera (`?view=`) a press
 on the canvas does. `quality` is the active `QUALITY` tier; `setPixelRatio(pr)` resizes the renderer and post chain; `updateDynamicResolution(frameMs)` steps the dynamic resolution by hand. `wind` holds the cloth wind uniforms (`uWindTime`, `uWindDir`, `uWindStrength`; set `uWindTime` then `fx.render(t)` to compare wind frames). `ao` holds the AO strength uniforms (`AO` in `scene/ao.js`), `groundAO` the baked ground texture and its bake time. `atmosphere.uniforms`
 are the haze/glow tuning uniforms (`ATMO`; the `uAtmoIn*` ones are the tent's air),

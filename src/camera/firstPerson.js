@@ -20,9 +20,10 @@ const KEYMAP = {
  * In mobile mode (mobile/device.js) there is no pointer lock: touch controls (a thumbstick and
  * drag to look, mobile/touchControls.js) drive it, and a corner button replaces Esc.
  * onEnter(): called synchronously inside every enter click/tap (the audio unlock needs the
- * user gesture). onIntro(shown): the title screen was shown or hidden.
+ * user gesture). onIntro(shown): the title screen was shown or hidden. sound: list `M` (mute) in
+ * the desktop controls.
  */
-export function createFirstPerson(camera, domElement, colliders, spawn, { bob = true, onEnter = null, onIntro = null } = {}) {
+export function createFirstPerson(camera, domElement, colliders, spawn, { bob = true, onEnter = null, onIntro = null, sound = false } = {}) {
   const controls = new PointerLockControls(camera, domElement);
   controls.pointerSpeed = PLAYER.lookSpeed;
   let bobPhase = 0;
@@ -51,7 +52,8 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
         <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><i>or</i><kbd>&uarr;</kbd><kbd>&larr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></dt><dd>Walk</dd>
         <dt><kbd class="wide">Mouse</kbd></dt><dd>Look around</dd>
         <dt><kbd class="wide">Shift</kbd></dt><dd>Run</dd>
-        <dt><kbd class="wide">Esc</kbd></dt><dd>Release the mouse</dd>`}
+        <dt><kbd class="wide">Esc</kbd></dt><dd>Release the mouse</dd>${sound ? `
+        <dt><kbd>M</kbd></dt><dd>Sound on/off</dd>` : ''}`}
       </dl>
       <div class="fp-rule" aria-hidden="true"><span></span></div>
       <p class="fp-start">${isMobile ? 'Tap' : 'Click'} to enter</p>

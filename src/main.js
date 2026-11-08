@@ -18,7 +18,7 @@ import { createPillarOfFire } from './scene/pillarOfFire.js';
 import { overlaps } from './scene/colliders.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { AO, bakeGroundAO } from './scene/ao.js';
-import { TABERNACLE as T, m } from './config/dimensions.js';
+import { TABERNACLE as T, TORCHES, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
@@ -233,7 +233,20 @@ const probe = {
 // Sound (src/audio/): nothing is fetched until the loading screen goes, and the AudioContext is
 // created in the enter click/tap. `?audio=0`: no sound at all.
 const app = document.getElementById('app') ?? document.body;
-const audio = params.audio ? createAudioEngine({ camera, app, mobile: isMobile, hrtf: QUALITY.audioHrtf }) : null;
+// Positional fires (audio/fires.js), at their flames (static): the altar, the 6 torches (the
+// two west ones glow only, quieter) and the pillar of fire in the body of its flames.
+const fireSounds = [
+  { name: 'altar', kind: 'altar', pos: worldOf(altarFire.userData.fire.group, 0.5), fire: altarFire.userData.fire },
+  ...torchFires.map((f, i) => ({
+    name: `torch${i}`, kind: TORCHES.list[i].light ? 'torch' : 'torchGlow', pos: worldOf(f.group, 0.2), fire: f,
+  })),
+  { name: 'pillar', kind: 'pillar', pos: worldOf(pillarLight) },
+];
+const audio = params.audio
+  ? createAudioEngine({ camera, app, mobile: isMobile, hrtf: QUALITY.audioHrtf, fires: fireSounds })
+  : null;
+// Inside state for the sound's outside muffle: 1 Holy Place, 2 Holy of Holies (west of the veil).
+const VEIL_X = m(T.veil.x);
 
 // Camera mode
 let rig;
@@ -242,6 +255,7 @@ if (params.cam === 'fp') {
     bob: params.bob,
     onEnter: audio && audio.unlock,
     onIntro: audio && audio.setIntroShown,
+    sound: !!audio,
   });
 } else {
   rig = createDevCamera(camera, canvas, params.view || 'iso');
@@ -346,7 +360,10 @@ renderer.setAnimationLoop((time) => {
   renderer.info.reset();
   fx.setInside(interiorShown === 2);
   fx.render(t);
-  if (audio) audio.update(dt);
+  if (audio) {
+    audio.setInside(interiorShown === 2 ? (camera.position.x < VEIL_X ? 2 : 1) : 0);
+    audio.update(dt);
+  }
   if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);
   if (fpsReadout) fpsReadout.update(frameMs, renderer);

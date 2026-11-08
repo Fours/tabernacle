@@ -1,5 +1,6 @@
 import { createGraph, graphLevels } from './graph.js';
 import { createWindBed } from './wind.js';
+import { createFireSources } from './fires.js';
 import { createMuteButton } from './muteButton.js';
 import { WIND } from '../scene/cloth.js';
 
@@ -11,8 +12,11 @@ import { WIND } from '../scene/cloth.js';
  *   AudioContext the first time and resumes it, so it starts inside the user gesture; then
  *   decodes each file once (awaiting the fetch if still in flight), starts the beds and fades
  *   the master in. No AudioContext exists before that gesture.
- * - `update(dt)` (main.js loop, after render): the listener follows the camera; the wind bed
- *   retargets at ~10 Hz. Does nothing unless the context is running.
+ * - `update(dt)` (main.js loop, after render): the listener follows the camera; the wind bed and
+ *   the fires (audio/fires.js: loop drift, crackles scheduled ahead) retarget at ~10 Hz. Does
+ *   nothing unless the context is running.
+ * - `setInside(state)` (main.js, per frame; cheap when unchanged): 0 outside, 1 Holy Place,
+ *   2 Holy of Holies. Drives the graph's `outside` chain (low-pass and gain on every outside bus).
  * - Mute (button, `M`, `localStorage` 'tabernacle.muted'): ramps the master to 0 and suspends.
  *   Hidden tab / pagehide: suspend; visible again: resume unless muted.
  */
@@ -20,7 +24,29 @@ const BASE = '/assets/audio/';
 const MASTER = 1;
 const BUS_GAIN = { fire: 1, wind: 0.7, insects: 1 }; // Step 4 sets the final mix
 const FADE_IN = 1.5, MUTE_RAMP = 0.2, UNMUTE_RAMP = 0.3; // s
-const WIND_DT = 0.1; // s between wind envelope updates
+const WIND_DT = 0.1; // s between wind envelope / fire updates
+// The outside chain per inside state (0 outside, 1 Holy Place, 2 Holy of Holies): low-pass Hz
+// and gain. Ramped with INSIDE_TAU (~0.3 s to settle).
+const INSIDE_CHAIN = [
+  { hz: 20000, gain: 1 },
+  { hz: 700, gain: 10 ** (-12 / 20) },
+  { hz: 700, gain: 10 ** (-18 / 20) },
+];
+const INSIDE_TAU = 0.1;
+
+/** Set (`tau` 0: immediately) the graph's outside chain for inside state `state`. */
+function applyInside(graph, state, now, tau) {
+  const c = INSIDE_CHAIN[state] || INSIDE_CHAIN[0];
+  const f = graph.outside.filter.frequency, g = graph.outside.gain.gain;
+  const hz = Math.min(c.hz, graph.ctx.sampleRate / 2);
+  if (tau > 0) {
+    f.setTargetAtTime(hz, now, tau);
+    g.setTargetAtTime(c.gain, now, tau);
+  } else {
+    f.cancelScheduledValues(now); g.cancelScheduledValues(now);
+    f.value = hz; g.value = c.gain;
+  }
+}
 const STORE = 'tabernacle.muted';
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 200));
@@ -32,8 +58,10 @@ function saveMuted(v) {
   try { localStorage.setItem(STORE, v ? '1' : '0'); } catch { /* private mode */ }
 }
 
-export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) {
-  let ctx = null, graph = null, wind = null;
+export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fires: fireSpecs = [] }) {
+  let ctx = null, graph = null, wind = null, fires = null;
+  let inside = 0; // last state given to setInside
+  const panningModel = hrtf ? 'HRTF' : 'equalpower';
   let manifest = null;
   let loading = null; // Promise<{manifest, raw: {key: ArrayBuffer}}>
   const buffers = {}; // decoded AudioBuffers, shared by every source
@@ -74,6 +102,8 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) 
     Object.assign(buffers, await decodeAll(ctx, raw));
     for (const k in BUS_GAIN) graph.buses[k].gain.value = BUS_GAIN[k];
     wind = createWindBed(ctx, graph.buses.wind, buffers.wind, manifest.files.wind, camera.position);
+    fires = createFireSources(ctx, graph.buses.fire, buffers, manifest.files, fireSpecs, { panningModel });
+    applyInside(graph, inside, ctx.currentTime, 0);
     if (muted) {
       ctx.suspend().catch(() => {});
     } else {
@@ -120,8 +150,11 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) 
     get manifest() { return manifest; },
     get muted() { return muted; },
     get wind() { return wind; },
+    /** audio/fires.js: {sources: [{name, pos, panner, distance, ...}], oneShots, distances()}. */
+    get fires() { return fires; },
+    get inside() { return inside; },
     /** Panning model for positional sources (QUALITY.audioHrtf). */
-    panningModel: hrtf ? 'HRTF' : 'equalpower',
+    panningModel,
 
     /** Fetch (not decode) every file on idle, after the loading screen has gone. */
     prefetch() {
@@ -149,6 +182,13 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) 
     /** The title screen is up (true) or gone (false): the button hides with it. */
     setIntroShown(v) {
       button.show(!v);
+    },
+
+    /** 0 outside, 1 Holy Place, 2 Holy of Holies. Ramps the outside chain on a change. */
+    setInside(state) {
+      if (state === inside) return;
+      inside = state;
+      if (graph) applyInside(graph, state, ctx.currentTime, INSIDE_TAU);
     },
 
     mute(v) {
@@ -185,7 +225,9 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) 
       windAcc += dt;
       if (wind && windAcc >= WIND_DT) {
         windAcc = 0;
-        wind.update(e[12], e[13], e[14], ctx.currentTime);
+        const now = ctx.currentTime;
+        wind.update(e[12], e[13], e[14], now);
+        if (fires) fires.tick(e[12], e[13], e[14], now);
       }
     },
 
@@ -196,29 +238,57 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true }) 
 
     /**
      * Check without the live context: render `seconds` of the graph offline (master at full),
-     * the listener at the camera, the wind clock running from now. Returns samples every `step`
-     * s: {t, gust, wind, master} (dBFS).
+     * the listener at the camera (position and orientation), the inside state as now (or
+     * `opts.inside`), the wind and fires ticking every 0.1 s as live. Returns samples every `step` s:
+     * {t, gust, wind, fire, master (dBFS), oneShots}, and `.fire` / `.wind` / `.master` on the
+     * array: the power-averaged RMS over every sample, `.peakOneShots`, `.popsScheduled`,
+     * `.distances` (each fire's distance and heard dB).
      */
-    async renderOffline(seconds = 6, step = 0.5) {
+    async renderOffline(seconds = 6, step = 0.5, { inside: insideState = inside } = {}) {
       const { raw } = await load();
       const sr = manifest.sampleRate;
       const off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
-      const bufs = buffers.wind ? buffers : await decodeAll(off, { wind: raw.wind });
+      const bufs = buffers.wind ? buffers : await decodeAll(off, raw);
       const g = createGraph(off);
       g.master.gain.value = MASTER;
       for (const k in BUS_GAIN) g.buses[k].gain.value = BUS_GAIN[k];
+      applyInside(g, insideState, 0, 0);
+      camera.updateMatrixWorld();
+      const e = camera.matrixWorld.elements, l = off.listener;
+      if (l.positionX) {
+        l.positionX.value = e[12]; l.positionY.value = e[13]; l.positionZ.value = e[14];
+        l.forwardX.value = -e[8]; l.forwardY.value = -e[9]; l.forwardZ.value = -e[10];
+        l.upX.value = e[4]; l.upY.value = e[5]; l.upZ.value = e[6];
+      } else {
+        l.setPosition(e[12], e[13], e[14]);
+        l.setOrientation(-e[8], -e[9], -e[10], e[4], e[5], e[6]);
+      }
       const p = camera.position, t0 = WIND.uWindTime.value;
       const bed = createWindBed(off, g.buses.wind, bufs.wind, manifest.files.wind, p);
+      const fs = createFireSources(off, g.buses.fire, bufs, manifest.files, fireSpecs, { panningModel });
+      fs.tick(p.x, p.y, p.z, 0);
       const samples = [];
-      for (let t = step; t < seconds; t += step) {
+      const pw = { fire: 0, wind: 0, master: 0 };
+      const every = Math.max(1, Math.round(step / WIND_DT));
+      for (let i = 1; i * WIND_DT < seconds - 1e-6; i++) {
+        const t = Math.round(i * WIND_DT * 1000) / 1000;
         off.suspend(t).then(() => {
-          const lv = graphLevels(g);
-          samples.push({ t, gust: Math.round(bed.gust * 1000) / 1000, wind: lv.wind, master: lv.master });
+          if (i % every === 0) {
+            const lv = graphLevels(g);
+            samples.push({ t, gust: Math.round(bed.gust * 1000) / 1000, wind: lv.wind, fire: lv.fire, master: lv.master, oneShots: fs.oneShots });
+            for (const k in pw) pw[k] += 10 ** (lv[k] / 10);
+          }
           bed.update(p.x, p.y, p.z, t, t0 + t);
+          fs.tick(p.x, p.y, p.z, t);
           off.resume();
         });
       }
       await off.startRendering();
+      const db = (v) => Math.round(10 * Math.log10(v / Math.max(1, samples.length) + 1e-12) * 10) / 10;
+      for (const k in pw) samples[k] = db(pw[k]);
+      samples.peakOneShots = fs.peakOneShots;
+      samples.popsScheduled = fs.popsScheduled;
+      samples.distances = fs.distances();
       return samples;
     },
 
