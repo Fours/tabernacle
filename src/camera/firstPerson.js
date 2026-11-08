@@ -19,8 +19,10 @@ const KEYMAP = {
  * spawn: { pos: [x,y,z], target: [x,y,z] } in meters.
  * In mobile mode (mobile/device.js) there is no pointer lock: touch controls (a thumbstick and
  * drag to look, mobile/touchControls.js) drive it, and a corner button replaces Esc.
+ * onEnter(): called synchronously inside every enter click/tap (the audio unlock needs the
+ * user gesture). onIntro(shown): the title screen was shown or hidden.
  */
-export function createFirstPerson(camera, domElement, colliders, spawn, { bob = true } = {}) {
+export function createFirstPerson(camera, domElement, colliders, spawn, { bob = true, onEnter = null, onIntro = null } = {}) {
   const controls = new PointerLockControls(camera, domElement);
   controls.pointerSpeed = PLAYER.lookSpeed;
   let bobPhase = 0;
@@ -70,12 +72,14 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
     for (const k in keys) keys[k] = false;
     if (touch) touch.setEnabled(false);
     if (menuBtn) menuBtn.classList.add('hidden');
+    if (onIntro) onIntro(true);
   };
   const hideIntro = () => {
     introShown = false;
     intro.classList.add('hidden');
     if (touch) touch.setEnabled(true);
     if (menuBtn) menuBtn.classList.remove('hidden');
+    if (onIntro) onIntro(false);
   };
 
   // Mobile: a small corner button (in the safe area) brings the title screen back, as Esc does.
@@ -108,6 +112,7 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
   };
   doc.addEventListener('pointerlockerror', onLockError);
   const requestLock = () => {
+    if (onEnter) onEnter();
     if (lockUnavailable) {
       hideIntro();
       return;
@@ -121,7 +126,10 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
   };
   // Mobile: no pointer lock; tapping the title screen just hides it.
   if (isMobile) {
-    intro.addEventListener('click', hideIntro);
+    intro.addEventListener('click', () => {
+      if (onEnter) onEnter();
+      hideIntro();
+    });
   } else {
     intro.addEventListener('click', requestLock);
     domElement.addEventListener('click', requestLock);

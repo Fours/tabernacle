@@ -313,6 +313,48 @@ body {
   visibility: hidden;
 }
 
+/* Speaker button (audio/muteButton.js): mutes the sound (also `M` on desktop). Bottom-right on
+   desktop; on mobile beside the menu button, in the rotated safe area. Hidden on the title screen. */
+.audio-mute {
+  position: absolute;
+  z-index: 9;
+  right: calc(var(--safe-right) + 16px);
+  bottom: calc(var(--safe-bottom) + 16px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(236, 210, 158, 0.35);
+  border-radius: 50%;
+  background: rgba(4, 4, 7, 0.4);
+  color: rgba(236, 210, 158, 0.8);
+  box-shadow: 0 0 14px rgba(255, 170, 70, 0.1);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.45s ease, visibility 0.45s;
+}
+
+.audio-mute:hover {
+  opacity: 1;
+}
+
+.audio-mute--touch {
+  top: calc(var(--safe-top) + 12px);
+  right: calc(var(--safe-right) + 12px + 40px + 10px);
+  bottom: auto;
+  width: 40px;
+  height: 40px;
+  border-color: rgba(236, 210, 158, 0.45);
+  opacity: 1;
+}
+
+.audio-mute.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
 /* Floating thumbstick (mobile/touchControls.js): base ring, run ring and knob, while held.
    JS sets the size and position (transform) in logical px. */
 .touch-stick {

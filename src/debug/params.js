@@ -42,5 +42,7 @@ export function getParams() {
     qk: p.get('qk') || null,
     // `?fps=1`: a small frame-time readout inside #app, in the rotated safe area.
     fps: p.get('fps') === '1',
+    // `?audio=0`: no sound at all (no fetch, no AudioContext, no mute button; src/audio/).
+    audio: p.get('audio') !== '0',
   };
 }

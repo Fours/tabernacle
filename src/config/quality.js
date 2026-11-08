@@ -3,7 +3,7 @@ import { isMobile } from '../mobile/device.js';
 
 /**
  * Render quality tier, read once at startup by the systems it tunes (main.js, render/postfx.js,
- * render/bloom.js, scene/fireVolume.js, scene/altarFire.js, scene/groundScatter.js).
+ * render/bloom.js, scene/fireVolume.js, scene/altarFire.js, scene/groundScatter.js, audio/).
  *
  * `?quality=high|mobile`; the default is `mobile` in mobile mode (mobile/device.js), else `high`.
  * `high` holds the desktop values exactly, so desktop runs the same code paths as before.
@@ -11,7 +11,7 @@ import { isMobile } from '../mobile/device.js';
  * "Mobile" has each knob's measured cost).
  *
  * For A/B tests one knob can be overridden from the URL: `?qk=msaa:4,bloomLevels:7` (numbers;
- * `canvasAA`, `dynamicResolution` and `scatter` take 0/1; `grassFar:0` etc. turn
+ * `canvasAA`, `dynamicResolution`, `scatter` and `audioHrtf` take 0/1; `grassFar:0` etc. turn
  * the scatter's distance culling off).
  */
 const TIERS = {
@@ -26,6 +26,7 @@ const TIERS = {
     shadowMapSize: 1024, // the altar fire's point-light shadow (per cube face)
     probeSize: 256, // the Holy Place's reflection probe (per cube face)
     dynamicResolution: false, // drop the pixel ratio when frames run long (main.js)
+    audioHrtf: true, // HRTF panning for positional sounds (src/audio/); equalpower when off
     // Phone A/B switches (`?qk=...`).
     scatter: true, // `scatter:0` hides the rocks, grass and shrubs (scene/groundScatter.js)
     // Ground scatter distance culling per kind (m from the camera; 0 = off; scene/groundScatter.js `cull`).
@@ -45,6 +46,7 @@ const TIERS = {
     shadowMapSize: 512,
     probeSize: 128,
     dynamicResolution: false, // opt in with `?qk=dynamicResolution:1` (see DECISIONS.md)
+    audioHrtf: false, // equalpower panning: HRTF convolution is a per-source CPU cost
     scatter: true,
     rockFar: 30, // the ground scatter's distance culling (see `high`); A/B'd in the browser at
     pebbleFar: 15, // `walk`, `campwalk`, `horizon`, `ground`: no visible change

@@ -28,7 +28,8 @@ import { createNightEnvironment } from './render/environment.js';
 import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
 import { createDustMotes } from './scene/dustMotes.js';
 import { WIND, updateWind } from './scene/cloth.js';
-import { getViewport, onViewportChange } from './mobile/device.js';
+import { getViewport, onViewportChange, isMobile } from './mobile/device.js';
+import { createAudioEngine } from './audio/engine.js';
 import { QUALITY } from './config/quality.js';
 import { track } from './analytics.js';
 
@@ -229,12 +230,26 @@ const probe = {
   },
 };
 
+// Sound (src/audio/): nothing is fetched until the loading screen goes, and the AudioContext is
+// created in the enter click/tap. `?audio=0`: no sound at all.
+const app = document.getElementById('app') ?? document.body;
+const audio = params.audio ? createAudioEngine({ camera, app, mobile: isMobile, hrtf: QUALITY.audioHrtf }) : null;
+
 // Camera mode
 let rig;
 if (params.cam === 'fp') {
-  rig = createFirstPerson(camera, canvas, colliders, PRESETS.walk, { bob: params.bob });
+  rig = createFirstPerson(camera, canvas, colliders, PRESETS.walk, {
+    bob: params.bob,
+    onEnter: audio && audio.unlock,
+    onIntro: audio && audio.setIntroShown,
+  });
 } else {
   rig = createDevCamera(camera, canvas, params.view || 'iso');
+  // The free camera has no title screen: the first press on the canvas starts the sound.
+  if (audio) {
+    audio.setIntroShown(false);
+    canvas.addEventListener('pointerdown', audio.unlock, { once: true });
+  }
 }
 
 // Presets applied later (`rig.apply`) or a respawn must not draw the wrong set for a frame.
@@ -289,7 +304,7 @@ function updateDynamicResolution(frameMs) {
     dynUnder = 0;
   }
 }
-const fpsReadout = params.fps ? createFpsReadout(document.getElementById('app') ?? document.body, QUALITY.name) : null;
+const fpsReadout = params.fps ? createFpsReadout(app, QUALITY.name) : null;
 
 // Small debug handle for automated verification.
 window.__tabernacle = {
@@ -297,6 +312,8 @@ window.__tabernacle = {
   updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
   fires: [altarFire.userData.fire, ...torches.userData.fires], quality: QUALITY, setPixelRatio,
   updateDynamicResolution, // (frameMs): the loop calls it when QUALITY.dynamicResolution is on; testable by hand
+  audio, // src/audio/engine.js (null with `?audio=0`)
+  get inside() { return interiorShown === 2; }, // the camera is inside the tent (fx.setInside)
 };
 
 // Loading screen (index.html): fade it out over 1 s once the first frames have rendered (the
@@ -309,6 +326,7 @@ function hideLoader() {
   loader.classList.add('done');
   // Time from navigation start until the scene shows (src/analytics.js: bounces during loading).
   track('scene_loaded', { load_ms: Math.round(performance.now()) });
+  if (audio) audio.prefetch(); // fetch the sound files on idle, now that the scene is up
 }
 
 const timer = new THREE.Timer();
@@ -328,6 +346,7 @@ renderer.setAnimationLoop((time) => {
   renderer.info.reset();
   fx.setInside(interiorShown === 2);
   fx.render(t);
+  if (audio) audio.update(dt);
   if (loader && ++framesRendered === 2) hideLoader();
   if (debug) debug.update(renderer);
   if (fpsReadout) fpsReadout.update(frameMs, renderer);
