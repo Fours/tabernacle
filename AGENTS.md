@@ -82,7 +82,7 @@ Three.js.
 ```
 src/
   main.js               renderer, scene assembly, per-frame loop, window.__tabernacle
-  config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
+  config/dimensions.js  every measurement (cubits, incl. ASH_HEAP) + PLAYER, TORCHES, CAMP (layout, m)
   config/quality.js     QUALITY tier (high | mobile), read at startup: pixel ratio cap, MSAA, bloom start/levels, fire steps, shadow and probe sizes, dynamic resolution, audioHrtf
   scene/
     ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden, the blood round the altar (bloodTexture)
@@ -95,6 +95,7 @@ src/
     cloth.js            addCloth: firelight through cloth, fibre sheen, wind (WIND, aWind attrs, addWindShadow)
     altar.js            hollow bronze altar, top grate, ember bed, horns, ledge, network, rings, poles, utensils
     altarFire.js        places the coal bed + fire on altar.userData.hearth
+    ashHeap.js          the place of the ashes east of the altar (Lev 1:16): one lumpy mound, canvas ash texture
     firewood.js         log stack + coals with glowing cracks (the altar uses coals only)
     fire.js             reusable GPU fire: createFire(opts) → {group, light, update, level, uniforms, dispose}; re-exports the pieces below
     fireCommon.js       shared GLSL (NOISE_GLSL, BILLBOARD_GLSL, FOG_ADDITIVE_GLSL, FIRE_RAMP_GLSL, FLAME_GLSL: the flame language of fireVolume.js and the pillar, HASH_GLSL) + helpers (rng, randAttribute, fogUniforms, noise1, createNoiseTexture: tiling 64³ 3D noise)
@@ -215,7 +216,7 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Overview:** `top` (near-orthographic plan from 270 m; the pillar of fire's head covers the
   Holy of Holies), `iso`
 - **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub), `rocks` (close on a rock outside the south hangings)
-- **Altar and laver:** `altar`, `altartop`, `altarlow`, `altarnorth` (eye height NE of the altar, down on its north side: the blood on the sand and the lower walls), `fire`, `fireclose` (eye height ~2 m out
+- **Altar and laver:** `altar`, `altartop`, `altarlow`, `altarnorth` (eye height NE of the altar, down on its north side: the blood on the sand and the lower walls), `ashes` (the ash heap east of the altar from the south-east), `fire`, `fireclose` (eye height ~2 m out
   from the altar's south-east horn, on the flames), `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
   the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW),

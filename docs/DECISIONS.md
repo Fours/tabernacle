@@ -47,6 +47,11 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Courtyard
 
+- 2026-11-08: The place of the ashes (Lev 1:16: "beside the altar on the east"; Lev 6:10–11:
+  the ashes are put beside the altar, then carried outside the camp): a low heap of cold ash
+  east of the altar. The text gives no size or exact spot: it sits 7.6 cubits east of the
+  altar's centre (clear of the carrying poles' ends) and 3.3 cubits south (clear of the
+  priests' path from the gate).
 - 2026-11-04: 60 pillars stand every 5 cubits around the perimeter. The "4 gate + 3 + 3"
   count is reconciled by crediting each pillar with one 5-cubit span. So the 20-cubit gate has
   posts at z = −10, −5, 0, +5, +10 cubits, with one in the middle. The middle post is now
@@ -77,7 +82,14 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   reaching ~5.5 m north of the wall; Kyle had it run 1.5 m further north) with darker blotches;
   over it a larger, darker, redder layer (~3.4 × 3.2 m, Kyle's request; the texture's B
   channel); and drops (1.5–5.5 cm) round them, densest near the walls. The patch is cleared of
-  rocks and grass like the trodden paths (`isTrodden`). Bronze
+  rocks and grass like the trodden paths (`isTrodden`).
+- 2026-11-08: Ash heap (`scene/ashHeap.js`, `ASH_HEAP` in `dimensions.js`): a slumped mound
+  ~2.1 × 1.6 m and ~25 cm high, lumpy (a few shovel-loads), its rim sunk just under the sand,
+  turned 0.25 rad. One mesh (~1.5k triangles, polar grid) with a 512² top-down canvas texture
+  as colour and bump: grey ash with paler drifts, charcoal chips, a few half-burnt ends and
+  plenty of white calcined flecks (~3,200; Kyle: so it stands out from the sand). Under the work light it reads grey; at night the altar fire warms it
+  like the sand, and the altar's walls shade its lower east side. Collides (circle), clears the
+  scatter, contact AO on the sand; casts no shadow. +1 draw (`gate` 140). Preset `ashes`. Bronze
   (`addAltarBlood` in `metalWear.js`, a world-space mask on `BRONZE_PLATED`): splashes and runs
   on the lower walls below a ragged line at ~42–56% of the height (rabbinic tradition's red
   line, below which the burnt offering's blood was dashed) and smears on the horns. Draws

@@ -16,6 +16,8 @@ export const PRESETS = {
   // Eye height north-east of the altar, looking down at its north side: the slaughter ground
   // and the blood at the altar's base.
   altarnorth: { pos: [m(ALTAR.x) + 3.4, 1.6, -7.6], target: [m(ALTAR.x) - 0.3, 0.2, -2.6], fov: 60 },
+  // The ash heap east of the altar (Lev 1:16), at eye height from the south-east, the altar behind.
+  ashes: { pos: [m(ALTAR.x) + 5.9, 1.6, 3.4], target: [m(ALTAR.x) + 2.6, 0.3, 1.0], fov: 60 },
   // Straight-ish down into the altar: hearth, wall thickness, horns, ledge, net, rings, poles.
   altartop: { pos: [m(ALTAR.x + 1.5), m(14), m(5.5)], target: [m(ALTAR.x), m(2.5), 0], fov: 50 },
   // Low side view along the ledge/net band from the south-east, plus utensils.

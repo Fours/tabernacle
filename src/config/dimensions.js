@@ -169,6 +169,17 @@ export const ALTAR_UTENSILS = {
   offsetZ: 4.6, // cubits south of the altar's center
 };
 
+// The place of the ashes (Lev 1:16; 6:10-11): "beside the altar on the east". A low heap of
+// ash taken off the altar, before it is carried outside the camp. Sizes and the exact spot are
+// not in the text: east of the altar's poles, a little south of the gate-altar path.
+export const ASH_HEAP = {
+  offsetX: 7.6, // cubits east of the altar's centre (clear of the carrying poles' ends)
+  offsetZ: 3.3, // cubits south of it (clear of the priests' path from the gate)
+  radiusX: 2.3, // half length E-W
+  radiusZ: 1.75, // half width N-S
+  height: 0.55, // at its crown (a slumped heap, ~25 cm)
+};
+
 // Laver (Ex 30:17-21; 38:8): bronze basin on a bronze base. Text gives no dimensions, so this is
 // a human-scale reconstruction (rim at ~0.9 m, convenient for washing hands and feet).
 export const LAVER = {
