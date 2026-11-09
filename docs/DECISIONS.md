@@ -686,7 +686,7 @@ Plan: `docs/plans/2026-11-08-sound.md`.
   Graph: buses (fire, wind, insects) → an `outside` chain (low-pass + gain, for the tent
   interior) → master, with analysers read only on demand; built for any `BaseAudioContext`, so
   it can be checked offline (`audio.renderOffline`). `?audio=0` fetches nothing.
-- **Wind** follows the cloth: the large-scale terms of the cloth's wave field
+- **Wind** (bus gain 0.5; 0.7 was a little loud, Kyle) follows the cloth: the large-scale terms of the cloth's wave field
   (0.7 sin a1 + 0.3 sin a2) at the listener drive its gain (0.35–0.9) and a low-pass
   (650–4200 Hz), updated at 10 Hz with 0.35 s smoothing. `?wind=0` silences it.
 - **Mute:** a speaker button (desktop: a dim 36 px circle bottom-right, shown after entering;
@@ -703,13 +703,15 @@ Plan: `docs/plans/2026-11-08-sound.md`.
   | Altar | 1 | 3 / 1 | 0.7 | 3 |
   | Lit torch | 0.7 | 1 / 1.2 | 0.45 | 0.45 |
   | Glow-only torch | 0.35 | 1 / 1.2 | 0.3 | 0.12 |
-  | Pillar | 0.1 | 20 / 0.5 | none | none |
+  | Pillar | 0.2 (±4 dB swell) | 20 / 0.5 | none | none |
 
   Loops start at random offsets and drift ±2 dB and ±3% in rate (two slow sines, 6–27 s), and
   the fire's flicker `level` moves the gain up to ±12%. Crackles from the pops sprite are
   scheduled 0.2 s ahead at random (exponential gaps), ±8% pitch and ±3 dB, skipped for fires
-  heard below −50 dB, at most 6 at once. The pillar was 0.35 at first but outweighed the altar
-  at the spawn; torches went 0.5 → 0.7 so the nearest one wins at `torch`.
+  heard below −50 dB, at most 6 at once. Torches went 0.5 → 0.7 so the nearest one wins at
+  `torch`. The pillar was too faint at 0.1 (Kyle): now 0.2 with a deeper slow swell (±4 dB
+  instead of ±2), level with the altar at `walk` and `gate` (−18.6 vs −18.1 dB at the spawn)
+  and leading out on the sand (`horizon` −14.9 vs the altar's −22.7).
 - **Tent muffle** eases in with depth (Kyle: switching at the door was too abrupt): the
   outside's volume falls from 100% at the door's line to 50% (−6 dB) 2 m in and holds through
   the Holy Place; past the veil it falls on to 25% (−12 dB) over 1 m. The low-pass closes with
@@ -719,7 +721,11 @@ Plan: `docs/plans/2026-11-08-sound.md`.
 - **Cost after the fires:** `audio.update` 0.013 ms a frame; `gate` 12.33 ms with sound vs
   12.31 ms with `?audio=0`, 139 draws.
 - **Pillar of fire:** the text gives it no sound; artistic license, like its size. A steady
-  roar (no wood cracks) slowed an octave and low-passed at 800 Hz: deep and slow.
+  roar (no wood cracks), slowed 4 semitones, with a broad +7 dB lift at 900 Hz and the extreme
+  lows cut (45 Hz). The first cut (an octave down, low-passed at 800 Hz) had almost nothing
+  above 300 Hz, so laptop and phone speakers barely played it (Kyle: barely audible, wanted a
+  definite sound); the new one keeps the depth but has 4 dB more mid-range and 14 dB more above
+  1 kHz.
 
 ## Performance baseline (2026-11-05, after the fire plan)
 

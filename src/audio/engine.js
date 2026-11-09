@@ -23,7 +23,7 @@ import { WIND } from '../scene/cloth.js';
  */
 const BASE = '/assets/audio/';
 const MASTER = 1;
-const BUS_GAIN = { fire: 1, wind: 0.7, insects: 1 }; // Step 4 sets the final mix
+const BUS_GAIN = { fire: 1, wind: 0.5, insects: 1 }; // wind 0.7 -> 0.5 (Kyle: a little loud); Step 4 sets the final mix
 const FADE_IN = 1.5, MUTE_RAMP = 0.2, UNMUTE_RAMP = 0.3; // s
 const WIND_DT = 0.1; // s between wind envelope / fire updates
 // The outside chain inside the tent follows how far in the listener is, so it doesn't switch

@@ -73,8 +73,8 @@
       "duration": 10.218667,
       "downloadBytes": 84932,
       "decodedBytes": 1961984,
-      "lufs": -23,
-      "truePeakDb": -9.4,
+      "lufs": -23.3,
+      "truePeakDb": -9.3,
       "loopStart": 0.1,
       "loopEnd": 10.1
     },
