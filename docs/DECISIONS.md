@@ -433,6 +433,21 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   classes it as outside), breathing ±10%. Raised with the fire, so 60 → 90 cd to keep the roof
   lit. The column's core is HDR (ramp up to ~2.2) and blooms; the thin shaft (gain 0.5) stays under
   bloom's threshold.
+- 2026-11-09: The glow over the ark (`scene/arkGlow.js`): artistic license, not in the text. A
+  hidden warm source (linear (1, 0.46, 0.14) × 7, breathing ±15%, drifting a few cm) hangs
+  3.75 m up over the ark and lights the Holy of Holies in slow caustic bands, like sunlight
+  under water. It is not a THREE light (the budget stays at 8, no recompiles): the interior
+  mask adds it per fragment west of the veil through the material's own `RE_Direct`, so gold
+  gets real highlights. Pattern: an iterated water-caustic field over the direction from the
+  source (two layers, `uAgCell` 4.5, contrast `uAgCaustic` 5, base 0.12), in a 14–40° cone
+  with 4% spill outside. The air is one raymarched draw over the room's box (20 steps, 12 on
+  mobile; back faces with the depth test off when the camera is inside the box, the ark's
+  chest cut analytically). It uses its own smooth crossing-band pattern (`uAir`: base 0.01,
+  power 2.6, frequency 30): the caustic's fine veins turned to grain or a dither cross-hatch
+  when marched. Density 0.75, HG g = 0.35, faded within 0.3–1.4 m of the source so no bulb
+  shows. 420 dust motes fill the cone, lit by the same caustic (`agGain` 5). Cost at 1024×768,
+  pixel ratio 2, `ark` view: +2.1 ms air, +0.8 ms surfaces; nothing outside the tent.
+  Tuning: `__tabernacle.arkGlowUniforms`, `__tabernacle.arkGlow.userData.uniforms`.
 - 2026-11-05: The night fill is a hemisphere light at 0.22 plus a moon directional light at
   0.16 from (−40, 80, 30).
 

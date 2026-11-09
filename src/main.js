@@ -19,7 +19,7 @@ import { createPillarOfFire } from './scene/pillarOfFire.js';
 import { overlaps } from './scene/colliders.js';
 import { applyInteriorMask, INTERIOR } from './scene/interiorLight.js';
 import { AO, bakeGroundAO } from './scene/ao.js';
-import { TABERNACLE as T, TORCHES, m } from './config/dimensions.js';
+import { TABERNACLE as T, TORCHES, ARK, m } from './config/dimensions.js';
 import { createSky } from './scene/sky.js';
 import { createDevCamera, PRESETS } from './camera/devCamera.js';
 import { createFirstPerson } from './camera/firstPerson.js';
@@ -28,6 +28,7 @@ import { createPostFX } from './render/postfx.js';
 import { createNightEnvironment } from './render/environment.js';
 import { installAtmosphereChunks, applyAtmosphere, createAtmosphere, ATMO } from './render/atmosphere.js';
 import { createDustMotes } from './scene/dustMotes.js';
+import { createArkGlow, ARK_GLOW } from './scene/arkGlow.js';
 import { WIND, updateWind } from './scene/cloth.js';
 import { getViewport, onViewportChange, isMobile } from './mobile/device.js';
 import { createAudioEngine } from './audio/engine.js';
@@ -74,6 +75,7 @@ const torches = createTorches();
 const menorah = createMenorah();
 const tabernacle = createTabernacle();
 const furnishings = [menorah, createShowbread(), createIncenseAltar(), createArk()];
+const arkGlow = createArkGlow(); // the glow over the ark: caustic light, shafts in the air
 const pillarOfFire = createPillarOfFire(); // Num 9:15-16, over the Holy of Holies
 const groundScatter = createGroundScatter({ camera }); // rocks and scrub
 groundScatter.visible = QUALITY.scatter; // `?qk=scatter:0` (test switch) hides it
@@ -82,7 +84,7 @@ groundScatter.userData.removeWhere(camp.userData.covers); // no rocks or scrub u
 groundScatter.userData.removeWhere(isTrodden); // the court's trodden paths are worn bare
 const ground = createGround();
 torches.userData.useGroundMaterial(ground.userData.material);
-const elements = [ground, groundScatter, camp, createCourtyard(), altar, altarFire, createAshHeap(), tabernacle, createLaver(), torches, ...furnishings, pillarOfFire];
+const elements = [ground, groundScatter, camp, createCourtyard(), altar, altarFire, createAshHeap(), tabernacle, createLaver(), torches, ...furnishings, arkGlow, pillarOfFire];
 const colliders = [];
 // No rocks or scrub inside anything solid, under the tent, or on the altar's utensils.
 const keepOut = elements.flatMap((g) => [...(g === camp ? [] : g.userData.colliders || []), ...(g.userData.groundKeepOut || [])]);
@@ -151,12 +153,13 @@ const hearth = altar.userData.hearth;
 const lamps = menorah.userData.lampCentre;
 const dust = createDustMotes([
   { x: lamps.x, z: lamps.z - 0.4, y0: 0.5, y1: 3.2, r: 1.8, count: 220 },
+  { x: m(ARK.x), z: m(ARK.z), y0: 0.3, y1: 3.6, r: 1.7, count: 420 }, // in the glow over the ark
   { x: hearth.x, z: hearth.z, y0: 0.2, y1: 4.5, r: 5.5, count: 700 },
   ...torchFires.filter((t) => t.light).map((t) => {
     const p = worldOf(t.group);
     return { x: p.x, z: p.z, y0: p.y - 1.4, y1: p.y + 1.0, r: 2.2, count: 120 };
   }),
-], { inGain: 3 });
+], { inGain: 3, agGain: 5 });
 scene.add(dust);
 updaters.push(dust.userData.update);
 applyAtmosphere(scene);
@@ -173,7 +176,7 @@ updaters.push(() => {
 // toggled: the menorah's light stays on (toggling a light recompiles every shader).
 const meshesOf = (g) => g.children.filter((o) => !o.isLight);
 const holyPlaceMeshes = [...tabernacle.userData.interior, ...furnishings.slice(0, 3).flatMap(meshesOf)];
-const holiestMeshes = meshesOf(furnishings[3]);
+const holiestMeshes = [...meshesOf(furnishings[3]), ...meshesOf(arkGlow)];
 const interiorMeshes = [...holyPlaceMeshes, ...holiestMeshes];
 const INSIDE = {
   x0: m(T.interiorMinX) - 0.3, x1: m(T.interiorMaxX) + 0.6, // a little past the door's cloth line
@@ -323,7 +326,7 @@ const fpsReadout = params.fps ? createFpsReadout(app, QUALITY.name) : null;
 
 // Small debug handle for automated verification.
 window.__tabernacle = {
-  THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR,
+  THREE, scene, camera, renderer, colliders, params, rig, fx, composer: fx.composer, menorah, interior: INTERIOR, arkGlow, arkGlowUniforms: ARK_GLOW,
   updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp, atmosphere, dust, ao: AO, groundAO, wind: WIND,
   fires: [altarFire.userData.fire, ...torches.userData.fires], quality: QUALITY, setPixelRatio,
   updateDynamicResolution, // (frameMs): the loop calls it when QUALITY.dynamicResolution is on; testable by hand

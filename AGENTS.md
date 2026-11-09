@@ -118,6 +118,7 @@ src/
     incenseOrnament.js  the incense altar's relief (crown, plinth, panels with an almond tree, frieze, ring plates, horn calyces), merged into its gold mesh; incenseGroundBoxes
     veil.js             the woven cherubim veil, its gold hooks and 4 silver-socketed pillars
     ark.js              ark, mercy seat, two hammered cherubim, poles
+    arkGlow.js          the glow over the ark: hidden warm source, caustic light on surfaces (via interiorLight.js), raymarched shafts (1 draw), ARK_GLOW uniforms
     arkOrnament.js      the ark's relief ornament (crown, panels, scrollwork, frieze), merged into its gold mesh
     ornament.js         shared relief helpers (leafGeo, stemGeo, beadRod, Relief: rosette/palmette/bud, runningScroll, sweepRect, faceMatrix)
     sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
@@ -166,7 +167,7 @@ src/
   times per frame (`camp` 143, `iso` 143, `gate` 139, `horizon` 81; interior views 99–117; the
   camp's 6 are in every view; the ground scatter's tiles in view add 0–20 over its old 4). Baseline and frame times: `docs/DECISIONS.md` "Performance baseline".
 - **Light budget:** 8 point lights (altar fire + fill, 4 torches, the menorah, the pillar of fire), and only one
-  shadow caster, the altar fire. Don't add shadow-casting lights; new glows should use emissive
+  shadow caster, the altar fire. The glow over the ark is not a light (per-fragment, `arkGlow.js`). Don't add shadow-casting lights; new glows should use emissive
   materials (bloom picks up values above 2.0) and, for light in the air, the atmosphere's glow
   sources (8 outside slots, all used, plus the menorah inside; `render/atmosphere.js`).
 - **Fog:** every fogged material gets the atmosphere through the replaced fog chunks. Custom
@@ -241,7 +242,7 @@ Every visual change is checked with screenshots in the built-in browser
 (`mcp__Claude_Browser__*`) at `scale: 0.5`.
 
 `window.__tabernacle` exposes `THREE, scene, camera, renderer, colliders, params, rig, fx,
-composer, menorah, interior, updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp,
+composer, menorah, interior, arkGlow, arkGlowUniforms, updateInteriorVisibility, probe, sky, pillarOfFire, groundScatter, camp,
 fires, atmosphere, dust, ao, groundAO, wind, quality, setPixelRatio, updateDynamicResolution, audio, inside`. `inside` is true when the camera is inside the tent (what `fx.setInside` gets).
 `audio` (null with `?audio=0`) is the sound engine: `ctx` (null until the enter click/tap), `graph`,
 `buses`, `buffers`, `manifest`, `wind`, `fires` (`sources` [{name, kind, pos, panner, distance}],

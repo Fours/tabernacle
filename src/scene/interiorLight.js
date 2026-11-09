@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TABERNACLE as T, m } from '../config/dimensions.js';
 import { COLORS } from './materials.js';
 import { AO_PARS_GLSL, aoApplyGlsl, bindAOUniforms } from './ao.js';
+import { ARK_GLOW, AG_GLSL, AG_SURFACE_GLSL } from './arkGlow.js';
 
 // Interior light mask. Point lights have no occlusion (only the altar fire casts shadows), so
 // the altar, torches, moon, hemisphere fill and night environment would otherwise all light the
@@ -16,6 +17,7 @@ import { AO_PARS_GLSL, aoApplyGlsl, bindAOUniforms } from './ao.js';
 // - Inside, the night environment (cool sky) is replaced by a warm "room" ambient that stands in
 //   for the menorah's light bouncing off the gold walls and linen; it flickers with the lamps and
 //   falls off with distance from the menorah.
+// - The Holy of Holies is lit by the glow over the ark (arkGlow.js, added after the lights).
 // - The Holy of Holies (west of the veil) gets only a small leak of the menorah's light and room
 //   ambient (light over and around the veil), so it stays very dark.
 // - A little cool sky/moon light and exterior firelight spills in just inside the open door.
@@ -221,6 +223,8 @@ const MAPS_AFTER = /* glsl */ `
   #endif
   #endif
 }
+// The glow over the ark (arkGlow.js), west of the veil.
+${AG_SURFACE_GLSL}
 `;
 
 // Ambient occlusion (scene/ao.js), on every lit material after the lighting is summed:
@@ -259,10 +263,10 @@ export function addInteriorMask(mat) {
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = (shader, renderer) => {
     if (prev) prev(shader, renderer);
-    Object.assign(shader.uniforms, INTERIOR);
+    Object.assign(shader.uniforms, INTERIOR, ARK_GLOW);
     bindAOUniforms(shader);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${PARS}\n${AO_PARS_GLSL}`)
+      .replace('#include <common>', `#include <common>\n${PARS}\n${AG_GLSL}\n${AO_PARS_GLSL}`)
       .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${AO_AFTER}`)
       .replace('#include <lights_fragment_begin>', beginChunk)
       .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>\n${MAPS_AFTER}`);
@@ -271,7 +275,7 @@ export function addInteriorMask(mat) {
   // which is now this wrapper for every material).
   const own = Object.prototype.hasOwnProperty.call(mat, 'customProgramCacheKey') ? mat.customProgramCacheKey.bind(mat) : null;
   const prevSrc = prev ? prev.toString() : '';
-  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v5`;
+  mat.customProgramCacheKey = () => `${own ? own() : prevSrc}|interior-v6`;
   mat.needsUpdate = true;
   return mat;
 }
