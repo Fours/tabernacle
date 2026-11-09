@@ -3,14 +3,16 @@
  * `insects` bus, through one gain that follows three things:
  * - a very slow drift of +/- DRIFT_DB (two sines, own periods), so the bed breathes;
  * - the listener's distance to the nearest fire (the altar and the lit torches, from their
- *   sound specs): silent within NEAR m of a flame, rising by a smoothstep to full at FAR m, so the
- *   crickets are loud out on the open sand and hushed in the lit court;
+ *   sound specs): hushed to NEAR_LEVEL within NEAR m of a flame, rising by a smoothstep to full at
+ *   FAR m, so the crickets are loud out on the open sand and quieter, never gone, by the fires
+ *   (Kyle: inaudible at the spawn with silent-at-4 m / full-at-18 m);
  * - the depth into the tent: full at the door's line, silent by IN_FADE m in (on top of the
  *   `outside` chain's muffle, which the bus passes through).
  *
  * Driven by `update(x, y, z, when, depth)` at ~10 Hz (engine.js), `setTargetAtTime`.
  */
-const NEAR = 4, FAR = 18; // m from the nearest fire: silent, full
+const NEAR = 2, FAR = 10; // m from the nearest fire: hushed, full
+const NEAR_LEVEL = 0.4; // the bed's level beside a fire
 const IN_FADE = 1.5; // m into the tent: silent
 const DRIFT_DB = 1.5;
 const SMOOTH = 0.6; // s, setTargetAtTime constant
@@ -22,7 +24,7 @@ const smooth = (t) => t * t * (3 - 2 * t);
 
 /** Fade factor 0..1 from the distance (m) to the nearest fire. */
 export function fireFade(d) {
-  return smooth(clamp01((d - NEAR) / (FAR - NEAR)));
+  return NEAR_LEVEL + (1 - NEAR_LEVEL) * smooth(clamp01((d - NEAR) / (FAR - NEAR)));
 }
 /** Fade factor 0..1 from the metres into the tent. */
 export function tentFade(depth) {
