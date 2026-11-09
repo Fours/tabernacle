@@ -150,6 +150,41 @@ export function addBronzeWear(mat, { hammer = 28, strength = 0.035, soot = null,
   return patch(mat, key, body, { uniforms });
 }
 
+/**
+ * Blood on the bronze altar (Lev 1:5, 3:2: dashed against its sides; 4:25, 30: put on its horns).
+ * center: Vector3 (world, at the ground), half: m from centre to a wall, height: m to the rim.
+ * Dried dark red-brown on the lower half of the walls (below the middle, where rabbinic
+ * tradition puts the "red line"), in splashes and runs down to the ground, and smears on the
+ * horns. A world-space mask, so it only touches the altar.
+ */
+export function addAltarBlood(mat, { center, half, height }) {
+  const uniforms = { uMwAltar: { value: new THREE.Vector3(center.x, center.y, center.z), glsl: 'vec3' } };
+  const body = `
+  vec3 p = vMwPos;
+  vec2 rel = p.xz - uMwAltar.xz;
+  vec2 q = abs(rel) - vec2(${f(half)});
+  float dW = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+  if (dW < 0.35 && dW > -0.25) {
+    float y = p.y - uMwAltar.y;
+    float along = abs(q.x) > abs(q.y) ? rel.y : rel.x; // runs along the wall
+    // Lower walls: a ragged upper edge round the middle height, splashes, and runs.
+    float top = ${f(height)} * (0.42 + 0.14 * mwNoise(vec3(along * 3.0, 0.0, 1.7)));
+    float splash = smoothstep(0.34, 0.6, mwNoise(p * 7.0 + 2.0) * 0.6 + mwNoise(p * 19.0) * 0.4);
+    float run = smoothstep(0.55, 0.75, mwNoise(vec3(along * 26.0, y * 0.9, 3.1)));
+    float low = 1.0 - smoothstep(top - 0.12, top, y);
+    float wall = low * clamp(splash * 0.9 + run * 0.8 + (1.0 - smoothstep(0.0, 0.25, y)) * 0.6, 0.0, 1.0);
+    // Horns: smeared by the priest's finger, mostly toward their tips.
+    float corner = 1.0 - smoothstep(0.15, 0.35, -min(q.x, q.y));
+    float horn = corner * smoothstep(${f(height - 0.02)}, ${f(height + 0.12)}, y) * smoothstep(0.35, 0.6, mwNoise(p * 16.0 + 5.0));
+    float b = clamp(max(wall, horn), 0.0, 1.0);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.06, 0.012, 0.01), b * 0.95);
+    metalnessFactor = mix(metalnessFactor, 0.1, b * 0.95);
+    roughnessFactor = mix(roughnessFactor, 0.62, b * 0.8);
+  }
+  `;
+  return patch(mat, `altarblood-${half}-${height}`, body, { uniforms });
+}
+
 /** Silver: polished on high spots and edges, tarnished (warm grey to near black) in hollows. */
 export function addSilverWear(mat, { tarnish = 0.6 } = {}) {
   const body = `

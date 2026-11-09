@@ -37,6 +37,13 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   mercy seat seven times"; the main splotch sits in the centre of the lid at the user's
   direction, with the drops and flecks round it thrown mostly east, the side it was sprinkled
   from.
+- 2026-11-08: Blood at the bronze altar (Kyle asked for red on the ground east of the altar;
+  moved to fit the text). The flock's burnt offerings were killed "on the side of the altar
+  northward" (Lev 1:11; the Mishnah, Zevachim 5, puts all the most holy offerings there); blood
+  was dashed against the altar's sides round about (Lev 1:5, 3:2), the sin offering's put on
+  its horns and the rest poured out at its base (Lev 4:7, 25, 30). East of the altar is "the
+  place of the ashes" (Lev 1:16), so no blood there. Shown dried, dark rust-brown, not red:
+  sand soaks it up and it browns within hours.
 
 ## Courtyard
 
@@ -63,6 +70,20 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Bronze altar & laver
 
+- 2026-11-08: Blood at the altar ("Interpretation of the text"). Sand (`bloodTexture` in
+  `ground.js`, a 448² texture over a 13 m square round the altar, shifted 1.5 m north, painted
+  at load in ~40 ms; one lookup in the sand shader): a ragged ring 15–90 cm out from the walls,
+  darkest and a little glossy where pooled; a matted patch north of the altar (~3.1 × 3.9 m,
+  reaching ~5.5 m north of the wall; Kyle had it run 1.5 m further north) with darker blotches;
+  over it a larger, darker, redder layer (~3.4 × 3.2 m, Kyle's request; the texture's B
+  channel); and drops (1.5–5.5 cm) round them, densest near the walls. The patch is cleared of
+  rocks and grass like the trodden paths (`isTrodden`). Bronze
+  (`addAltarBlood` in `metalWear.js`, a world-space mask on `BRONZE_PLATED`): splashes and runs
+  on the lower walls below a ragged line at ~42–56% of the height (rabbinic tradition's red
+  line, below which the burnt offering's blood was dashed) and smears on the horns. Draws
+  unchanged; frame time within noise (`gate` 12.70–12.79 vs 12.70 ms, `fireclose` 11.12 vs
+  11.00, same session). Preset `altarnorth`. A noise-only sand version cost no more on the
+  GPU here, but the texture is cheaper per pixel on phones.
 - 2026-11-05: The altar is hollow, with walls 0.35 cubit thick. A heavy cast bronze grate
   (8 × 8 square bars, 0.2 cubit wide, 0.62 pitch; not in the text — the Ex 27:4 network stays
   the exterior one) sits 0.18 cubit below the rim and holds the fire. Beneath it, 0.9 cubit

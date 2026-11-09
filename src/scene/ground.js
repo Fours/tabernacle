@@ -64,11 +64,13 @@ const segDist = (px, pz, ax, az, bx, bz) => {
 };
 /**
  * JS twin of the trodden-path core (no edge wobble): true where the priests' paths have worn
- * the ground bare, used to clear the scatter off them (main.js).
+ * the ground bare (and on the slaughter ground north of the altar), used to clear the scatter off them (main.js).
  */
 export function isTrodden(x, z, r = 0) {
   if (x < TABERNACLE.interiorMaxX - 3 || x > HX + 9 || Math.abs(z) > HZ) return false;
   const [ax, az] = [m(ALTAR.x), m(ALTAR.z)], [lx, lz] = [m(LAVER.x), m(LAVER.z)];
+  // The slaughter ground north of the altar (bloodTexture's patch) is trampled bare too.
+  if (Math.abs(x - ax) < 1.5 + r && Math.abs(z - az + m(ALTAR.length / 2) + 2.15) < 1.9 + r) return true;
   const qx = Math.abs(x - ax) - m(ALTAR.length / 2), qz = Math.abs(z - az) - m(ALTAR.length / 2);
   const dAltar = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
   let d = Math.min(
@@ -139,6 +141,81 @@ float sandPrints(vec2 p, out vec2 dir) {
 }
 `;
 
+// Blood at the bronze altar (Lev 1:5, 1:11, 4:7): the flock's burnt offerings were killed on its
+// north side, and blood was dashed against its walls and poured out at its base. Dried into the
+// sand, so dark rust-brown, not red: a ragged ring at the base (heaviest; G is the fresher,
+// glossier pooled part), a matted patch north of the altar, and drops scattered round both.
+// Over the north patch lies a larger, darker, redder layer (Kyle): the most-used ground.
+// Painted once into a small texture round the altar (R stain, G pool, B the dark layer): one
+// lookup in the sand shader instead of a dozen noise calls on every sand pixel.
+const BLOOD_SIZE = 13; // m square round the altar...
+const BLOOD_SHIFT = 1.5; // ...its centre this far north of the altar's (the patch reaches ~6 m out)
+const BLOOD_RES = 448; // ~2.9 cm a texel
+function bloodTexture() {
+  const hash = (x, y) => {
+    const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return h - Math.floor(h);
+  };
+  const noise = (x, y) => {
+    const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+  };
+  const fbm = (x, y) => 0.5 * noise(x, y) + 0.3 * noise(x * 2.13 + 3.7, y * 2.13 + 3.7) + 0.2 * noise(x * 4.57 + 9.1, y * 4.57 + 9.1);
+  const smooth = (a, b, v) => { const t = Math.min(Math.max((v - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const ax = m(ALTAR.x), az = m(ALTAR.z), half = m(ALTAR.length / 2);
+  const northZ = -(half + 2.15); // the patch's centre (z, from the altar's)
+  const darkZ = -(half + 2.6); // the dark layer's centre
+  const data = new Uint8Array(BLOOD_RES * BLOOD_RES * 4);
+  const px = BLOOD_SIZE / BLOOD_RES;
+  for (let j = 0; j < BLOOD_RES; j++) {
+    for (let i = 0; i < BLOOD_RES; i++) {
+      const ex = (i + 0.5) * px - BLOOD_SIZE / 2, ez = (j + 0.5) * px - BLOOD_SIZE / 2; // from the texture's centre
+      const rx = ex, rz = ez - BLOOD_SHIFT;
+      const x = ax + rx, z = az + rz;
+      const qx = Math.abs(rx) - half, qz = Math.abs(rz) - half;
+      const dA = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+      // Base ring: ragged outer edge, ~15-90 cm out from the walls. (Noise only where it can
+      // reach: most of the square is bare sand.)
+      const base = dA > 0.9 ? 0 : 1 - smooth(0.12, 0.4 + 0.5 * fbm(x * 2.6 + 4, z * 2.6 + 4), dA);
+      const pool = base > 0 ? base * smooth(0.35, 0.65, fbm(x * 4 + 1.7, z * 4 + 1.7)) : 0;
+      // The slaughter ground north of the altar: a matted patch with darker blotches in it.
+      const cx = Math.abs(rx) - 1.1, cz = Math.abs(rz - northZ) - 1.5;
+      const dN0 = Math.hypot(Math.max(cx, 0), Math.max(cz, 0)) - 0.45; // edge wobble is +/-0.6
+      const dN = dN0 > 1.8 ? dN0 : dN0 + (fbm(x * 1.3 + 2, z * 1.3 + 2) - 0.5) * 1.2;
+      const north = dN >= 0.45 ? 0 : (1 - smooth(-0.3, 0.45, dN)) * (0.55 + 0.45 * smooth(0.3, 0.75, fbm(x * 2.2 + 9, z * 2.2 + 9)));
+      // The dark layer: a big rounded area (~3.4 x 3.2 m) over the north patch, ragged edged.
+      const dD0 = (Math.hypot(rx / 1.7, (rz - darkZ) / 1.6) - 1) * 1.6;
+      const dD = dD0 > 1 ? dD0 : dD0 + (fbm(x * 0.9 + 6, z * 0.9 + 6) - 0.5) * 1.1;
+      const dark = dD >= 0.3 ? 0 : (1 - smooth(-0.45, 0.3, dD)) * (0.6 + 0.4 * smooth(0.3, 0.7, fbm(x * 1.8 + 13, z * 1.8 + 13)));
+      // Drops and splashes: a few per 18 cm cell, densest near the walls and in the patch.
+      const S = 0.18, gx = Math.floor(x / S), gz = Math.floor(z / S);
+      const dens = 0.55 * (1 - smooth(0, 2.2, dA)) + 0.45 * (1 - smooth(-0.3, 1.2, dN));
+      let drop = 0;
+      if (dens > 0 && hash(gx + 41, gz + 41) < dens) {
+        const dx = (gx + 0.2 + 0.6 * hash(gx + 43.1, gz + 43.1)) * S, dz = (gz + 0.2 + 0.6 * hash(gx + 47.9, gz + 47.9)) * S;
+        const r = 0.015 + 0.04 * hash(gx + 53.3, gz + 53.3) * hash(gx + 59.7, gz + 59.7);
+        drop = 1 - smooth(r * 0.6, r, Math.hypot(x - dx, z - dz));
+      }
+      // Faded to nothing at the texture's edge.
+      const edge = 1 - smooth(BLOOD_SIZE / 2 - 0.8, BLOOD_SIZE / 2 - 0.1, Math.max(Math.abs(ex), Math.abs(ez)));
+      const st = Math.min(Math.max(base, north, drop * 0.85), 1) * edge;
+      const k = (j * BLOOD_RES + i) * 4;
+      data[k] = Math.round(st * 255);
+      data[k + 1] = Math.round(pool * edge * 255);
+      data[k + 2] = Math.round(dark * edge * 255);
+      data[k + 3] = 255;
+    }
+  }
+  const tex = new THREE.DataTexture(data, BLOOD_RES, BLOOD_RES, THREE.RGBAFormat);
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 /**
  * Sand material: the texture is sampled at two scales/rotations blended by world noise
  * (no visible tiling), with broad tone patches and gravelly darker areas, and wind ripples
@@ -158,12 +235,16 @@ function sandMaterial() {
   });
   // Albedo of the open plain away from the court (multiplier; see the map_fragment patch).
   mat.userData.far = { value: new THREE.Color(0.32, 0.29, 0.25) };
+  mat.userData.blood = { value: bloodTexture() };
+  mat.userData.bloodRect = { value: new THREE.Vector4(m(ALTAR.x) - BLOOD_SIZE / 2, m(ALTAR.z) - BLOOD_SHIFT - BLOOD_SIZE / 2, 1 / BLOOD_SIZE, 1 / BLOOD_SIZE) };
   mat.onBeforeCompile = (shader) => {
     bindAOUniforms(shader);
     shader.uniforms.uAoGround = AO.uAoGround;
     shader.uniforms.uAoGroundTex = AO.uAoGroundTex;
     shader.uniforms.uAoGroundRect = AO.uAoGroundRect;
     shader.uniforms.uSandFar = mat.userData.far;
+    shader.uniforms.uSandBlood = mat.userData.blood;
+    shader.uniforms.uSandBloodRect = mat.userData.bloodRect;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vSandPos;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvSandPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
@@ -172,12 +253,17 @@ function sandMaterial() {
 uniform float uAoGround;
 uniform sampler2D uAoGroundTex;
 uniform vec4 uAoGroundRect;
-uniform vec3 uSandFar;`)
+uniform vec3 uSandFar;
+uniform sampler2D uSandBlood;
+uniform vec4 uSandBloodRect;`)
       .replace(
         '#include <map_fragment>',
         `float sandTrod = sandTrodden(vSandPos.xz);
 vec2 sandPrintDir;
 float sandPrint = sandPrints(vSandPos.xz, sandPrintDir) * sandTrod;
+vec2 sandBlUv = (vSandPos.xz - uSandBloodRect.xy) * uSandBloodRect.zw;
+vec3 sandBlTex = texture2D(uSandBlood, clamp(sandBlUv, 0.0, 1.0)).rgb; // zero at its edges
+float sandBl = sandBlTex.r, sandPool = sandBlTex.g, sandBlDark = sandBlTex.b;
 // Grain sparkle: a few sand grains per cm² are quartz facets that catch the firelight. One
 // random facet per 7 mm cell, world-anchored (stable), faded out before a cell gets smaller than
 // a pixel so it never turns into shimmer.
@@ -214,6 +300,9 @@ vec3 sandFacet = vec3(0.0, 1.0, 0.0);
   // Trodden paths: compacted, darker and greyer; footprints a shade darker still.
   diffuseColor.rgb *= mix(vec3(1.0), vec3(0.72, 0.7, 0.69), sandTrod * 0.85);
   diffuseColor.rgb *= 1.0 - 0.24 * sandPrint;
+  // Blood soaked into the sand at the altar (bloodTexture): dried rust-brown, darker where pooled.
+  diffuseColor.rgb *= mix(vec3(1.0), mix(vec3(0.3, 0.15, 0.12), vec3(0.13, 0.04, 0.03), sandPool), sandBl * 0.95);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.55, 0.26, 0.23), sandBlDark * 0.9); // the darker, redder layer to the north
   // Away from the court the open plain is darker and a touch warmer (less sky-grey): under the
   // moon and sky fill alone the pale sand would read as snow from above the camp; the court's
   // firelight stays the bright focus.
@@ -248,7 +337,8 @@ normal = normalize(mix(normal, sandN0, sandTrod * 0.7)); // compacted: grain rel
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
 roughnessFactor = mix(roughnessFactor, 0.8, sandTrod * 0.7);
-roughnessFactor = mix(roughnessFactor, 0.13, sandSpark);`,
+roughnessFactor = mix(roughnessFactor, 0.13, sandSpark * (1.0 - sandBl));
+roughnessFactor = mix(roughnessFactor, 0.55, sandPool * 0.6); // the freshest blood keeps a dull sheen`,
       )
       .replace(
         '#include <aomap_fragment>',
@@ -262,7 +352,7 @@ roughnessFactor = mix(roughnessFactor, 0.13, sandSpark);`,
 }`,
       );
   };
-  mat.customProgramCacheKey = () => 'sand-v5';
+  mat.customProgramCacheKey = () => 'sand-v6';
   return mat;
 }
 

@@ -85,7 +85,7 @@ src/
   config/dimensions.js  every measurement (cubits) + PLAYER, TORCHES, CAMP (layout, m)
   config/quality.js     QUALITY tier (high | mobile), read at startup: pixel ratio cap, MSAA, bloom start/levels, fire steps, shadow and probe sizes, dynamic resolution, audioHrtf
   scene/
-    ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden
+    ground.js           procedural sand on the relief: cool night tone, darker plain away from the court, grain sparkle, trodden paths + footprints, isTrodden, the blood round the altar (bloodTexture)
     terrain.js          groundHeight(x, z) + GLSL twin: gentle dunes (sand mesh baked in ground.js) from ~10 m outside the court, lanes kept near-level
     dustMotes.js        dust drifting in the firelight round the altar, lit torches and menorah (1 instanced draw, lit by the atmosphere's glow sources)
     groundScatter.js    rocks, grass tufts, shrubs (4 kinds in 24 spatial tiles, culled by box each frame; mobile drops far ones; seeded clumps, keep-outs, removeWhere)
@@ -122,7 +122,7 @@ src/
     sky.js              sky dome (drawn after the opaques, depth-tested): stars, Milky Way, airglow, meteors, shaft-lit high haze (no moon)
     horizon.js          distant granite ridges: GLSL composited by the sky shader (3 layers, no draw of their own)
     materials.js        shared COLORS, BRONZE/SILVER/GOLD/... materials, addMacroVariation, addFireBounce
-    metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addSilverWear, addWoodGrain, addBoardGold,
+    metalWear.js        addBronzeWear (hammer, edges, verdigris, soot), addAltarBlood, addSilverWear, addWoodGrain, addBoardGold,
                         addGoldWear (relief-ground/corner grime, handling smudges, dust/crumbs, soot; local masks)
     textiles.js         shared canvas helpers (seeded, paintWeave, hex, grey); linen, goat hair, skin, tent cloth textures
     embroidery.js       embroidered gate and door screen textures (colour + bump)
@@ -215,7 +215,7 @@ The presets are in `PRESETS` in `devCamera.js` and are fixed, so screenshots can
 - **Overview:** `top` (near-orthographic plan from 270 m; the pillar of fire's head covers the
   Holy of Holies), `iso`
 - **Courtyard:** `gate`, `corner`, `pillar`, `ground` (low, outside the south hangings, across rocks and scrub), `rocks` (close on a rock outside the south hangings)
-- **Altar and laver:** `altar`, `altartop`, `altarlow`, `fire`, `fireclose` (eye height ~2 m out
+- **Altar and laver:** `altar`, `altartop`, `altarlow`, `altarnorth` (eye height NE of the altar, down on its north side: the blood on the sand and the lower walls), `fire`, `fireclose` (eye height ~2 m out
   from the altar's south-east horn, on the flames), `laver`, `laverclose`
 - **Tent:** `tent`, `tentback`, `tentroof`, `tentcorner`, `coverings` (low from the court's NE:
   the stepped coverings and stakes along the north side), `coveringsw` (the same from the SW),
