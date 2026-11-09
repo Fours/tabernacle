@@ -141,10 +141,11 @@ src/
     environment.js      generated night environment map
     atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
   audio/
-    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update; wind and fires tick at 10 Hz), setInside(depth, pastVeil) (metres into the tent: the outside muffle eases from 100% at the door to 50% 2 m in, 25% past the veil), mute (button, M, localStorage), suspend when hidden, renderOffline check
+    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update; wind, insects and fires tick at 10 Hz; a visitor muted at enter decodes only on the first unmute), setInside(depth, pastVeil) (metres into the tent: the outside muffle eases from 100% at the door to 50% 2 m in, 25% past the veil), mute (button, M, localStorage), suspend when hidden, renderOffline check
     graph.js            createGraph(any BaseAudioContext): buses fire/wind/insects -> outside (lowpass + gain, the tent muffle) -> master; analysers, graphLevels
     fires.js            positional fires (FIRE_KINDS): a PannerNode per fire (altar, 6 torches, pillar) with its loop (random offset, gain/rate drift, flicker nudge) and random crackles from the pops sprite scheduled 0.2 s ahead (inaudible sources skipped, <= 6 live)
     wind.js             wind bed: the stereo loop, gain + lowpass on a gust envelope from the cloth's WIND field (gustAt)
+    insects.js          night insect bed: the stereo loop (random offset, +/-1.5 dB drift) faded by distance to the nearest lit fire (silent under 4 m, full at 18 m) and to silence 1.5 m into the tent
     muteButton.js       the speaker button (inside #app; bottom-right on desktop, beside the menu button on mobile)
   mobile/device.js      mobile mode, forced landscape: isMobile, rotation, getViewport() (logical landscape size), toLogical(x, y) (screen point -> rotated frame), onViewportChange(cb); sizes/rotates #app
   mobile/touchControls.js mobile: floating thumbstick (left 40%) + drag to look, by pointerId, through toLogical()

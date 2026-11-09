@@ -1,5 +1,6 @@
 import { createGraph, graphLevels } from './graph.js';
 import { createWindBed } from './wind.js';
+import { createInsectBed } from './insects.js';
 import { createFireSources } from './fires.js';
 import { createMuteButton } from './muteButton.js';
 import { WIND } from '../scene/cloth.js';
@@ -11,8 +12,10 @@ import { WIND } from '../scene/cloth.js';
  * - `unlock()` (the enter click/tap, camera/firstPerson.js): synchronously creates the
  *   AudioContext the first time and resumes it, so it starts inside the user gesture; then
  *   decodes each file once (awaiting the fetch if still in flight), starts the beds and fades
- *   the master in. No AudioContext exists before that gesture.
- * - `update(dt)` (main.js loop, after render): the listener follows the camera; the wind bed and
+ *   the master in. No AudioContext exists before that gesture. A visitor who is muted at enter
+ *   gets the context but no decoding: the first unmute decodes, builds the beds and fades in.
+ * - `update(dt)` (main.js loop, after render): the listener follows the camera; the wind bed,
+ *   the insect bed (audio/insects.js: faded by distance to the fires, silent in the tent) and
  *   the fires (audio/fires.js: loop drift, crackles scheduled ahead) retarget at ~10 Hz. Does
  *   nothing unless the context is running.
  * - `setInside(depth, pastVeil)` (main.js, per frame; cheap when unchanged): metres into the tent
@@ -23,7 +26,7 @@ import { WIND } from '../scene/cloth.js';
  */
 const BASE = '/assets/audio/';
 const MASTER = 1;
-const BUS_GAIN = { fire: 1, wind: 0.5, insects: 1 }; // wind 0.7 -> 0.5 (Kyle: a little loud); Step 4 sets the final mix
+const BUS_GAIN = { fire: 1, wind: 0.5, insects: 0.22 }; // wind 0.7 -> 0.5 (Kyle: a little loud)
 const FADE_IN = 1.5, MUTE_RAMP = 0.2, UNMUTE_RAMP = 0.3; // s
 const WIND_DT = 0.1; // s between wind envelope / fire updates
 // The outside chain inside the tent follows how far in the listener is, so it doesn't switch
@@ -72,13 +75,14 @@ function saveMuted(v) {
 }
 
 export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fires: fireSpecs = [] }) {
-  let ctx = null, graph = null, wind = null, fires = null;
+  let ctx = null, graph = null, wind = null, fires = null, insects = null;
   const inside = { depth: 0, pastVeil: 0 }; // last position given to setInside
   const panningModel = hrtf ? 'HRTF' : 'equalpower';
   let manifest = null;
   let loading = null; // Promise<{manifest, raw: {key: ArrayBuffer}}>
   const buffers = {}; // decoded AudioBuffers, shared by every source
-  let started = null; // Promise of the beds being built
+  let started = null; // Promise of the beds being built (null until the first unmuted start)
+  let decodes = 0; // live-context decode runs (a muted visitor makes none)
   let entered = false;
   let muted = readMuted();
   let windAcc = WIND_DT;
@@ -112,9 +116,11 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
 
   async function start() {
     const { raw } = await load();
+    decodes++;
     Object.assign(buffers, await decodeAll(ctx, raw));
     for (const k in BUS_GAIN) graph.buses[k].gain.value = BUS_GAIN[k];
     wind = createWindBed(ctx, graph.buses.wind, buffers.wind, manifest.files.wind, camera.position);
+    insects = createInsectBed(ctx, graph.buses.insects, buffers.insects, manifest.files.insects, fireSpecs, camera.position, inside.depth);
     fires = createFireSources(ctx, graph.buses.fire, buffers, manifest.files, fireSpecs, { panningModel });
     applyInside(graph, inside, ctx.currentTime, 0);
     if (muted) {
@@ -125,6 +131,11 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
       g.setValueAtTime(0, now);
       g.linearRampToValueAtTime(MASTER, now + FADE_IN);
     }
+  }
+
+  function begin() {
+    started = start();
+    started.catch((e) => console.warn('audio: start failed', e));
   }
 
   function wantRunning() {
@@ -163,6 +174,10 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
     get manifest() { return manifest; },
     get muted() { return muted; },
     get wind() { return wind; },
+    /** audio/insects.js: {gain, drift, fire, tent, distance} (factors at the last tick). */
+    get insects() { return insects; },
+    /** Live-context decode runs so far (0 for a visitor who entered muted and hasn't unmuted). */
+    get decodes() { return decodes; },
     /** audio/fires.js: {sources: [{name, pos, panner, distance, ...}], oneShots, distances()}. */
     get fires() { return fires; },
     get inside() { return inside; },
@@ -186,8 +201,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
         graph = createGraph(ctx);
         L.listener = ctx.listener;
         L.params = !!ctx.listener.positionX;
-        started = start();
-        started.catch((e) => console.warn('audio: start failed', e));
+        if (!muted) begin(); // muted: the first unmute decodes
       }
       syncState();
     },
@@ -222,6 +236,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
         suspendTimer = setTimeout(syncState, (MUTE_RAMP + 0.05) * 1000);
       } else {
         syncState();
+        if (!started) { begin(); return; } // entered muted: decode now; start() fades in
         g.linearRampToValueAtTime(MASTER, now + UNMUTE_RAMP);
       }
     },
@@ -245,6 +260,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
         const now = ctx.currentTime;
         wind.update(e[12], e[13], e[14], now);
         if (fires) fires.tick(e[12], e[13], e[14], now);
+        if (insects) insects.update(e[12], e[13], e[14], now, inside.depth);
       }
     },
 
@@ -257,8 +273,9 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
      * Check without the live context: render `seconds` of the graph offline (master at full),
      * the listener at the camera (position and orientation), the inside state as now (or
      * `opts.inside`), the wind and fires ticking every 0.1 s as live. Returns samples every `step` s:
-     * {t, gust, wind, fire, master (dBFS), oneShots}, and `.fire` / `.wind` / `.master` on the
-     * array: the power-averaged RMS over every sample, `.peakOneShots`, `.popsScheduled`,
+     * {t, gust, wind, fire, insects, master (dBFS), oneShots}, and `.fire` / `.wind` / `.insects` /
+     * `.master` on the array: the power-averaged RMS over every sample, `.peak` (master sample
+     * peak, dBFS), `.insectBed` (its fade factors at the end), `.peakOneShots`, `.popsScheduled`,
      * `.distances` (each fire's distance and heard dB).
      */
     async renderOffline(seconds = 6, step = 0.5, { inside: insideState = inside } = {}) {
@@ -283,10 +300,11 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
       }
       const p = camera.position, t0 = WIND.uWindTime.value;
       const bed = createWindBed(off, g.buses.wind, bufs.wind, manifest.files.wind, p);
+      const ins = createInsectBed(off, g.buses.insects, bufs.insects, manifest.files.insects, fireSpecs, p, insideState.depth);
       const fs = createFireSources(off, g.buses.fire, bufs, manifest.files, fireSpecs, { panningModel });
       fs.tick(p.x, p.y, p.z, 0);
       const samples = [];
-      const pw = { fire: 0, wind: 0, master: 0 };
+      const pw = { fire: 0, wind: 0, insects: 0, master: 0 };
       const every = Math.max(1, Math.round(step / WIND_DT));
       for (let i = 1; i * WIND_DT < seconds - 1e-6; i++) {
         const t = Math.round(i * WIND_DT * 1000) / 1000;
@@ -298,12 +316,20 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
           }
           bed.update(p.x, p.y, p.z, t, t0 + t);
           fs.tick(p.x, p.y, p.z, t);
+          ins.update(p.x, p.y, p.z, t, insideState.depth);
           off.resume();
         });
       }
-      await off.startRendering();
+      const out = await off.startRendering();
+      let peak = 0;
+      for (let c = 0; c < out.numberOfChannels; c++) {
+        const d = out.getChannelData(c);
+        for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+      }
       const db = (v) => Math.round(10 * Math.log10(v / Math.max(1, samples.length) + 1e-12) * 10) / 10;
       for (const k in pw) samples[k] = db(pw[k]);
+      samples.peak = Math.round(20 * Math.log10(peak + 1e-12) * 10) / 10; // master sample peak, dBFS
+      samples.insectBed = { gain: ins.gain, drift: ins.drift, fire: ins.fire, tent: ins.tent, distance: ins.distance };
       samples.peakOneShots = fs.peakOneShots;
       samples.popsScheduled = fs.popsScheduled;
       samples.distances = fs.distances();
