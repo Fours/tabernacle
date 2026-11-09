@@ -695,6 +695,29 @@ Plan: `docs/plans/2026-11-08-sound.md`.
 - **Panning:** `QUALITY.audioHrtf` (high: HRTF, mobile: equalpower; `?qk=audioHrtf:0`).
 - **Cost:** `audio.update` 0.01 ms a frame; `gate` 13.00 ms with sound vs 13.04 ms with
   `?audio=0` (same session), 139 draws either way.
+- **Fires** (`src/audio/fires.js`, `FIRE_KINDS`): one `PannerNode` per fire, placed once at the
+  flames (altar, 6 torches, pillar), inverse distance model:
+
+  | Fire | Loop gain | refDistance / rolloff | Crackle gain | Crackles/s |
+  |---|---|---|---|---|
+  | Altar | 1 | 3 / 1 | 0.7 | 3 |
+  | Lit torch | 0.7 | 1 / 1.2 | 0.45 | 0.45 |
+  | Glow-only torch | 0.35 | 1 / 1.2 | 0.3 | 0.12 |
+  | Pillar | 0.1 | 20 / 0.5 | none | none |
+
+  Loops start at random offsets and drift ±2 dB and ±3% in rate (two slow sines, 6–27 s), and
+  the fire's flicker `level` moves the gain up to ±12%. Crackles from the pops sprite are
+  scheduled 0.2 s ahead at random (exponential gaps), ±8% pitch and ±3 dB, skipped for fires
+  heard below −50 dB, at most 6 at once. The pillar was 0.35 at first but outweighed the altar
+  at the spawn; torches went 0.5 → 0.7 so the nearest one wins at `torch`.
+- **Tent muffle** eases in with depth (Kyle: switching at the door was too abrupt): the
+  outside's volume falls from 100% at the door's line to 50% (−6 dB) 2 m in and holds through
+  the Holy Place; past the veil it falls on to 25% (−12 dB) over 1 m. The low-pass closes with
+  it from 20 kHz to 700 Hz on a log scale. `audio.setInside(depth, pastVeil)` per frame.
+- **Levels** (offline render, dBFS, before Step 4's mix): fire bus `fireclose` −22, `fire` −23,
+  `gate` −33, `torch` −31, `horizon` −39; wind −32 to −35 everywhere outside.
+- **Cost after the fires:** `audio.update` 0.013 ms a frame; `gate` 12.33 ms with sound vs
+  12.31 ms with `?audio=0`, 139 draws.
 - **Pillar of fire:** the text gives it no sound; artistic license, like its size. A steady
   roar (no wood cracks) slowed an octave and low-passed at 800 Hz: deep and slow.
 
