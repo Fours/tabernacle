@@ -141,7 +141,7 @@ src/
     environment.js      generated night environment map
     atmosphere.js       replaces three's fog chunks: FogExp2 + ground haze + analytic glow of the fires in the air; inside the tent its own air (room haze, menorah glow, incense under the ceiling) (ATMO uniforms, applyAtmosphere)
   audio/
-    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update; wind and fires tick at 10 Hz), setInside (0 out, 1 Holy Place, 2 Holy of Holies: drives the outside muffle), mute (button, M, localStorage), suspend when hidden, renderOffline check
+    engine.js           sound lifecycle: prefetch on idle after the loader, AudioContext created in the enter gesture (unlock), listener follows the camera (update; wind and fires tick at 10 Hz), setInside(depth, pastVeil) (metres into the tent: the outside muffle eases from 100% at the door to 50% 2 m in, 25% past the veil), mute (button, M, localStorage), suspend when hidden, renderOffline check
     graph.js            createGraph(any BaseAudioContext): buses fire/wind/insects -> outside (lowpass + gain, the tent muffle) -> master; analysers, graphLevels
     fires.js            positional fires (FIRE_KINDS): a PannerNode per fire (altar, 6 torches, pillar) with its loop (random offset, gain/rate drift, flicker nudge) and random crackles from the pops sprite scheduled 0.2 s ahead (inaudible sources skipped, <= 6 live)
     wind.js             wind bed: the stereo loop, gain + lowpass on a gust envelope from the cloth's WIND field (gustAt)

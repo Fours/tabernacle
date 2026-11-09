@@ -361,7 +361,8 @@ renderer.setAnimationLoop((time) => {
   fx.setInside(interiorShown === 2);
   fx.render(t);
   if (audio) {
-    audio.setInside(interiorShown === 2 ? (camera.position.x < VEIL_X ? 2 : 1) : 0);
+    const x = camera.position.x, inTent = interiorShown === 2;
+    audio.setInside(inTent ? Math.max(0, FRONT_X - x) : 0, inTent ? Math.max(0, VEIL_X - x) : 0);
     audio.update(dt);
   }
   if (loader && ++framesRendered === 2) hideLoader();

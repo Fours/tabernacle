@@ -15,8 +15,9 @@ import { WIND } from '../scene/cloth.js';
  * - `update(dt)` (main.js loop, after render): the listener follows the camera; the wind bed and
  *   the fires (audio/fires.js: loop drift, crackles scheduled ahead) retarget at ~10 Hz. Does
  *   nothing unless the context is running.
- * - `setInside(state)` (main.js, per frame; cheap when unchanged): 0 outside, 1 Holy Place,
- *   2 Holy of Holies. Drives the graph's `outside` chain (low-pass and gain on every outside bus).
+ * - `setInside(depth, pastVeil)` (main.js, per frame; cheap when unchanged): metres into the tent
+ *   from the door and past the veil. Drives the graph's `outside` chain (low-pass and gain on
+ *   every outside bus), easing in with depth rather than switching at the door.
  * - Mute (button, `M`, `localStorage` 'tabernacle.muted'): ramps the master to 0 and suspends.
  *   Hidden tab / pagehide: suspend; visible again: resume unless muted.
  */
@@ -25,18 +26,30 @@ const MASTER = 1;
 const BUS_GAIN = { fire: 1, wind: 0.7, insects: 1 }; // Step 4 sets the final mix
 const FADE_IN = 1.5, MUTE_RAMP = 0.2, UNMUTE_RAMP = 0.3; // s
 const WIND_DT = 0.1; // s between wind envelope / fire updates
-// The outside chain per inside state (0 outside, 1 Holy Place, 2 Holy of Holies): low-pass Hz
-// and gain. Ramped with INSIDE_TAU (~0.3 s to settle).
-const INSIDE_CHAIN = [
-  { hz: 20000, gain: 1 },
-  { hz: 700, gain: 10 ** (-12 / 20) },
-  { hz: 700, gain: 10 ** (-18 / 20) },
-];
+// The outside chain inside the tent follows how far in the listener is, so it doesn't switch
+// at the door: the outside's volume falls from 100% at the door's line to 50% (-6 dB) at
+// MUFFLE_DOOR m in and holds there through the Holy Place; past the veil it falls on to 25%
+// (-12 dB) over MUFFLE_VEIL m. The low-pass closes with the volume, from wide open to
+// MUFFLE_HZ (on a log scale), so the outside is dull as well as quiet.
+const MUFFLE_DOOR = 2, MUFFLE_VEIL = 1; // m
+const MUFFLE_HZ = 700, OPEN_HZ = 20000;
 const INSIDE_TAU = 0.1;
+// Fixed states for checks (renderOffline's `inside` option): 0 outside, 1 Holy Place, 2 Holy of
+// Holies, as { depth: m in from the door, pastVeil: m past the veil }.
+const INSIDE_STATES = [{ depth: 0, pastVeil: 0 }, { depth: 5, pastVeil: 0 }, { depth: 30, pastVeil: 5 }];
 
-/** Set (`tau` 0: immediately) the graph's outside chain for inside state `state`. */
-function applyInside(graph, state, now, tau) {
-  const c = INSIDE_CHAIN[state] || INSIDE_CHAIN[0];
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+/** The outside chain's gain and low-pass Hz for a listener `depth` m in, `pastVeil` m past the veil. */
+function muffleFor({ depth, pastVeil }) {
+  const door = clamp01(depth / MUFFLE_DOOR), veil = clamp01(pastVeil / MUFFLE_VEIL);
+  const gain = (1 - 0.5 * door) * (1 - 0.5 * veil);
+  const hz = OPEN_HZ * (MUFFLE_HZ / OPEN_HZ) ** door;
+  return { gain, hz };
+}
+
+/** Set (`tau` 0: immediately) the graph's outside chain for a position `at` ({depth, pastVeil}). */
+function applyInside(graph, at, now, tau) {
+  const c = muffleFor(at);
   const f = graph.outside.filter.frequency, g = graph.outside.gain.gain;
   const hz = Math.min(c.hz, graph.ctx.sampleRate / 2);
   if (tau > 0) {
@@ -60,7 +73,7 @@ function saveMuted(v) {
 
 export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fires: fireSpecs = [] }) {
   let ctx = null, graph = null, wind = null, fires = null;
-  let inside = 0; // last state given to setInside
+  const inside = { depth: 0, pastVeil: 0 }; // last position given to setInside
   const panningModel = hrtf ? 'HRTF' : 'equalpower';
   let manifest = null;
   let loading = null; // Promise<{manifest, raw: {key: ArrayBuffer}}>
@@ -184,11 +197,15 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
       button.show(!v);
     },
 
-    /** 0 outside, 1 Holy Place, 2 Holy of Holies. Ramps the outside chain on a change. */
-    setInside(state) {
-      if (state === inside) return;
-      inside = state;
-      if (graph) applyInside(graph, state, ctx.currentTime, INSIDE_TAU);
+    /**
+     * How far into the tent the listener is (main.js, per frame): `depth` m in from the door's
+     * line (0 outside), `pastVeil` m past the veil (0 east of it). Moves the outside chain when
+     * either changes by more than 2 cm.
+     */
+    setInside(depth, pastVeil = 0) {
+      if (Math.abs(depth - inside.depth) < 0.02 && Math.abs(pastVeil - inside.pastVeil) < 0.02) return;
+      inside.depth = depth; inside.pastVeil = pastVeil;
+      if (graph) applyInside(graph, inside, ctx.currentTime, INSIDE_TAU);
     },
 
     mute(v) {
@@ -245,6 +262,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
      * `.distances` (each fire's distance and heard dB).
      */
     async renderOffline(seconds = 6, step = 0.5, { inside: insideState = inside } = {}) {
+      if (typeof insideState === 'number') insideState = INSIDE_STATES[insideState] ?? INSIDE_STATES[0];
       const { raw } = await load();
       const sr = manifest.sampleRate;
       const off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
