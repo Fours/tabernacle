@@ -656,7 +656,7 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
 
 ## Sound
 
-Plan: `docs/plans/2026-11-08-sound.md`.
+Plan: `docs/plans/archive/2026-11-08-sound.md`.
 
 - **Sources:** all recorded CC0 Freesound recordings, chosen by Kyle by ear and listed in
   `CREDITS.md`. Altar fire: ahriik; torch: SKrafft; pops: YouMightLikeThis; pillar: Aegersum;
@@ -669,7 +669,8 @@ Plan: `docs/plans/2026-11-08-sound.md`.
 - **Format:** AAC `.m4a` from ffmpeg's `aac_at` (fires and pops 64 kbps mono; wind and insects
   112 kbps stereo), the one format iPhone Safari is sure to decode. The 2112-sample encoder
   priming is in an MP4 edit list, which Chrome's `decodeAudioData` trims (measured to the
-  sample); Safari and Firefox not yet checked.
+  sample); on iPhone Safari the loops play with no click (Kyle, by ear, 2026-11-08), so no
+  per-browser offset is needed. Firefox not checked.
 - **Loops** are 8 s (altar, torch), 10 s (pillar), 22 s (wind), 24 s (insects), crossfaded at
   the seam (equal power, 0.4–1.5 s). Each is encoded with 0.1 s of its own wrap-around audio on
   both sides, because AAC smeared an abrupt loop start into a click; so `loopStart` is 0.1 and
@@ -716,8 +717,31 @@ Plan: `docs/plans/2026-11-08-sound.md`.
   outside's volume falls from 100% at the door's line to 50% (−6 dB) 2 m in and holds through
   the Holy Place; past the veil it falls on to 25% (−12 dB) over 1 m. The low-pass closes with
   it from 20 kHz to 700 Hz on a log scale. `audio.setInside(depth, pastVeil)` per frame.
-- **Levels** (offline render, dBFS, before Step 4's mix): fire bus `fireclose` −22, `fire` −23,
+- **Levels after Step 3** (offline render, dBFS, before the final mix): fire bus `fireclose` −22, `fire` −23,
   `gate` −33, `torch` −31, `horizon` −39; wind −32 to −35 everywhere outside.
+- **Insects** (`src/audio/insects.js`): a stereo bed (random start, ±1.5 dB drift) on the
+  insects bus. It hushes near the lit fires (altar and lit torches): 40% within 2 m of the
+  nearest, full from 10 m (smoothstep). The first fade (silent under 4 m, full at 18 m, bus
+  0.22) left the spawn nearly silent (Kyle: couldn't hear them at spawn, "a lot louder"). It
+  fades to silence over the first 1.5 m into the tent, on top of the outside muffle.
+- **Mix (bus gains):** fire 1, wind 0.35, insects 0.4 (`BUS_GAIN` in `engine.js`). Wind went
+  0.7 → 0.5 → 0.35 (Kyle, twice: a little loud).
+- **Muted visitors** don't decode: a visitor muted at enter fetches the files but decodes them
+  only on the first unmute (`audio.decodes`), saving ~22 MB on phones that never unmute.
+- **Final levels** (offline render, 8 s, dBFS RMS per bus before the muffle; master after it):
+
+  | View | Fire | Wind | Insects | Master | Peak |
+  |---|---|---|---|---|---|
+  | `walk` | −33.2 | −39.6 | −35.0 | −30.6 | −15.6 |
+  | `gate` | −32.8 | −39.2 | −40.4 | −31.3 | −17.7 |
+  | `fireclose` | −21.9 | −38.6 | −42.1 | −21.7 | −6.0 |
+  | `torch` | −30.0 | −39.5 | −45.8 | −29.5 | −14.4 |
+  | `horizon` | −36.1 | −39.6 | −38.9 | −33.3 | −17.9 |
+  | `holyplace` | −31.0 | −39.5 | silent | −36.4 | −23.2 |
+
+- **Phone check** (iPhone, production build over the LAN, 2026-11-08, Kyle): sound starts on
+  the tap, plays with the silent switch on, stops on lock and app switch and resumes on return,
+  loops without clicks, fps and load time unchanged.
 - **Cost after the fires:** `audio.update` 0.013 ms a frame; `gate` 12.33 ms with sound vs
   12.31 ms with `?audio=0`, 139 draws.
 - **Pillar of fire:** the text gives it no sound; artistic license, like its size. A steady
@@ -729,6 +753,9 @@ Plan: `docs/plans/2026-11-08-sound.md`.
 
 ## Performance baseline (2026-11-05, after the fire plan)
 
+- 2026-11-08, the sound plan: no change to draws or frame time. `audio.update` costs
+  0.013–0.017 ms a frame on desktop; `gate` 12.33 ms with sound vs 12.31 ms with `?audio=0`,
+  139 draws either way. Download 0.91 MB after the loader, ~22 MB decoded ("Sound").
 - 2026-11-07, after the mobile work (desktop, `high` tier, throttled mode, 1024×768 at pixel ratio
   2): draws / ms `gate` 139 / 12.4, `iso` 143 / 12.8, `tent` 120 / 10.7, `firepillar` 130 / 10.7,
   `firepillarfoot` 97 / 7.6, `holyplace` 117 / 10.3, `holyofholies` 99 / 9.3, `camp` 143 / 11.6,
