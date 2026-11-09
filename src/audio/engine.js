@@ -22,6 +22,8 @@ import { WIND } from '../scene/cloth.js';
  *   from the door and past the veil. Drives the graph's `outside` chain (low-pass and gain on
  *   every outside bus), easing in with depth rather than switching at the door.
  * - Mute (button, `M`, `localStorage` 'tabernacle.muted'): ramps the master to 0 and suspends.
+ *   The title screen coming back after entering (Esc, the mobile menu) does the same without
+ *   touching the stored mute, and leaving it fades back in; `M` does nothing while it's up.
  *   Hidden tab / pagehide: suspend; visible again: resume unless muted.
  */
 const BASE = '/assets/audio/';
@@ -85,6 +87,8 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
   let decodes = 0; // live-context decode runs (a muted visitor makes none)
   let entered = false;
   let muted = readMuted();
+  let paused = false; // the title screen is back up after entering: faded out like a mute
+  let introShown = true;
   let windAcc = WIND_DT;
   let suspendTimer = 0;
 
@@ -123,7 +127,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
     insects = createInsectBed(ctx, graph.buses.insects, buffers.insects, manifest.files.insects, fireSpecs, camera.position, inside.depth);
     fires = createFireSources(ctx, graph.buses.fire, buffers, manifest.files, fireSpecs, { panningModel });
     applyInside(graph, inside, ctx.currentTime, 0);
-    if (muted) {
+    if (muted || paused) {
       ctx.suspend().catch(() => {});
     } else {
       const g = graph.master.gain, now = ctx.currentTime;
@@ -139,14 +143,34 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
   }
 
   function wantRunning() {
-    return entered && !muted && !document.hidden;
+    return entered && !muted && !paused && !document.hidden;
   }
   function syncState() {
     if (!ctx) return;
     if (wantRunning()) {
       if (ctx.state !== 'running') ctx.resume().catch(() => {});
-    } else if (ctx.state === 'running' && (document.hidden || muted)) {
+    } else if (ctx.state === 'running' && (document.hidden || muted || paused)) {
       ctx.suspend().catch(() => {});
+    }
+  }
+
+  /**
+   * Ramp the master to silence and suspend (`off`), or resume and ramp it back (the mute and the
+   * title screen both use this). Before the first unmuted start, "on" decodes and start() fades in.
+   */
+  function fade(off) {
+    clearTimeout(suspendTimer);
+    if (!ctx) return;
+    const g = graph.master.gain, now = ctx.currentTime;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    if (off) {
+      g.linearRampToValueAtTime(0, now + MUTE_RAMP);
+      suspendTimer = setTimeout(syncState, (MUTE_RAMP + 0.05) * 1000);
+    } else {
+      syncState();
+      if (!started) { begin(); return; } // entered muted: decode now; start() fades in
+      g.linearRampToValueAtTime(MASTER, now + UNMUTE_RAMP);
     }
   }
 
@@ -160,6 +184,7 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
   window.addEventListener('pageshow', onVisibility);
   const onKey = (e) => {
     if (e.code !== 'KeyM' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (introShown) return; // M does nothing on the title screen (Kyle)
     engine.mute(!muted);
   };
   if (!mobile) window.addEventListener('keydown', onKey);
@@ -206,9 +231,17 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
       syncState();
     },
 
-    /** The title screen is up (true) or gone (false): the button hides with it. */
+    /**
+     * The title screen is up (true) or gone (false): the button hides with it. Once entered, the
+     * sound fades out with the screen's return (Esc, the mobile menu) as `M` would, and back in
+     * when it goes; the stored mute is untouched.
+     */
     setIntroShown(v) {
+      introShown = !!v;
       button.show(!v);
+      if (!entered || paused === introShown) return;
+      paused = introShown;
+      if (!muted) fade(paused);
     },
 
     /**
@@ -226,19 +259,8 @@ export function createAudioEngine({ camera, app, mobile = false, hrtf = true, fi
       muted = !!v;
       saveMuted(muted);
       button.set(muted);
-      clearTimeout(suspendTimer);
-      if (!ctx) return;
-      const g = graph.master.gain, now = ctx.currentTime;
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      if (muted) {
-        g.linearRampToValueAtTime(0, now + MUTE_RAMP);
-        suspendTimer = setTimeout(syncState, (MUTE_RAMP + 0.05) * 1000);
-      } else {
-        syncState();
-        if (!started) { begin(); return; } // entered muted: decode now; start() fades in
-        g.linearRampToValueAtTime(MASTER, now + UNMUTE_RAMP);
-      }
+      if (paused) return; // the title screen is up: it stays silent until it goes
+      fade(muted);
     },
 
     /** Per frame, after render (camera.matrixWorld is current). No allocation. */

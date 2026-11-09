@@ -142,7 +142,8 @@ export function createFirstPerson(camera, domElement, colliders, spawn, { bob = 
     hideIntro();
   });
   controls.addEventListener('unlock', showIntro);
-  // Without pointer lock, Esc still brings the overlay back.
+  // Without pointer lock, Esc still brings the overlay back. Esc on the overlay does nothing:
+  // only a click (or tap) dismisses it.
   const onEsc = (e) => {
     if (e.code === 'Escape' && !controls.isLocked) showIntro();
   };

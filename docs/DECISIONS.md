@@ -705,6 +705,11 @@ Plan: `docs/plans/archive/2026-11-08-sound.md`.
 - **Mute:** a speaker button (desktop: a dim 36 px circle bottom-right, shown after entering;
   mobile: beside the menu button) and `M` on desktop. Ramps 0.2 s down / 0.3 s up, then suspends
   the context; stored in `localStorage` `tabernacle.muted`. The tab being hidden suspends it too.
+- **Title screen** (2026-11-08, Kyle): once entered, bringing the title screen back (Esc, the
+  mobile menu) fades the sound out like `M` (0.2 s, then suspend) without changing the stored
+  mute, and entering again fades it back in (0.3 s). `M` does nothing while the screen is up,
+  the first time included. Esc on the screen does nothing: only a click or tap dismisses it
+  (an Esc-to-dismiss was tried and reverted, Kyle).
 - **Panning:** `QUALITY.audioHrtf` (high: HRTF, mobile: equalpower; `?qk=audioHrtf:0`).
 - **Cost:** `audio.update` 0.01 ms a frame; `gate` 13.00 ms with sound vs 13.04 ms with
   `?audio=0` (same session), 139 draws either way.
