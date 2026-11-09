@@ -686,7 +686,7 @@ Plan: `docs/plans/2026-11-08-sound.md`.
   Graph: buses (fire, wind, insects) → an `outside` chain (low-pass + gain, for the tent
   interior) → master, with analysers read only on demand; built for any `BaseAudioContext`, so
   it can be checked offline (`audio.renderOffline`). `?audio=0` fetches nothing.
-- **Wind** (bus gain 0.5; 0.7 was a little loud, Kyle) follows the cloth: the large-scale terms of the cloth's wave field
+- **Wind** (bus gain 0.35, about 3 dB under the earlier 0.5; 0.7 and 0.5 were too loud, Kyle) follows the cloth: the large-scale terms of the cloth's wave field
   (0.7 sin a1 + 0.3 sin a2) at the listener drive its gain (0.35–0.9) and a low-pass
   (650–4200 Hz), updated at 10 Hz with 0.35 s smoothing. `?wind=0` silences it.
 - **Mute:** a speaker button (desktop: a dim 36 px circle bottom-right, shown after entering;
