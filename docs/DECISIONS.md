@@ -714,15 +714,15 @@ Plan: `docs/plans/archive/2026-11-08-sound.md`.
   | Fire | Loop gain | refDistance / rolloff | Crackle gain | Crackles/s |
   |---|---|---|---|---|
   | Altar | 1 | 3 / 1 | 0.7 | 3 |
-  | Lit torch | 0.7 | 1 / 1.2 | 0.45 | 0.45 |
-  | Glow-only torch | 0.35 | 1 / 1.2 | 0.3 | 0.12 |
+  | Lit torch | 0.45 | 1 / 1.2 | 0.3 | 0.45 |
+  | Glow-only torch | 0.22 | 1 / 1.2 | 0.2 | 0.12 |
   | Pillar | 0.2 (±4 dB swell) | 20 / 0.5 | none | none |
 
   Loops start at random offsets and drift ±2 dB and ±3% in rate (two slow sines, 6–27 s), and
   the fire's flicker `level` moves the gain up to ±12%. Crackles from the pops sprite are
   scheduled 0.2 s ahead at random (exponential gaps), ±8% pitch and ±3 dB, skipped for fires
   heard below −50 dB, at most 6 at once. Torches went 0.5 → 0.7 so the nearest one wins at
-  `torch`. The pillar was too faint at 0.1 (Kyle): now 0.2 with a deeper slow swell (±4 dB
+  `torch`, then down ~4 dB to 0.45 (glow-only 0.22, crackles 0.3 / 0.2; Kyle: a bit too loud). The pillar was too faint at 0.1 (Kyle): now 0.2 with a deeper slow swell (±4 dB
   instead of ±2), level with the altar at `walk` and `gate` (−18.6 vs −18.1 dB at the spawn)
   and leading out on the sand (`horizon` −14.9 vs the altar's −22.7).
 - **Tent muffle** eases in with depth (Kyle: switching at the door was too abrupt): the
@@ -732,8 +732,9 @@ Plan: `docs/plans/archive/2026-11-08-sound.md`.
 - **Levels after Step 3** (offline render, dBFS, before the final mix): fire bus `fireclose` −22, `fire` −23,
   `gate` −33, `torch` −31, `horizon` −39; wind −32 to −35 everywhere outside.
 - **Insects** (`src/audio/insects.js`): a stereo bed (random start, ±1.5 dB drift) on the
-  insects bus. It hushes near the lit fires (altar and lit torches): 40% within 2 m of the
-  nearest, full from 10 m (smoothstep). The first fade (silent under 4 m, full at 18 m, bus
+  insects bus. It hushes near the altar fire only: 40% within 2 m of it, full from 10 m
+  (smoothstep). The torches hushed it too at first; Kyle: walking up to a torch shouldn't
+  quieten the insects. The first fade (silent under 4 m, full at 18 m, bus
   0.22) left the spawn nearly silent (Kyle: couldn't hear them at spawn, "a lot louder"). It
   fades to silence over the first 1.5 m into the tent, on top of the outside muffle.
 - **Mix (bus gains):** fire 1, wind 0.35, insects 0.4 (`BUS_GAIN` in `engine.js`). Wind went
@@ -750,6 +751,10 @@ Plan: `docs/plans/archive/2026-11-08-sound.md`.
   | `torch` | −30.0 | −39.5 | −45.8 | −29.5 | −14.4 |
   | `horizon` | −36.1 | −39.6 | −38.9 | −33.3 | −17.9 |
   | `holyplace` | −31.0 | −39.5 | silent | −36.4 | −23.2 |
+
+  After the quieter torches and the altar-only insect hush (2026-11-08): `torch` fire −32.1,
+  insects −37.6 (was −45.8), master −30.3; `gate` fire −33.0, insects −37.6; `walk` fire
+  −33.9; `fireclose` unchanged.
 
 - **Phone check** (iPhone, production build over the LAN, 2026-11-08, Kyle): sound starts on
   the tap, plays with the silent switch on, stops on lock and app switch and resumes on return,

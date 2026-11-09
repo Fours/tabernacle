@@ -2,7 +2,7 @@
  * The night insect bed: the stereo loop (crickets and the like) from a random point into the
  * `insects` bus, through one gain that follows three things:
  * - a very slow drift of +/- DRIFT_DB (two sines, own periods), so the bed breathes;
- * - the listener's distance to the nearest fire (the altar and the lit torches, from their
+ * - the listener's distance to the altar fire (the torches and the pillar don't count; from its
  *   sound specs): hushed to NEAR_LEVEL within NEAR m of a flame, rising by a smoothstep to full at
  *   FAR m, so the crickets are loud out on the open sand and quieter, never gone, by the fires
  *   (Kyle: inaudible at the spawn with silent-at-4 m / full-at-18 m);
@@ -16,7 +16,7 @@ const NEAR_LEVEL = 0.4; // the bed's level beside a fire
 const IN_FADE = 1.5; // m into the tent: silent
 const DRIFT_DB = 1.5;
 const SMOOTH = 0.6; // s, setTargetAtTime constant
-const FIRE_KINDS = ['altar', 'torch']; // lit fires only: not the glow-only west torches, nor the pillar
+const FIRE_KINDS = ['altar']; // the altar only: the torches don't hush them (Kyle), nor does the pillar
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));

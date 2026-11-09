@@ -25,8 +25,8 @@ const POP_PITCH = 0.08, POP_DB = 3; // jitter: ±8 % rate, ±3 dB
  */
 export const FIRE_KINDS = {
   altar: { loop: 'altarFire', gain: 1, pop: 0.7, popRate: 3, ref: 3, rolloff: 1, max: 10000 },
-  torch: { loop: 'torchFire', gain: 0.7, pop: 0.45, popRate: 0.45, ref: 1, rolloff: 1.2, max: 10000 },
-  torchGlow: { loop: 'torchFire', gain: 0.35, pop: 0.3, popRate: 0.12, ref: 1, rolloff: 1.2, max: 10000 },
+  torch: { loop: 'torchFire', gain: 0.45, pop: 0.3, popRate: 0.45, ref: 1, rolloff: 1.2, max: 10000 },
+  torchGlow: { loop: 'torchFire', gain: 0.22, pop: 0.2, popRate: 0.12, ref: 1, rolloff: 1.2, max: 10000 },
   // The pillar: 0.1 -> 0.2 and a deeper swell (Kyle: barely audible, wants it present and definite).
   pillar: { loop: 'pillarRoar', gain: 0.2, swell: 4, pop: 0, popRate: 0, ref: 20, rolloff: 0.5, max: 10000 },
 };
