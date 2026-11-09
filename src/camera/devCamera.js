@@ -70,6 +70,8 @@ export const PRESETS = {
   // Low (0.8 m) just outside the south hangings near the altar, looking north-west across the
   // rocks and scrub at the hangings lit from within by the altar fire.
   ground: { pos: [m(43), 0.8, m(hz + 20.5)], target: [m(25), 1.0, m(hz)], fov: 60 },
+  // Close on a rock clump outside the south hangings (the scatter's rock shading).
+  rocks: { pos: [20.75, 0.42, 20.15], target: [20.2, 0.02, 19.55], fov: 50 },
   corner: { pos: [m(hx + 6), m(4), m(hz + 7)], target: [m(hx), m(2), m(hz)] },
   // Close-up of a south-wall pillar top from outside: capital, hooks, fillets, cord.
   pillar: { pos: [m(31.8), m(5.6), m(hz + 3.2)], target: [m(30), m(4.4), m(hz)] },

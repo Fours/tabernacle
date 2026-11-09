@@ -34,6 +34,9 @@ const TIERS = {
     pebbleFar: 0,
     grassFar: 0,
     shrubFar: 0,
+    // Icosphere subdivisions of the scatter's near rocks and of pebbles/far rocks (smooth shaded).
+    rockDetail: 2,
+    pebbleDetail: 0,
   },
   mobile: {
     pixelRatio: 1, // phone-tested: 1.5 ran 24-26 fps, 1 runs 30-32 and still looks good
@@ -52,6 +55,8 @@ const TIERS = {
     pebbleFar: 15, // `walk`, `campwalk`, `horizon`, `ground`: no visible change
     grassFar: 35, // (far tufts already drop half their blades in the shader past 35 m)
     shrubFar: 55,
+    rockDetail: 1, // 80 triangles a rock, as before the smoothing (phones are vertex-bound)
+    pebbleDetail: 0,
   },
 };
 

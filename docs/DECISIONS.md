@@ -420,6 +420,18 @@ under the right heading in this format: `YYYY-MM-DD: decision — reason`.
   `main.js`). No colliders; receives shadows, casts none. `userData.removeWhere` lets later
   modules clear scatter (the camp).
   About +0.6–0.7 ms at `gate`.
+- 2026-11-08: Smooth rocks (Kyle: the ground cover read low poly, especially the rocks). The
+  rock shader now shades smooth: its shape is a radius per direction, so each vertex's normal
+  comes from the shape at two nearby directions (the same at every copy of a corner, while the
+  3 fracture cuts stay flat), instead of `flatShading`. Fine grain is a bump from object-space
+  noise in the fragment shader, faded out from 6 to 12 m (it would only shimmer further off).
+  Near rocks went from 80 to 180 triangles on desktop (`QUALITY.rockDetail` 2; mobile keeps 1,
+  80 triangles, smooth too); pebbles and far rocks keep 20 (`pebbleDetail` 0). The stone
+  icospheres are indexed (`mergeVertices`, uv dropped): three's are non-indexed, so every
+  corner ran the shape shader ~6 times. Cost, same session, throttled mode: `gate` 12.34 →
+  12.65 ms, `ground` 11.61 → 11.96, `camp` 11.57 → 11.93, `horizon` 8.57 → 8.80; draws
+  unchanged; +248k triangles. `rockDetail:1` on desktop would save ~0.15 of that. Preset
+  `rocks` is the close-up. The shrubs' leafy lumps stay faceted on purpose.
 - 2026-11-05: Ground relief (`scene/terrain.js`): gentle warped-sine dunes, ~12 cm rms and at
   most ~0.5 m, starting 10 m outside the hangings and full by 40 m, kept to 30% along the
   camp's lanes, the gate approach and the streets; the court is level (y = 0). The mesh is
@@ -856,6 +868,7 @@ known gaps: `docs/mobile-spike-findings.md`.
   | `probeSize` (gold room) | 256 | 128 | One capture at load; saves ~3 MB of half-float cube |
   | `dynamicResolution` | off | off | Opt-in (`?qk=dynamicResolution:1`) |
   | `rockFar` / `pebbleFar` / `grassFar` / `shrubFar` (m) | 0 (off) | 30 / 15 / 35 / 55 | Ground scatter distance culling ("Ground scatter tiles" below) |
+  | `rockDetail` / `pebbleDetail` | 2 / 0 | 1 / 0 | Icosphere subdivisions of the near rocks and of pebbles/far rocks ("World", smooth rocks) |
 
 - **Measured cost** (mobile tier at its original pixel ratio 1.5; 2026-11-07, one session, 812×375 logical viewport in the browser pane with
   `?mobile=1`, dpr 2; AGENTS.md method, 8 warm-ups then 30–40 `fx.render` closed by a 1-px

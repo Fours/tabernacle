@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COURTYARD as C, TORCHES, m } from '../config/dimensions.js';
 import { QUALITY } from '../config/quality.js';
 import { courtDistance, groundHeight } from './terrain.js';
@@ -226,6 +227,19 @@ function shrubGeometry(rnd) {
   return g;
 }
 
+/**
+ * Unit icosphere for the stones, indexed: the rock shader shapes and shades each vertex from its
+ * position alone, so shared corners can be merged (6x fewer vertex shader runs than three's
+ * non-indexed icosphere; the uv seam is dropped, as nothing samples it).
+ */
+function stoneGeometry(detail) {
+  const ico = new THREE.IcosahedronGeometry(1, detail);
+  ico.deleteAttribute('uv');
+  const g = mergeVertices(ico);
+  ico.dispose();
+  return g;
+}
+
 // ---- Materials --------------------------------------------------------------------------------
 const ROCK_GLSL = /* glsl */ `
 float rkHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -237,19 +251,23 @@ float rkNoise(vec3 x) {
 }
 `;
 
-/** Rock material: per-instance shape in the vertex shader (lumpy, with 3 flat fracture cuts). */
+/**
+ * Rock material: per-instance shape in the vertex shader (lumpy, with 3 flat fracture cuts),
+ * smooth shaded. The shape is a radius r(direction), so the normal is taken from the shape
+ * itself at two nearby directions: the same at every copy of a vertex (smooth across the
+ * non-indexed icosphere's faces) while the fracture cuts stay flat.
+ */
 function rockMaterial() {
-  const mat = new THREE.MeshStandardMaterial({ name: 'rock', roughness: 0.88, metalness: 0, flatShading: true });
+  const mat = new THREE.MeshStandardMaterial({ name: 'rock', roughness: 0.88, metalness: 0 });
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\n${ROCK_GLSL}`)
       .replace(
-        '#include <begin_vertex>',
-        `vec3 transformed = vec3(position);
-#ifdef USE_INSTANCING
-{
-  vec3 sd = vec3(instanceMatrix[3][0], instanceMatrix[3][2], 0.0) * 1.37;
-  vec3 dn = normalize(position);
+        '#include <common>',
+        `#include <common>
+${ROCK_GLSL}
+varying vec3 vRkPos;
+varying float vRkScale;
+float rkRadius(vec3 dn, vec3 sd) {
   float r = 1.0 + 0.55 * (rkNoise(dn * 1.4 + sd) - 0.5) + 0.2 * (rkNoise(dn * 3.1 + sd.yxz) - 0.5);
   // Flat fracture faces: clip the radius against 3 planes with seeded normals.
   for (int k = 0; k < 3; k++) {
@@ -259,12 +277,53 @@ function rockMaterial() {
     float c = dot(dn, pn);
     if (c > 0.05) r = min(r, dd / c);
   }
-  transformed = dn * r;
+  return r;
+}`,
+      )
+      .replace(
+        '#include <beginnormal_vertex>',
+        `vec3 objectNormal = vec3(normal);
+vec3 rkPos = vec3(position);
+vRkPos = position;
+vRkScale = 1.0;
+#ifdef USE_INSTANCING
+{
+  vec3 sd = vec3(instanceMatrix[3][0], instanceMatrix[3][2], 0.0) * 1.37;
+  vec3 dn = normalize(position);
+  vec3 t1 = normalize(cross(dn, abs(dn.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+  vec3 t2 = cross(dn, t1);
+  const float E = 0.04;
+  vec3 d1 = normalize(dn + E * t1), d2 = normalize(dn + E * t2);
+  rkPos = dn * rkRadius(dn, sd);
+  vec3 n = cross(d1 * rkRadius(d1, sd) - rkPos, d2 * rkRadius(d2, sd) - rkPos);
+  objectNormal = normalize(dot(n, dn) < 0.0 ? -n : n);
+  vRkPos = rkPos + sd;
+  vRkScale = length(instanceMatrix[0].xyz);
 }
 #endif`,
+      )
+      .replace('#include <begin_vertex>', 'vec3 transformed = rkPos;');
+    // Fine grain without geometry: a bump from object-space noise, faded out by ~12 m (it would
+    // only shimmer on distant pixels). Same construction as three's perturbNormalArb.
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${ROCK_GLSL}\nvarying vec3 vRkPos;\nvarying float vRkScale;`)
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+{
+  float fade = 1.0 - smoothstep(6.0, 12.0, length(vViewPosition));
+  if (fade > 0.0) {
+    float h = (0.6 * rkNoise(vRkPos * 9.0) + 0.4 * rkNoise(vRkPos * 23.0)) * vRkScale * 0.05 * fade;
+    vec2 dH = vec2(dFdx(h), dFdy(h));
+    vec3 sx = dFdx(-vViewPosition), sy = dFdy(-vViewPosition);
+    vec3 r1 = cross(sy, normal), r2 = cross(normal, sx);
+    float det = dot(sx, r1) * faceDirection;
+    normal = normalize(abs(det) * normal - sign(det) * (dH.x * r1 + dH.y * r2));
+  }
+}`,
       );
   };
-  mat.customProgramCacheKey = () => 'scatter-rock-v1';
+  mat.customProgramCacheKey = () => 'scatter-rock-v2';
   return mat;
 }
 
@@ -449,8 +508,8 @@ export function createGroundScatter({ seed = 1907, exclude = null, camera = null
   const wind = { time: { value: 0 } };
   const rockMat = rockMaterial();
   const geos = {
-    rocks: new THREE.IcosahedronGeometry(1, 1),
-    pebbles: new THREE.IcosahedronGeometry(1, 0),
+    rocks: stoneGeometry(QUALITY.rockDetail),
+    pebbles: stoneGeometry(QUALITY.pebbleDetail),
     grass: tuftGeometry(rng(seed + 1)),
     shrubs: shrubGeometry(rng(seed + 2)),
   };
@@ -566,7 +625,7 @@ export function createGroundScatter({ seed = 1907, exclude = null, camera = null
   const stats = () => {
     const out = { ms: 0, instances: {}, triangles: 0, tiles: {} };
     for (const { key, mesh, n } of tiles) {
-      const tris = mesh.geometry.attributes.position.count / 3;
+      const g = mesh.geometry, tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
       out.instances[key] = (out.instances[key] || 0) + n;
       out.tiles[key] = (out.tiles[key] || 0) + (n > 0 ? 1 : 0);
       out.triangles += tris * n;
