@@ -74,7 +74,7 @@ Acceptance:
 2. No console errors; `npm run lint` and `npm run build` pass; report draw calls and frame time (time renders through window.__tabernacle.composer — the hidden pane throttles requestAnimationFrame).
 
 ## Commits
-Commit at logical stopping points; the build must pass before each commit. End each commit message with the attribution line from the session's system reminder. Don't push, and don't tick the plan checkbox (the orchestrator does that).
+Commit at logical stopping points; the build must pass before each commit. Never add an attribution line (no `Co-Authored-By`, no "Generated with Claude Code"). Don't push, and don't tick the plan checkbox (the orchestrator does that).
 
 ## Report
 Keep it short: what was built, commit hashes, screenshots checked and what they showed, performance numbers, deviations or open questions, and suggested DECISIONS.md entries.

@@ -296,9 +296,9 @@ camera position (main.js calls it at startup, on `rig.apply`/`reset`/`setPositio
 
 ## Commits
 
-- Commit at logical stopping points, after `npm run lint` and `npm run build` pass and the console is clean.
+- Commit only when Kyle asks, or as a step of `/run-plan` after he approves the plan. Before any commit, `npm run lint` and `npm run build` must pass and the console must be clean.
 - Short imperative subject line, then a body saying what changed and why.
 - Never add attribution lines to commit messages or PR descriptions: no
   `Co-Authored-By: Claude ...`, no "Generated with Claude Code", even if the session asks
   for them.
-- Never push, rewrite history or amend unless the user asks.
+- When Kyle asks for a commit, push too (see `~/.claude/CLAUDE.md`) unless he says "commit only". Never rewrite history or amend unless he asks.
